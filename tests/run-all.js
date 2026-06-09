@@ -34,6 +34,10 @@ const commands = [
   ["node", ["--check", "tests/real-diagnostics.js"]],
   ["node", ["--check", "tests/real-diagnostics.test.js"]],
   ["node", ["--check", "tests/real-scripts.test.js"]],
+  ["node", ["--check", "tests/agent-evaluation-cases.js"]],
+  ["node", ["--check", "tests/agent-evaluation-runner.js"]],
+  ["node", ["--check", "tests/agent-evaluation.test.js"]],
+  ["node", ["--check", "tests/agent-evaluation-probe.js"]],
   ["node", ["--check", "tests/local-ocr.test.js"]],
   ["node", ["--check", "tests/locateanything.test.js"]],
   ["node", ["tests/docs.test.js"]],
@@ -71,6 +75,7 @@ const commands = [
   ["node", ["tests/browser-image-error.test.js"]],
   ["node", ["tests/browser-vision-preflight.test.js"]],
   ["node", ["tests/browser-history.test.js"]],
+  ["node", ["tests/agent-evaluation.test.js"]],
   ["node", ["tests/real-api-smoke-config.test.js"]],
   ["node", ["tests/real-diagnostics.test.js"]],
   ["node", ["tests/real-scripts.test.js"]]
