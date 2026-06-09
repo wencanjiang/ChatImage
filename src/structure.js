@@ -17,7 +17,7 @@
     if (isRestGraphqlQuestion(question)) {
       return buildRestGraphqlFallbackSpec(question, rawAnswer);
     }
-    return buildTopicFallbackSpec(title, subject, question, rawAnswer, relationType);
+    return buildTopicFallbackSpec(subject || title, subject, question, rawAnswer, relationType);
   }
 
   function buildRestGraphqlFallbackSpec(question, rawAnswer) {
@@ -491,18 +491,21 @@
     if (modules.length < 3) return fallback;
     if (containsInternalProductLeak(value, question)) return fallback;
     const relationType = normalizeRelationType(value.relationType || fallback.relationType);
+    const language = normalizeLanguage(value.language || fallback.language || inferQuestionLanguage(question));
+    const visualMode = normalizeVisualMode(value.visualMode || fallback.visualMode || inferVisualMode(question));
     const visualComposition = normalizeVisualComposition(value.visualComposition, fallback.visualComposition, relationType);
     const auxiliaryModules = normalizeAuxiliaryModules(
       value.auxiliaryModules || value.auxModules || value.supportingModules,
       question,
       rawAnswer,
       relationType,
-      inferQuestionLanguage(question)
+      language,
+      visualMode
     );
     return {
       title: sanitizeVisualTitle(value.title, question, fallback.title),
-      language: normalizeLanguage(value.language || fallback.language || inferQuestionLanguage(question)),
-      visualMode: normalizeVisualMode(value.visualMode || fallback.visualMode || inferVisualMode(question)),
+      language,
+      visualMode,
       summary: String(value.summary || fallback.summary).slice(0, 80),
       relationType,
       visualComposition,
@@ -514,14 +517,14 @@
         detail: String(module.detail || module.imageText || "").slice(0, 1400),
         sourceExcerpt: String(module.sourceExcerpt || "").slice(0, 160),
         iconHint: String(module.iconHint || "idea"),
-        regionKind: normalizeRegionKind(module.regionKind || module.kind || "area"),
+        regionKind: inferRegionKind(module, visualMode),
         regionPrompt: String(module.regionPrompt || module.visualPrompt || module.title || "").slice(0, 180),
         priority: Number(module.priority || index + 1)
       }))
     };
   }
 
-  function normalizeAuxiliaryModules(value, question, rawAnswer, relationType, language) {
+  function normalizeAuxiliaryModules(value, question, rawAnswer, relationType, language, visualMode = "infographic") {
     const explicit = Array.isArray(value) ? value.slice(0, 4) : [];
     const source = explicit.length ? explicit : buildDefaultAuxiliaryModules(question, rawAnswer, relationType, language);
     return source
@@ -532,6 +535,8 @@
         detail: String(module.detail || module.imageText || "").slice(0, 1400),
         sourceExcerpt: String(module.sourceExcerpt || "").slice(0, 160),
         iconHint: String(module.iconHint || "summary"),
+        regionKind: inferRegionKind(module, visualMode),
+        regionPrompt: String(module.regionPrompt || module.visualPrompt || module.title || "").slice(0, 180),
         priority: Number(module.priority || 10 + index)
       }))
       .filter((module) => module.title && module.imageText && module.detail);
@@ -794,6 +799,63 @@
     return "area";
   }
 
+  function inferRegionKind(module, visualMode) {
+    const explicit = normalizeRegionKind(module && (module.regionKind || module.kind));
+    const mode = normalizeVisualMode(visualMode);
+    const titleText = [module && module.title, module && module.imageText]
+      .filter(Boolean)
+      .join("\n")
+      .toLowerCase();
+    const primaryText = [module && module.title, module && module.regionPrompt, module && module.imageText]
+      .filter(Boolean)
+      .join("\n")
+      .toLowerCase();
+    const text = [module && module.title, module && module.imageText, module && module.regionPrompt, module && module.detail]
+      .filter(Boolean)
+      .join("\n")
+      .toLowerCase();
+    if (mode === "map") {
+      const titleKind = inferMapRegionKindFromTitle(titleText);
+      if (titleKind !== "area") return titleKind;
+      const primaryKind = inferMapRegionKindFromText(primaryText);
+      if (primaryKind !== "area") return primaryKind;
+      const explicitKind = explicit !== "area" ? explicit : "area";
+      const detailKind = inferMapRegionKindFromText(text);
+      if (detailKind !== "area") return detailKind;
+      return explicitKind;
+    }
+    if (explicit !== "area") return explicit;
+    if (mode === "scene" || mode === "poster") {
+      if (/人|观众|居民|用户|person|people|visitor|resident/.test(text)) return "person";
+      if (/背景|天空|远景|background/.test(text)) return "background";
+      if (/前景|foreground/.test(text)) return "foreground";
+      if (/建筑|设备|展品|物体|object|building|device|exhibit/.test(text)) return "object";
+    }
+    return "area";
+  }
+
+  function inferMapRegionKindFromText(text) {
+    if (!text) return "area";
+    if (/湖面|水域|水面|湖区|water surface|lake surface/.test(text)) return "water";
+    if (/三潭|岛|洲|地标|landmark|island/.test(text)) return "landmark";
+    if (/塔|楼|亭|馆|寺|建筑|building|tower|temple|pavilion/.test(text)) return "building";
+    if (/山|峰|岭|荷|花|植物|林|岸|mountain|hill|lotus|plant|shore/.test(text)) return "mountain";
+    if (/堤|桥|路|路线|步道|街|巷|trail|route|road|bridge|causeway/.test(text)) return "route";
+    if (/湖|河|江|海|池|pond|lake|river|water/.test(text)) return "water";
+    return "area";
+  }
+
+  function inferMapRegionKindFromTitle(text) {
+    if (!text) return "area";
+    if (/湖面|水域|水面|湖区|water surface|lake surface/.test(text)) return "water";
+    if (/三潭|岛|洲|地标|landmark|island/.test(text)) return "landmark";
+    if (/塔|楼|亭|馆|寺|建筑|building|tower|temple|pavilion/.test(text)) return "building";
+    if (/堤|桥|路|路线|步道|街|巷|trail|route|road|bridge|causeway/.test(text)) return "route";
+    if (/山|峰|岭|荷|花|植物|林|岸|湿地|mountain|hill|lotus|plant|shore|wetland/.test(text)) return "mountain";
+    if (/湖面|水域|水面|湖区|湖|河|江|海|池|pond|lake|river|water/.test(text)) return "water";
+    return "area";
+  }
+
   function isMapQuestion(question) {
     return inferVisualMode(question) === "map";
   }
@@ -858,6 +920,7 @@
     normalizeLayoutVariant,
     normalizeRelationType,
     normalizeRegionKind,
+    inferRegionKind,
     normalizeVisualMode,
     normalizeVisualComposition,
     normalizeVisualSpec,

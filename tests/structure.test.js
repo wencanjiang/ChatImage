@@ -9,6 +9,7 @@ const {
   compactTitle,
   extractQuestionSubject,
   inferQuestionLanguage,
+  inferRegionKind,
   inferVisualMode,
   normalizeAnswerStructure,
   normalizeVisualMode,
@@ -23,6 +24,14 @@ function main() {
   assert.strictEqual(normalizeRelationType("FLOW"), "flow");
   assert.strictEqual(normalizeRelationType("unknown"), "hierarchy");
   assert.strictEqual(inferVisualMode("手绘地图，西湖，点击地理区域展示风貌"), "map");
+  assert.strictEqual(inferRegionKind({ title: "西湖水域" }, "map"), "water");
+  assert.strictEqual(inferRegionKind({ title: "白堤断桥" }, "map"), "route");
+  assert.strictEqual(inferRegionKind({ title: "雷峰塔" }, "map"), "building");
+  assert.strictEqual(inferRegionKind({ title: "三潭印月湖心岛", regionKind: "water" }, "map"), "landmark");
+  assert.strictEqual(inferRegionKind({ title: "西湖湖面与三岛", detail: "周边连接苏堤和白堤" }, "map"), "water");
+  assert.strictEqual(inferRegionKind({ title: "西湖十景核心地标", detail: "沿路线分布在湖区周边" }, "map"), "landmark");
+  assert.strictEqual(inferRegionKind({ title: "堤桥系统（苏堤与白堤）", regionPrompt: "两侧湖岸线与湖面" }, "map"), "route");
+  assert.strictEqual(inferRegionKind({ title: "湖心岛与三潭印月", regionPrompt: "周围开阔水面" }, "map"), "landmark");
   assert.strictEqual(normalizeVisualMode("poster"), "poster");
   assert.strictEqual(normalizeVisualMode("unknown"), "infographic");
 
@@ -104,6 +113,28 @@ function main() {
   assert.strictEqual(mapMock.modules.length, 6);
   assert.ok(mapMock.modules.every((module) => module.regionKind && module.regionPrompt));
   assert.match(mapMockText, /西湖水域|白堤断桥|苏堤春晓|三潭印月|雷峰塔/);
+
+  const normalizedMap = normalizeVisualSpec(
+    {
+      visualMode: "map",
+      title: "西湖地图",
+      summary: "西湖地理区域",
+      relationType: "hierarchy",
+      visualComposition: { compositionType: "hand-drawn-map", layoutVariant: "map" },
+      auxiliaryModules: [
+        { title: "西湖格局", imageText: "湖区整体", detail: "说明湖面与周边景点的整体关系" }
+      ],
+      modules: [
+        { title: "西湖水域", imageText: "湖面", detail: "说明湖面区域", sourceExcerpt: "湖面" },
+        { title: "白堤断桥", imageText: "长堤", detail: "说明路线区域", sourceExcerpt: "白堤" },
+        { title: "雷峰塔", imageText: "塔影", detail: "说明建筑区域", sourceExcerpt: "雷峰塔" }
+      ]
+    },
+    "手绘地图，西湖",
+    "西湖地图回答"
+  );
+  assert.deepStrictEqual(normalizedMap.modules.map((module) => module.regionKind), ["water", "route", "building"]);
+  assert.strictEqual(normalizedMap.auxiliaryModules[0].regionKind, "water");
 
   const leaked = normalizeVisualSpec(
     {

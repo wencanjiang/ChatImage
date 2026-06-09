@@ -40,6 +40,7 @@
     "test:browser-image-error": "node tests/browser-image-error.test.js",
     "test:browser-vision-preflight": "node tests/browser-vision-preflight.test.js",
     "test:browser-history": "node tests/browser-history.test.js",
+    "test:agent-eval": "node tests/agent-evaluation.test.js",
     "test:real-api-smoke-config": "node tests/real-api-smoke-config.test.js",
     "test:real-diagnostics": "node tests/real-diagnostics.test.js",
     "test:real-scripts": "node tests/real-scripts.test.js",
@@ -48,6 +49,7 @@
     "test:real-instance": "node tests/real-browser-instance.js",
     "probe:models": "node tests/model-probe.js",
     "probe:quality": "node tests/real-quality-samples.js",
-    "probe:image-quality": "node tests/real-image-quality-samples.js"
+    "probe:image-quality": "node tests/real-image-quality-samples.js",
+    "probe:agent-eval": "node tests/agent-evaluation-probe.js"
   }
 }
