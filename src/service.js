@@ -214,7 +214,9 @@
             moduleId: module.id,
             label: module.title,
             order: index + 1,
-            text: module.imageText
+            text: module.imageText,
+            regionKind: module.regionKind || "card",
+            regionPrompt: module.regionPrompt || module.title
           })),
           content: prompt
         });
@@ -318,6 +320,8 @@
             label: module.title,
             order: index + 1,
             text: module.imageText,
+            regionKind: module.regionKind || "card",
+            regionPrompt: module.regionPrompt || module.title,
             plannedBounds: findPlannedBounds(layout, module.id)
           })),
           content: prompt

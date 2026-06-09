@@ -29,6 +29,9 @@
   function renderSvg(spec, layout) {
     const width = layout.canvas.width;
     const height = layout.canvas.height;
+    if (String(spec.visualMode || "").toLowerCase() === "map") {
+      return renderMapSvg(spec, layout, width, height);
+    }
     const interactiveModules = layoutModel && typeof layoutModel.getInteractiveModules === "function"
       ? layoutModel.getInteractiveModules(spec)
       : spec.modules;
@@ -119,6 +122,46 @@
         ${renderConnectors(layout, width, height)}
         ${cards}
         <text x="${width - 114}" y="${height - 78}" text-anchor="end" font-size="20" fill="#9a9082">ChatImage LayoutSpec</text>
+      </svg>
+    `;
+  }
+
+  function renderMapSvg(spec, layout, width, height) {
+    const modules = layoutModel && typeof layoutModel.getInteractiveModules === "function"
+      ? layoutModel.getInteractiveModules(spec)
+      : spec.modules;
+    const moduleById = Object.fromEntries(modules.map((module) => [module.id, module]));
+    const moduleRegions = layout.regions.filter((item) => item.hotspotId);
+    const labelFor = (region) => {
+      const module = moduleById[region.hotspotId] || {};
+      const box = toPixels(region.bounds, width, height);
+      return `<text x="${box.x + box.width / 2}" y="${box.y + box.height / 2 + 8}" text-anchor="middle" font-size="26" font-weight="760" fill="#35504a">${escapeXml(module.title || "")}</text>`;
+    };
+    const labels = moduleRegions.map(labelFor).join("");
+    return `
+      <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+        <defs>
+          <filter id="paper-shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#4d3a26" flood-opacity="0.14"/>
+          </filter>
+        </defs>
+        <rect width="${width}" height="${height}" fill="#f5ead5"/>
+        <path d="M70 70 C260 30 380 105 520 74 C760 20 930 80 1110 56 C1280 36 1410 80 1530 62 L1548 832 C1340 872 1180 816 1010 850 C760 906 610 824 430 852 C260 880 150 836 62 858 Z" fill="#fff8e7" stroke="#c9b68c" stroke-width="3" filter="url(#paper-shadow)"/>
+        <path d="M465 250 C620 155 870 170 990 300 C1100 422 1032 593 850 626 C676 658 474 604 390 480 C320 375 350 302 465 250 Z" fill="#9ec8c4" stroke="#477f79" stroke-width="6" opacity="0.92"/>
+        <path d="M360 260 C520 230 640 226 810 250" fill="none" stroke="#927642" stroke-width="18" stroke-linecap="round" opacity="0.55"/>
+        <path d="M285 330 C320 430 302 526 278 640" fill="none" stroke="#8a7c48" stroke-width="18" stroke-linecap="round" opacity="0.55"/>
+        <ellipse cx="1140" cy="680" rx="105" ry="70" fill="#d7b46a" stroke="#8d6d2f" stroke-width="5"/>
+        <path d="M1120 626 L1168 626 L1155 540 L1132 540 Z" fill="#b85d45" stroke="#7f372a" stroke-width="4"/>
+        <ellipse cx="1180" cy="780" rx="160" ry="52" fill="#b7bf78" opacity="0.75"/>
+        <circle cx="1170" cy="760" r="12" fill="#cf6b8a"/><circle cx="1210" cy="782" r="10" fill="#cf6b8a"/><circle cx="1128" cy="788" r="9" fill="#cf6b8a"/>
+        <ellipse cx="1120" cy="250" rx="170" ry="58" fill="#b7c28c" opacity="0.82"/>
+        <path d="M1010 255 C1050 205 1100 198 1142 248 C1190 210 1250 218 1290 266" fill="none" stroke="#71815d" stroke-width="12" stroke-linecap="round" opacity="0.65"/>
+        <ellipse cx="750" cy="474" rx="80" ry="54" fill="#e5d8a2" stroke="#9c8551" stroke-width="4"/>
+        <circle cx="720" cy="455" r="8" fill="#8b6f36"/><circle cx="760" cy="447" r="8" fill="#8b6f36"/><circle cx="790" cy="476" r="8" fill="#8b6f36"/>
+        <path d="M450 690 C560 718 690 704 790 724" fill="none" stroke="#4f897e" stroke-width="4" opacity="0.5"/>
+        <text x="112" y="124" font-size="44" font-weight="820" fill="#44554d">${escapeXml(spec.title)}</text>
+        <text x="112" y="174" font-size="24" font-weight="540" fill="#6f715f">${escapeXml(spec.summary || "")}</text>
+        ${labels}
       </svg>
     `;
   }

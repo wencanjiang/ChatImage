@@ -352,9 +352,24 @@ def build_module_phrase(module, index):
     number = f"{order:02d}"
     planned = module.get("plannedBounds") or {}
     location_hint = build_location_hint(planned)
+    region_kind = sanitize_prompt_text(module.get("regionKind") or "card", max_chars=40)
+    region_prompt = sanitize_prompt_text(module.get("regionPrompt") or "", max_chars=220)
+    label = sanitize_prompt_text(module.get("label") or "", max_chars=80)
+    text = sanitize_prompt_text(module.get("text") or "", max_chars=100)
+    if region_prompt and region_kind != "card":
+        return sanitize_prompt_text(
+            (
+                f"complete semantic {region_kind} region: {region_prompt}. "
+                f"Include the whole visible footprint, not just label text or a small icon. {location_hint}"
+            ),
+            max_chars=300,
+        )
     return sanitize_prompt_text(
-        f"full infographic card marked {number}; complete card boundary, not just the number. {location_hint}",
-        max_chars=180,
+        (
+            f"full infographic card or separated visual region marked {number}; "
+            f"label: {label}; text: {text}; complete boundary, not just the number or title. {location_hint}"
+        ),
+        max_chars=260,
     )
 
 

@@ -11,11 +11,13 @@ const {
   createCompareSplitRegions,
   createGridRegions,
   createLayout,
+  createMapRegions,
   createTimelineRegions,
   deriveHotspots,
   estimateRegionTextBudget,
   getInteractiveModules,
   getLayoutVariant,
+  getVisualMode,
   truncateText,
   truncateVisibleText
 } = require("../src/layout");
@@ -196,6 +198,37 @@ function main() {
     asymLayout.regions.filter((region) => region.role === "module").map((region) => region.bounds),
     asymRegions.map((region) => region.bounds)
   );
+
+  const mapSpec = createSpec("hierarchy", 6);
+  mapSpec.visualMode = "map";
+  mapSpec.title = "西湖手绘游览地图";
+  mapSpec.visualComposition = {
+    compositionType: "hand-drawn-map",
+    layoutVariant: "map",
+    visualFocus: "西湖水面与环湖地标",
+    primaryModules: ["module_1", "module_2"],
+    secondaryModules: ["module_3", "module_4", "module_5", "module_6"],
+    densityStrategy: "用地理区域、路线、地标和自然风貌组织画面"
+  };
+  mapSpec.modules = mapSpec.modules.map((module, index) => ({
+    ...module,
+    regionKind: index === 0 ? "water" : index === 1 ? "route" : "landmark",
+    regionPrompt: `完整地图语义区域 ${index + 1}`
+  }));
+  const mapLayout = createLayout(mapSpec, { uid });
+  assert.strictEqual(getVisualMode(mapSpec), "map");
+  assert.strictEqual(getLayoutVariant(mapSpec, "grid"), "map");
+  assert.strictEqual(mapLayout.layoutVariant, "map");
+  assert.deepStrictEqual(
+    mapLayout.regions.filter((region) => region.role === "module").map((region) => region.bounds),
+    createMapRegions(mapSpec.modules).map((region) => region.bounds)
+  );
+  const mapPrompt = buildStyleImagePrompt(mapSpec, mapLayout);
+  assert.match(mapPrompt, /hand-drawn illustrated map/);
+  assert.match(mapPrompt, /Target semantic regions/);
+  assert.match(mapPrompt, /regionPrompt/);
+  assert.match(mapPrompt, /Every semantic region/);
+  assert.doesNotMatch(mapPrompt, /OCR-readable/);
 
   assert.throws(
     () => deriveHotspots(spec.modules, { regions: [] }),

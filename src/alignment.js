@@ -24,10 +24,18 @@
         label: module.title,
         order: index + 1,
         text: module.imageText,
+        regionKind: module.regionKind || "card",
+        regionPrompt: module.regionPrompt || module.title,
         plannedBounds: region ? region.bounds : null
       };
     });
+    const visualMode = String((spec && spec.visualMode) || "infographic").toLowerCase();
+    const modeInstruction =
+      visualMode === "infographic"
+        ? "This image is an infographic. Locate the complete card or panel boundary for each module. Do not return only the title, icon, number, or a small text cluster."
+        : "This image is a semantic visual work, not a card-only infographic. Locate the complete visible region/object/route/landmark described by regionPrompt, even if it has no number. Prefer the full semantic footprint over local OCR text.";
     return [
+      modeInstruction,
       "你是 ChatImage 的视觉对齐助手。请观察图片，找出每个信息图模块卡片的真实边界框。",
       "只返回 JSON，不要解释，不要使用 Markdown。",
       "bounds 使用 0~1 归一化坐标，相对于整张图片左上角。",

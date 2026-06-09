@@ -9,7 +9,9 @@ const {
   compactTitle,
   extractQuestionSubject,
   inferQuestionLanguage,
+  inferVisualMode,
   normalizeAnswerStructure,
+  normalizeVisualMode,
   normalizeRelationType,
   normalizeVisualSpec,
   parseJsonFromText
@@ -20,6 +22,9 @@ function main() {
   assert.strictEqual(compactTitle(""), "ChatImage 结构图");
   assert.strictEqual(normalizeRelationType("FLOW"), "flow");
   assert.strictEqual(normalizeRelationType("unknown"), "hierarchy");
+  assert.strictEqual(inferVisualMode("手绘地图，西湖，点击地理区域展示风貌"), "map");
+  assert.strictEqual(normalizeVisualMode("poster"), "poster");
+  assert.strictEqual(normalizeVisualMode("unknown"), "infographic");
 
   const parsed = parseJsonFromText('```json\n{"title":"测试","modules":[1,2,3]}\n```');
   assert.strictEqual(parsed.title, "测试");
@@ -92,6 +97,14 @@ function main() {
   assert.doesNotMatch(restMockText, /背景基础|当前现状|核心驱动|未来趋势/);
   assert.deepStrictEqual(assessAnswerStructureQuality({ rawAnswer: restMock.modules.map((item) => item.detail).join(""), visualSpec: restMock }, restMock.title), []);
 
+  const mapMock = buildMockSpec("手绘地图，西湖，画在一张图上，点击交互地理区域呈现地理风貌", "西湖导览".repeat(40));
+  const mapMockText = JSON.stringify(mapMock);
+  assert.strictEqual(mapMock.visualMode, "map");
+  assert.strictEqual(mapMock.visualComposition.layoutVariant, "map");
+  assert.strictEqual(mapMock.modules.length, 6);
+  assert.ok(mapMock.modules.every((module) => module.regionKind && module.regionPrompt));
+  assert.match(mapMockText, /西湖水域|白堤断桥|苏堤春晓|三潭印月|雷峰塔/);
+
   const leaked = normalizeVisualSpec(
     {
       title: "\u5185\u90e8\u6d41\u7a0b",
@@ -134,6 +147,10 @@ function main() {
   assert.match(combinedPrompt, /moduleCountReason/);
   assert.match(combinedPrompt, /auxiliaryModules/);
   assert.match(combinedPrompt, /unnumbered/);
+  assert.match(combinedPrompt, /visualMode/);
+  assert.match(combinedPrompt, /regionPrompt/);
+  assert.match(combinedPrompt, /hand-drawn maps/);
+  assert.match(combinedPrompt, /grid, or map/);
   assert.match(combinedPrompt, /resource model/);
   assert.match(combinedPrompt, /User question: ChatImage value/);
 

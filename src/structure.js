@@ -11,6 +11,9 @@
     const relationType = core.inferRelationType(question);
     const title = compactTitle(question);
     const subject = compactTitle(extractQuestionSubject(question));
+    if (isMapQuestion(question)) {
+      return buildMapFallbackSpec(question, rawAnswer);
+    }
     if (isRestGraphqlQuestion(question)) {
       return buildRestGraphqlFallbackSpec(question, rawAnswer);
     }
@@ -22,6 +25,7 @@
     return {
       title: "REST 与 GraphQL 对比",
       language: inferQuestionLanguage(question),
+      visualMode: "infographic",
       summary: "两者差异集中在资源建模、查询粒度、缓存治理、契约演进和适用场景。",
       relationType: "compare",
       visualComposition: {
@@ -88,6 +92,106 @@
     };
   }
 
+  function buildMapFallbackSpec(question, rawAnswer) {
+    const source = String(rawAnswer || question || "");
+    const westLake = /西湖|west lake/i.test(String(question || ""));
+    const subject = compactTitle(extractQuestionSubject(question));
+    return {
+      title: westLake ? "西湖手绘游览地图" : `${subject}手绘地图`,
+      language: inferQuestionLanguage(question),
+      visualMode: "map",
+      summary: westLake
+        ? "以西湖水面为中心，串联堤桥、岛屿、塔影、荷区和山景，形成可点击的手绘地理导览。"
+        : "以手绘地图方式呈现地理区域、路径、地标和自然风貌，点击区域后查看具体讲解。",
+      relationType: "hierarchy",
+      visualComposition: {
+        compositionType: "hand-drawn-map",
+        layoutVariant: "map",
+        visualFocus: westLake ? "西湖水面与环湖地标" : "地图中心地理对象与周边区域",
+        primaryModules: ["module_1", "module_2", "module_3"],
+        secondaryModules: ["module_4", "module_5", "module_6"],
+        densityStrategy: "用水域、堤岸、岛屿、塔影、山体和游线组织画面，避免流程图卡片和编号模块。",
+        moduleCountReason: "地图需要覆盖中心水域、线性游线、标志性建筑、岛屿和周边自然风貌。"
+      },
+      auxiliaryModules: [],
+      modules: [
+        {
+          id: "module_1",
+          title: westLake ? "西湖水域" : "中心水域",
+          imageText: "湖面、游船、倒影",
+          detail: westLake
+            ? "西湖水域是整张地图的视觉中心，应画出开阔湖面、游船、水波和远山倒影。点击这里时，详情应讲清它如何把白堤、苏堤、湖心岛和南岸塔影联系起来：水面不是空白背景，而是西湖空间感、季节气息和游览路线的核心。"
+            : "这个区域在手绘地图中应以地理风貌和游览体验为核心，而不是做成信息图卡片。点击后需要说明它在画面中的位置、周边关系、典型景观、文化气质和适合观察的细节。",
+          sourceExcerpt: source.slice(0, 140),
+          iconHint: "data",
+          regionKind: "water",
+          regionPrompt: westLake ? "西湖中央大面积湖水区域，包含湖面、游船、水波和倒影" : "地图中央水域或主要自然区域",
+          priority: 1
+        },
+        {
+          id: "module_2",
+          title: "白堤断桥",
+          imageText: "北岸长堤与桥",
+          detail:
+            "白堤和断桥适合作为北岸横向游线来画，能提供清晰的方向感。断桥不是单独图标，而应与堤岸、柳树、湖面边界连在一起。点击后可以说明它在西湖北侧的位置、与孤山和湖面视线的关系，以及为什么常被用来代表西湖的诗意入口。",
+          sourceExcerpt: source.slice(140, 280),
+          iconHint: "route",
+          regionKind: "route",
+          regionPrompt: "西湖北侧的白堤和断桥，长堤、桥、柳树、湖岸线组成的线性区域",
+          priority: 2
+        },
+        {
+          id: "module_3",
+          title: "苏堤春晓",
+          imageText: "纵贯湖面的堤路",
+          detail:
+            "苏堤应像一条纵向的绿色脊线穿过湖面，两侧有水面、拱桥、垂柳和步行游线。点击此区域时，详情应讲它如何把西湖南北两端串联起来，以及春日柳色、桥影和湖风如何构成典型的西湖游览体验。",
+          sourceExcerpt: source.slice(280, 420),
+          iconHint: "timeline",
+          regionKind: "route",
+          regionPrompt: "纵贯西湖的苏堤，堤路、桥、柳树和两侧湖水形成的长条区域",
+          priority: 3
+        },
+        {
+          id: "module_4",
+          title: "三潭印月",
+          imageText: "湖心岛与石塔",
+          detail:
+            "三潭印月应位于湖心附近，以小岛、水中石塔和环形游线表达。它适合承担地图中的精致焦点：面积不必最大，但要清楚可辨。点击后可以解释石塔、月影、水面和岛屿之间的关系，以及它为什么适合用局部放大的方式讲述。",
+          sourceExcerpt: source.slice(420, 560),
+          iconHint: "target",
+          regionKind: "landmark",
+          regionPrompt: "西湖湖心附近的三潭印月，小岛、三座石塔和周围水面",
+          priority: 4
+        },
+        {
+          id: "module_5",
+          title: "雷峰塔",
+          imageText: "南岸塔影与山色",
+          detail:
+            "雷峰塔适合画在西湖南岸偏高处，与山体、夕照和湖面倒影形成垂直视觉锚点。点击后应说明它不是普通建筑标记，而是南岸天际线、历史传说和远眺视角的集中表达，也能帮助用户理解湖面南北方向。",
+          sourceExcerpt: source.slice(560, 700),
+          iconHint: "idea",
+          regionKind: "building",
+          regionPrompt: "西湖南岸的雷峰塔，塔身、山坡、夕照和湖面倒影组成的区域",
+          priority: 5
+        },
+        {
+          id: "module_6",
+          title: "荷区山景",
+          imageText: "荷叶、远山、岸线",
+          detail:
+            "荷区和远山是让地图像一幅画的关键层次。它们不一定是单一景点，却能提供季节、前景和背景：近处荷叶让湖岸有细节，远处山体让画面有纵深。点击后应讲这些自然元素如何衬托主要地标，并提示后续可升级为更精细的 mask 区域。",
+          sourceExcerpt: source.slice(700, 860),
+          iconHint: "summary",
+          regionKind: "mountain",
+          regionPrompt: "西湖周边荷花区、湖岸植物、远山背景和自然风貌区域",
+          priority: 6
+        }
+      ]
+    };
+  }
+
   function buildTopicFallbackSpec(title, subject, question, rawAnswer, relationType) {
     const source = String(rawAnswer || question || "");
     const development = subject.endsWith("\u53d1\u5c55") ? subject : `${subject}\u7684\u53d1\u5c55`;
@@ -95,6 +199,7 @@
     return {
       title,
       language: inferQuestionLanguage(question),
+      visualMode: "infographic",
       summary: `${subject}\u53ef\u6309 ${targetModuleCount} \u4e2a\u6838\u5fc3\u89c6\u89d2\u7ec4\u7ec7\uff0c\u628a\u6982\u5ff5\u3001\u673a\u5236\u548c\u5224\u65ad\u8981\u70b9\u538b\u7f29\u6210\u53ef\u4e92\u52a8\u7684\u89c6\u89c9\u6a21\u5757\u3002`,
       relationType,
       visualComposition: {
@@ -261,7 +366,11 @@
       "只返回 JSON，不要返回 Markdown，不要代码块。",
       "JSON 格式：",
       '{"title":"不超过18个中文字符","summary":"一句话摘要","relationType":"parallel|flow|compare|hierarchy|timeline|matrix","visualComposition":{"compositionType":"grid|swimlane-flow|hub-spoke|matrix|timeline|layered-cards|annotated-clusters","visualFocus":"整张图的视觉焦点","primaryModules":["module_1"],"secondaryModules":["module_2"],"densityStrategy":"如何避免模板感并提升信息密度","moduleCountReason":"为什么选择当前模块数"},"modules":[{"id":"module_1","title":"短标题","imageText":"不超过28个中文字符","detail":"点击后展示的详细说明","sourceExcerpt":"原文相关片段","iconHint":"target|nodes|layout|image|thread|idea|risk|step","priority":1}],"auxiliaryModules":[{"title":"未编号区域","imageText":"短辅助说明","detail":"点击后展示的辅助区域说明","sourceExcerpt":"原文相关片段","iconHint":"user|source|data|tool|summary|risk","priority":10}]}',
+      "补充字段：visualMode 可为 infographic|map|poster|scene；visualComposition.compositionType 可使用 hand-drawn-map、editorial-poster、illustrated-scene；每个 module 可提供 regionKind 与 regionPrompt，用于描述完整可点击语义区域。",
       "约束：",
+      "- visualMode 默认 infographic。用户要求手绘地图、旅游地图、地理区域、景区导览、路线图、可点击地理区域时使用 map；要求海报感时使用 poster；要求像一幅画、插画场景时使用 scene。",
+      "- map/poster/scene 下，modules 表示可点击的语义区域、路线、地标、对象或人物，不一定是编号卡片；regionPrompt 必须描述完整视觉区域，不要只写标题文字。",
+      "- map/poster/scene 下不要强行画成流程图、大卡片、箭头或编号 GUI 模块，除非用户明确要求信息图。",
       "- modules 数量必须自适应，允许 3 到 6 个主模块；不要固定 5 个。",
       "- 模块数选择规则：简单定义/单点解释用 3 个；标准概念或短流程用 4 个；多维对比、复杂流程、产业/战略/系统分析用 5 个；信息很密或需要覆盖多个子系统时才用 6 个。",
       "- 用尽量少但足够完整的模块承载信息；不要为了凑数拆出空泛的背景/现状/趋势模板。",
@@ -283,17 +392,21 @@
       "You are ChatImage's answer-and-structure engine.",
       "Do not write analysis, reasoning steps, planning notes, or explanations outside the final JSON.",
       "Think internally only if needed, then output the final JSON immediately.",
-      "Answer the user's question first, then convert the answer into a visual spec for an interactive infographic.",
+      "Answer the user's question first, then convert the answer into a visual spec for an interactive visual work.",
       "Return JSON only. Do not return Markdown. Do not wrap the JSON in a code block.",
       "Return one compact JSON object. Escape line breaks inside JSON strings as \\n. Do not use unescaped quotes inside string values.",
       "JSON shape:",
       '{"rawAnswer":"complete answer text for the user","visualSpec":{"language":"same language as the user question, e.g. zh-CN or en","title":"short title","summary":"one sentence summary","relationType":"parallel|flow|compare|hierarchy|timeline|matrix","visualComposition":{"compositionType":"grid|swimlane-flow|hub-spoke|matrix|timeline|layered-cards|annotated-clusters","visualFocus":"main visual focus","primaryModules":["module_1"],"secondaryModules":["module_2"],"densityStrategy":"how to increase information hierarchy and avoid template-like design","moduleCountReason":"why this module count is appropriate"},"modules":[{"title":"short module title","imageText":"very short card text","detail":"detail shown after hotspot click","sourceExcerpt":"related excerpt from rawAnswer","iconHint":"target|nodes|layout|image|thread|idea|risk|step","priority":1}],"auxiliaryModules":[{"title":"unnumbered panel title","imageText":"short helper text","detail":"detail shown after hotspot click","sourceExcerpt":"related excerpt from rawAnswer","iconHint":"user|source|data|tool|summary|risk","priority":10}]}}',
+      "Additional schema fields: visualSpec.visualMode is infographic|map|poster|scene. visualSpec.visualComposition.compositionType may also be hand-drawn-map, editorial-poster, or illustrated-scene. Each module may include regionKind and regionPrompt.",
       "Constraints:",
       "- rawAnswer, visualSpec.title, summary, modules.title, imageText, detail, and sourceExcerpt must use the same language as the user's question.",
       "- If the user asks in Chinese, use Chinese in the image. If the user asks in English, use English in the image.",
       "- rawAnswer must be fact-focused, clear, and complete enough for follow-up questions. For explanatory or analytical questions, provide enough substance: definitions, mechanism, sequence, tradeoffs, examples, and caveats where relevant.",
       "- Unless the user explicitly asks about ChatImage itself, never mention ChatImage internals, image generation APIs, LayoutSpec, hotspots, transparent layers, prompt engineering, or follow-up branch mechanics in rawAnswer or visualSpec.",
       "- The answer must directly address the user's subject matter, not describe how this product processes answers.",
+      "- visualSpec.visualMode defaults to infographic. Use map for hand-drawn maps, tourist maps, geography, scenic guides, route maps, and clickable geographic regions. Use poster for poster-like visual works and scene for painterly/illustrated scenes.",
+      "- For map/poster/scene, modules should be semantic clickable regions or objects, not necessarily GUI cards. Provide regionKind and regionPrompt for every module so a vision locator can identify the full region.",
+      "- For map/poster/scene, avoid flowchart/card-number language. The image can use short labels, but it must not draw the raw user question as the title.",
       "- visualSpec.modules must use an adaptive count from 3 to 6 main modules. Do not default to 5.",
       "- Module count guide: use 3 for simple definitions or single-focus explanations; 4 for standard concepts or compact processes; 5 for multi-dimensional comparisons, complex workflows, industry/strategy/system analysis; use 6 only for dense answers that truly need more coverage.",
       "- Choose the smallest module count that preserves the answer's real structure. Do not invent filler modules, and do not split content into generic background/current state/drivers/challenges/trends just to reach 5.",
@@ -308,7 +421,7 @@
       "- visualSpec.visualComposition must make a concrete composition decision before image generation. It should name the composition type, layoutVariant, visual focus, primary/secondary modules, and density strategy. Do not merely repeat relationType.",
       "- visualSpec.auxiliaryModules may contain 0 to 4 unnumbered but clickable regions when the image should include clearly separated panels beyond the numbered main cards, such as input/environment, external tools, status legend, key mechanism, notes, or source context.",
       "- auxiliaryModules must be semantic and useful for follow-up. Do not duplicate the main modules, and do not use 01/02 style numbers in their title or imageText.",
-      "- layoutVariant must be one of compare-matrix, compare-split, asymmetric-focus-stack, swimlane-flow, timeline, or grid.",
+      "- layoutVariant must be one of compare-matrix, compare-split, asymmetric-focus-stack, swimlane-flow, timeline, grid, or map.",
       "- For REST vs GraphQL or API comparison questions, use real comparison dimensions such as resource model, query granularity, caching/performance, Schema/version evolution, and suitable scenarios. Do not use a generic background/current state/drivers/challenges/trends framework.",
       "- Do not invent facts that are not present in rawAnswer.",
       `User question: ${question}`
@@ -389,6 +502,7 @@
     return {
       title: sanitizeVisualTitle(value.title, question, fallback.title),
       language: normalizeLanguage(value.language || fallback.language || inferQuestionLanguage(question)),
+      visualMode: normalizeVisualMode(value.visualMode || fallback.visualMode || inferVisualMode(question)),
       summary: String(value.summary || fallback.summary).slice(0, 80),
       relationType,
       visualComposition,
@@ -400,6 +514,8 @@
         detail: String(module.detail || module.imageText || "").slice(0, 1400),
         sourceExcerpt: String(module.sourceExcerpt || "").slice(0, 160),
         iconHint: String(module.iconHint || "idea"),
+        regionKind: normalizeRegionKind(module.regionKind || module.kind || "area"),
+        regionPrompt: String(module.regionPrompt || module.visualPrompt || module.title || "").slice(0, 180),
         priority: Number(module.priority || index + 1)
       }))
     };
@@ -517,7 +633,7 @@
 
   function normalizeLayoutVariant(value, relationType, compositionType) {
     const source = String(value || "").trim().toLowerCase();
-    const allowed = ["compare-matrix", "compare-split", "asymmetric-focus-stack", "swimlane-flow", "timeline", "grid"];
+    const allowed = ["compare-matrix", "compare-split", "asymmetric-focus-stack", "swimlane-flow", "timeline", "grid", "map"];
     if (allowed.includes(source)) return source;
     return inferDefaultLayoutVariant(relationType, compositionType);
   }
@@ -525,6 +641,7 @@
   function inferDefaultLayoutVariant(relationType, compositionType) {
     const relation = String(relationType || "").toLowerCase();
     const composition = String(compositionType || "").toLowerCase();
+    if (composition.includes("map")) return "map";
     if (relation === "compare" || relation === "matrix" || composition.includes("matrix")) return "compare-matrix";
     if (relation === "flow" || composition.includes("flow")) return "swimlane-flow";
     if (relation === "timeline" || composition.includes("timeline")) return "timeline";
@@ -588,7 +705,8 @@
       "- module.detail should be useful for a click detail panel and should explain mechanism, impact, and boundary or example.",
       "- visualSpec.modules must use an adaptive count from 3 to 6. Choose the smallest count that preserves the answer structure; do not force exactly 5 modules.",
       "- visualComposition.moduleCountReason should briefly explain the chosen module count.",
-      "- visualComposition.layoutVariant must be one of compare-matrix, compare-split, asymmetric-focus-stack, swimlane-flow, timeline, or grid.",
+      "- visualComposition.layoutVariant must be one of compare-matrix, compare-split, asymmetric-focus-stack, swimlane-flow, timeline, grid, or map.",
+      "- Preserve visualMode, regionKind, and regionPrompt when they are present. For map/poster/scene, repair them instead of dropping them.",
       "- For REST vs GraphQL, use concrete comparison dimensions: resource model, query granularity, caching/performance, Schema/version evolution, and suitable scenarios.",
       `User question: ${question}`,
       "Current JSON:",
@@ -627,6 +745,57 @@
     if (/chatimage/i.test(String(question || ""))) return false;
     const text = JSON.stringify(value || "");
     return /ChatImage|LayoutSpec|hotspot|prompt|imageProvider|\u751f\u56fe\u63a5\u53e3|\u70ed\u70b9|\u900f\u660e\u5c42|\u533a\u57df\u8ffd\u95ee|\u5e03\u5c40\u89c4\u5212|\u7ed3\u6784\u5316\u9636\u6bb5/.test(text);
+  }
+
+  function inferVisualMode(question) {
+    const text = String(question || "").toLowerCase();
+    const mapKeywords = [
+      "\u5730\u56fe",
+      "\u624b\u7ed8\u5730\u56fe",
+      "\u897f\u6e56",
+      "\u666f\u533a",
+      "\u5730\u7406",
+      "\u8def\u7ebf",
+      "\u6e38\u89c8",
+      "\u5bfc\u89c8",
+      "\u5730\u6807"
+    ];
+    if (/hand[-\s]?drawn map|tourist map|route map|map\b|atlas|geographic/.test(text) || mapKeywords.some((keyword) => text.includes(keyword))) {
+      return "map";
+    }
+    if (/poster|one[-\s]?sheet|\u6d77\u62a5|\u5c55\u677f|\u4e3b\u89c6\u89c9/.test(text)) return "poster";
+    if (/scene|illustration|\u573a\u666f|\u63d2\u753b|\u4e00\u5e45\u753b|\u50cf\u4e00\u5e45\u753b/.test(text)) return "scene";
+    return "infographic";
+  }
+
+  function normalizeVisualMode(value) {
+    const source = String(value || "").trim().toLowerCase();
+    if (["infographic", "map", "poster", "scene"].includes(source)) return source;
+    return "infographic";
+  }
+
+  function normalizeRegionKind(value) {
+    const source = String(value || "").trim().toLowerCase();
+    const allowed = [
+      "area",
+      "card",
+      "water",
+      "route",
+      "landmark",
+      "building",
+      "mountain",
+      "object",
+      "person",
+      "background",
+      "foreground",
+      "panel"
+    ];
+    if (allowed.includes(source)) return source;
+    return "area";
+  }
+
+  function isMapQuestion(question) {
+    return inferVisualMode(question) === "map";
   }
 
   function isRestGraphqlQuestion(question) {
@@ -683,10 +852,13 @@
     compactTitle,
     extractQuestionSubject,
     inferQuestionLanguage,
+    inferVisualMode,
     normalizeAnswerStructure,
     normalizeLanguage,
     normalizeLayoutVariant,
     normalizeRelationType,
+    normalizeRegionKind,
+    normalizeVisualMode,
     normalizeVisualComposition,
     normalizeVisualSpec,
     parseJsonFromText
