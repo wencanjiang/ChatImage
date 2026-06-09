@@ -1,0 +1,48 @@
+[
+  {
+    "id": "agent_workflow",
+    "question": "解释一下大模型 Agent 的工作流程，重点说明感知、规划、记忆、工具调用和反馈迭代之间的关系。",
+    "acceptedRelationTypes": ["flow", "hierarchy"],
+    "minModules": 5,
+    "maxModules": 6,
+    "requiredKeywords": ["感知", "规划", "记忆", "工具", "反馈"],
+    "expectedCompositionKeywords": ["流程", "闭环", "路径", "泳道"]
+  },
+  {
+    "id": "rest_graphql_compare",
+    "question": "对比 REST 和 GraphQL 的设计差异、优缺点和适用场景。",
+    "acceptedRelationTypes": ["compare", "matrix"],
+    "minModules": 5,
+    "maxModules": 6,
+    "requiredKeywords": ["REST", "GraphQL", "缓存"],
+    "requiredKeywordGroups": [["Schema", "schema", "类型系统", "数据契约", "模式"]],
+    "expectedCompositionKeywords": ["对比", "矩阵", "双栏"]
+  },
+  {
+    "id": "http_render_timeline",
+    "question": "梳理一次 HTTP 请求从输入网址到页面渲染的完整过程。",
+    "acceptedRelationTypes": ["flow", "timeline"],
+    "minModules": 5,
+    "maxModules": 6,
+    "requiredKeywords": ["DNS", "TCP", "TLS", "DOM", "渲染"],
+    "expectedCompositionKeywords": ["时间线", "流程", "链路"]
+  },
+  {
+    "id": "product_growth_metrics",
+    "question": "为一个 SaaS 产品设计增长指标体系，说明北极星指标、激活、留存、转化和收入指标如何联动。",
+    "acceptedRelationTypes": ["hierarchy", "matrix", "flow"],
+    "minModules": 5,
+    "maxModules": 6,
+    "requiredKeywords": ["北极星", "激活", "留存", "转化", "收入"],
+    "expectedCompositionKeywords": ["层级", "漏斗", "矩阵", "hub-spoke", "中心", "闭环"]
+  },
+  {
+    "id": "tcp_failure_diagnosis",
+    "question": "分析 TCP 连接失败的常见原因和排查路径，覆盖 DNS、三次握手、端口、防火墙、超时和服务端状态。",
+    "acceptedRelationTypes": ["flow", "hierarchy", "timeline"],
+    "minModules": 5,
+    "maxModules": 6,
+    "requiredKeywords": ["DNS", "三次握手", "端口", "防火墙", "超时"],
+    "expectedCompositionKeywords": ["排查", "路径", "流程"]
+  }
+]

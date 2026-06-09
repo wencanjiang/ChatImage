@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ChatImage</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="history-panel app-sidebar" id="historyPanel" aria-label="ChatImage 侧边栏">
+        <div class="sidebar-head">
+          <div class="sidebar-brand-mark" aria-hidden="true">CI</div>
+          <button class="sidebar-collapse" id="sidebarCollapseButton" type="button" aria-label="收起侧边栏" title="收起侧边栏" aria-expanded="true">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+              <path d="M8 5h11v14H8M5 9l-3 3 3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="主要导航">
+          <button class="sidebar-nav-item is-primary" id="newConversationButton" type="button" aria-label="新聊天" title="新聊天">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+              <path d="M5 12h14M12 5v14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            <span>新聊天</span>
+          </button>
+          <button class="sidebar-nav-item" id="historySearchToggle" type="button" aria-label="搜索聊天" title="搜索聊天" aria-expanded="false" aria-controls="historySearchWrap">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.9" />
+              <path d="M16.5 16.5 21 21" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" />
+            </svg>
+            <span>搜索聊天</span>
+          </button>
+        </nav>
+
+        <div class="history-search" id="historySearchWrap" hidden>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.9" />
+            <path d="M16.5 16.5 21 21" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" />
+          </svg>
+          <input id="historySearchInput" type="search" placeholder="搜索最近对话" autocomplete="off" />
+          <button class="history-search-clear" id="historySearchClear" type="button" aria-label="清空搜索" title="清空搜索" hidden>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+              <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="history-title">最近</div>
+          <div class="history-list" id="historyList"></div>
+        </div>
+      </aside>
+
+      <div class="chat-shell">
+        <header class="topbar">
+          <button class="chat-title-button" type="button" aria-label="当前应用">
+            <span>ChatImage</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+              <path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <div class="topbar-actions">
+            <div class="status-pill" id="statusPill">Mock API</div>
+            <button class="topbar-icon-button" id="shareButton" type="button" aria-label="分享" title="分享">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+                <path d="M12 4v10M8 8l4-4 4 4M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <main class="workspace">
+          <section class="main-panel" aria-label="ChatImage 工作台">
+            <form class="composer" id="questionForm">
+              <label for="questionInput">输入问题</label>
+              <div class="attachment-list" id="attachmentList" aria-live="polite"></div>
+              <div class="composer-field">
+                <button class="icon-button add-button" id="attachButton" type="button" aria-label="上传文件" title="上传文件">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+                    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </button>
+                <input id="fileInput" type="file" multiple hidden />
+                <textarea id="questionInput" rows="1" placeholder="有问题，尽管问。也可以拖入文件"></textarea>
+                <button class="send-button" id="generateButton" type="submit" aria-label="生成" title="生成：Enter 发送，Shift+Enter 换行" disabled>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+                    <path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            </form>
+
+            <div class="progress" id="progress" hidden>
+              <div class="progress-step" data-step="answering">生成文本回答</div>
+              <div class="progress-step" data-step="structuring">结构化解析</div>
+              <div class="progress-step" data-step="layout">规划布局和热点</div>
+              <div class="progress-step" data-step="image">生成图片</div>
+              <div class="progress-step" data-step="align">视觉对齐热点</div>
+            </div>
+
+            <section class="history-panel legacy-history-panel" hidden>
+              <div class="history-title">最近</div>
+              <div class="history-list"></div>
+            </section>
+
+            <section class="result-area" id="resultArea">
+              <div class="empty-state">
+                <h1>从一个问题开始</h1>
+                <p>ChatImage 会先生成完整回答，再把内容整理成可点击、可追问的结构化图片。</p>
+                <div class="example-caption">试试这些示例</div>
+                <div class="example-prompts" id="examplePrompts">
+                  <button class="example-prompt" type="button" data-example="请解释一下大模型 Agent 的工作流程">解释大模型 Agent 的工作流程</button>
+                  <button class="example-prompt" type="button" data-example="对比 REST 和 GraphQL 的设计差异、优缺点和适用场景">对比 REST 与 GraphQL</button>
+                  <button class="example-prompt" type="button" data-example="梳理一次 HTTP 请求从输入网址到页面渲染的完整过程">从输入网址到页面渲染</button>
+                  <button class="example-prompt" type="button" data-example="总结 Transformer 的核心结构和注意力机制">总结 Transformer 核心结构</button>
+                </div>
+              </div>
+            </section>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <aside class="detail-panel" id="detailPanel" aria-label="区域详情" tabindex="-1" hidden>
+      <div class="detail-empty">
+        <h2>区域详情</h2>
+        <p>点击图片中的模块后，这里会显示该区域的详情和独立追问分支。</p>
+      </div>
+    </aside>
+
+    <div class="modal" id="imageModal" hidden>
+      <div class="modal-backdrop" data-close-modal></div>
+      <div class="modal-content" role="dialog" aria-modal="true" aria-label="大图查看">
+        <div class="modal-toolbar">
+          <div id="modalTitle">大图查看</div>
+          <button class="ghost-button" type="button" data-close-modal>关闭</button>
+        </div>
+        <div class="modal-stage" id="modalStage"></div>
+      </div>
+    </div>
+
+    <script src="src/core.js" defer></script>
+    <script src="src/structure.js" defer></script>
+    <script src="src/layout.js" defer></script>
+    <script src="src/alignment.js" defer></script>
+    <script src="src/calibration.js" defer></script>
+    <script src="src/api-client.js" defer></script>
+    <script src="src/mock-svg.js" defer></script>
+    <script src="src/state.js" defer></script>
+    <script src="src/thread.js" defer></script>
+    <script src="src/service.js" defer></script>
+    <script src="src/quality.js" defer></script>
+    <script src="src/render.js" defer></script>
+    <script src="src/download.js" defer></script>
+    <script src="src/files.js" defer></script>
+    <script src="src/app.js" defer></script>
+  </body>
+</html>

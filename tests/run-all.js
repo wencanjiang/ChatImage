@@ -1,0 +1,90 @@
+"use strict";
+
+const { spawnSync } = require("child_process");
+
+const commands = [
+  ["node", ["--check", "server.js"]],
+  ["node", ["--check", "server/http.js"]],
+  ["node", ["--check", "server/providers.js"]],
+  ["node", ["--check", "server/local-ocr.js"]],
+  ["node", ["--check", "server/locateanything.js"]],
+  ["node", ["--check", "server/routes/vision.js"]],
+  ["node", ["--check", "server/store.js"]],
+  ["node", ["--check", "server/validation.js"]],
+  ["node", ["--check", "scripts/build.js"]],
+  ["node", ["--check", "src/core.js"]],
+  ["node", ["--check", "src/structure.js"]],
+  ["node", ["--check", "src/layout.js"]],
+  ["node", ["--check", "src/alignment.js"]],
+  ["node", ["--check", "src/calibration.js"]],
+  ["node", ["--check", "src/api-client.js"]],
+  ["node", ["--check", "src/mock-svg.js"]],
+  ["node", ["--check", "src/state.js"]],
+  ["node", ["--check", "src/thread.js"]],
+  ["node", ["--check", "src/service.js"]],
+  ["node", ["--check", "src/quality.js"]],
+  ["node", ["--check", "src/render.js"]],
+  ["node", ["--check", "src/download.js"]],
+  ["node", ["--check", "src/files.js"]],
+  ["node", ["--check", "src/app.js"]],
+  ["node", ["--check", "tests/docs.test.js"]],
+  ["node", ["--check", "tests/real-api-smoke.js"]],
+  ["node", ["--check", "tests/real-browser-instance.js"]],
+  ["node", ["--check", "tests/real-api-smoke-config.test.js"]],
+  ["node", ["--check", "tests/real-diagnostics.js"]],
+  ["node", ["--check", "tests/real-diagnostics.test.js"]],
+  ["node", ["--check", "tests/real-scripts.test.js"]],
+  ["node", ["--check", "tests/local-ocr.test.js"]],
+  ["node", ["--check", "tests/locateanything.test.js"]],
+  ["node", ["tests/docs.test.js"]],
+  ["node", ["tests/build.test.js"]],
+  ["node", ["tests/core.test.js"]],
+  ["node", ["tests/structure.test.js"]],
+  ["node", ["tests/layout.test.js"]],
+  ["node", ["tests/alignment.test.js"]],
+  ["node", ["tests/calibration.test.js"]],
+  ["node", ["tests/api-client.test.js"]],
+  ["node", ["tests/mock-svg.test.js"]],
+  ["node", ["tests/state.test.js"]],
+  ["node", ["tests/thread.test.js"]],
+  ["node", ["tests/service.test.js"]],
+  ["node", ["tests/quality.test.js"]],
+  ["node", ["tests/render.test.js"]],
+  ["node", ["tests/download.test.js"]],
+  ["node", ["tests/files.test.js"]],
+  ["node", ["tests/api-adapter.test.js"]],
+  ["node", ["tests/local-ocr.test.js"]],
+  ["node", ["tests/locateanything.test.js"]],
+  ["node", ["tests/error-paths.test.js"]],
+  ["node", ["tests/proxy-integration.test.js"]],
+  ["node", ["tests/server.test.js"]],
+  ["node", ["tests/server-modules.test.js"]],
+  ["node", ["tests/validation.test.js"]],
+  ["node", ["tests/security.test.js"]],
+  ["node", ["tests/thread-concurrency.test.js"]],
+  ["node", ["tests/browser-launcher.test.js"]],
+  ["node", ["tests/browser.test.js"]],
+  ["node", ["tests/browser-api-alignment.test.js"]],
+  ["node", ["tests/browser-api-alignment-error.test.js"]],
+  ["node", ["tests/browser-dist.test.js"]],
+  ["node", ["tests/browser-followup-error.test.js"]],
+  ["node", ["tests/browser-image-error.test.js"]],
+  ["node", ["tests/browser-vision-preflight.test.js"]],
+  ["node", ["tests/browser-history.test.js"]],
+  ["node", ["tests/real-api-smoke-config.test.js"]],
+  ["node", ["tests/real-diagnostics.test.js"]],
+  ["node", ["tests/real-scripts.test.js"]]
+];
+
+for (const [command, args] of commands) {
+  const result = spawnSync(command, args, {
+    cwd: process.cwd(),
+    stdio: "inherit",
+    shell: false
+  });
+  if (result.status !== 0) {
+    process.exit(result.status || 1);
+  }
+}
+
+console.log("All tests passed.");
