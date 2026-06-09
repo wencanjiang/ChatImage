@@ -27,8 +27,9 @@ function main() {
   assert.strictEqual(repaired.visualSpec.title, "REST");
 
   const mock = buildMockSpec("说明 ChatImage 的流程", "原始回答".repeat(20));
-  assert.strictEqual(mock.modules.length, 5);
+  assert.strictEqual(mock.modules.length, 4);
   assert.strictEqual(mock.relationType, "flow");
+  assert.match(mock.visualComposition.moduleCountReason, /4/);
   assert.ok(mock.modules[0].sourceExcerpt.length <= 90);
   assert.ok(Array.isArray(mock.auxiliaryModules));
   assert.ok(mock.auxiliaryModules.length >= 1);
@@ -72,7 +73,7 @@ function main() {
   assert.doesNotMatch(normalized.auxiliaryModules[0].title, /^01/);
 
   const fallback = normalizeVisualSpec({ modules: [{}, {}] }, "问题", "回答");
-  assert.strictEqual(fallback.modules.length, 5);
+  assert.strictEqual(fallback.modules.length, 3);
   const topicMock = buildMockSpec("\u4ecb\u7ecd\u4e00\u4e0b\u5177\u8eab\u667a\u80fd\u4ea7\u4e1a\u7684\u53d1\u5c55", "\u539f\u59cb\u56de\u7b54".repeat(20));
   const topicMockText = JSON.stringify(topicMock);
   assert.strictEqual(extractQuestionSubject("\u4ecb\u7ecd\u4e00\u4e0b\u5177\u8eab\u667a\u80fd\u4ea7\u4e1a\u7684\u53d1\u5c55"), "\u5177\u8eab\u667a\u80fd\u4ea7\u4e1a\u7684\u53d1\u5c55");
@@ -109,6 +110,8 @@ function main() {
 
   const prompt = buildStructurePrompt("问题", "回答");
   assert.match(prompt, /只返回 JSON/);
+  assert.match(prompt, /modules 数量必须自适应/);
+  assert.match(prompt, /允许 3 到 6 个主模块/);
   assert.match(prompt, /建议提供 160 到 320 个中文字符/);
   assert.match(prompt, /尽量覆盖三类信息：机制\/原因、影响\/结果、例子\/边界\/注意点/);
   assert.match(prompt, /信息密度高/);
@@ -126,6 +129,9 @@ function main() {
   assert.match(combinedPrompt, /dense and specific/);
   assert.match(combinedPrompt, /visualComposition/);
   assert.match(combinedPrompt, /layoutVariant/);
+  assert.match(combinedPrompt, /adaptive count from 3 to 6/);
+  assert.match(combinedPrompt, /Do not default to 5/);
+  assert.match(combinedPrompt, /moduleCountReason/);
   assert.match(combinedPrompt, /auxiliaryModules/);
   assert.match(combinedPrompt, /unnumbered/);
   assert.match(combinedPrompt, /resource model/);

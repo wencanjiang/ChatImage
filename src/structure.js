@@ -30,7 +30,8 @@
         visualFocus: "资源端点与查询图谱的对照",
         primaryModules: ["module_1", "module_2"],
         secondaryModules: ["module_3", "module_4", "module_5"],
-        densityStrategy: "用双栏矩阵承载差异，用底部场景建议收束结论，避免背景现状式泛化。"
+        densityStrategy: "用双栏矩阵承载差异，用底部场景建议收束结论，避免背景现状式泛化。",
+        moduleCountReason: "REST/GraphQL 对比需要覆盖资源模型、查询粒度、缓存、契约演进和场景五个关键维度。"
       },
       modules: [
         {
@@ -90,18 +91,20 @@
   function buildTopicFallbackSpec(title, subject, question, rawAnswer, relationType) {
     const source = String(rawAnswer || question || "");
     const development = subject.endsWith("\u53d1\u5c55") ? subject : `${subject}\u7684\u53d1\u5c55`;
+    const targetModuleCount = inferTargetModuleCount(question, relationType, rawAnswer);
     return {
       title,
       language: inferQuestionLanguage(question),
-      summary: `${subject}\u53ef\u4ee5\u4ece\u80cc\u666f\u3001\u73b0\u72b6\u3001\u9a71\u52a8\u3001\u6311\u6218\u548c\u8d8b\u52bf\u4e94\u4e2a\u89d2\u5ea6\u7406\u89e3\u3002`,
+      summary: `${subject}\u53ef\u6309 ${targetModuleCount} \u4e2a\u6838\u5fc3\u89c6\u89d2\u7ec4\u7ec7\uff0c\u628a\u6982\u5ff5\u3001\u673a\u5236\u548c\u5224\u65ad\u8981\u70b9\u538b\u7f29\u6210\u53ef\u4e92\u52a8\u7684\u89c6\u89c9\u6a21\u5757\u3002`,
       relationType,
       visualComposition: {
         compositionType: relationType === "flow" ? "swimlane-flow" : "layered-cards",
         layoutVariant: inferDefaultLayoutVariant(relationType),
         visualFocus: `${subject}的核心逻辑`,
-        primaryModules: ["module_1", "module_3"],
-        secondaryModules: ["module_2", "module_4", "module_5"],
-        densityStrategy: "用模块标题、短句、序号徽章和少量关键词标签建立层级，避免模板化平铺。"
+        primaryModules: inferPrimaryModuleIds(targetModuleCount),
+        secondaryModules: inferSecondaryModuleIds(targetModuleCount),
+        densityStrategy: "用模块标题、短句、序号徽章和少量关键词标签建立层级，避免模板化平铺。",
+        moduleCountReason: `根据问题复杂度和回答长度选择 ${targetModuleCount} 个主模块。`
       },
       auxiliaryModules: normalizeAuxiliaryModules(null, question, rawAnswer, relationType, inferQuestionLanguage(question)),
       modules: [
@@ -150,7 +153,7 @@
           iconHint: "step",
           priority: 5
         }
-      ]
+      ].slice(0, targetModuleCount)
     };
   }
 
@@ -216,14 +219,53 @@
     };
   }
 
+  function inferTargetModuleCount(question, relationType, rawAnswer) {
+    const text = `${question || ""}\n${rawAnswer || ""}`;
+    const lower = text.toLowerCase();
+    const relation = String(relationType || "").toLowerCase();
+    const answerLength = String(rawAnswer || "").length;
+    if (isRestGraphqlQuestion(question)) return 5;
+    if (/简单|简要|一句话|是什么|what is|define|definition/i.test(text) && answerLength < 700) return 3;
+    if (relation === "flow" || relation === "timeline") {
+      if (/agent|workflow|pipeline|闭环|循环|复杂|系统|架构/i.test(lower) || answerLength > 900) return 5;
+      return 4;
+    }
+    if (relation === "compare" || relation === "matrix") {
+      return answerLength > 1000 ? 6 : 5;
+    }
+    if (/产业|战略|生态|架构|系统|机制|全流程|多维|趋势|挑战|tradeoff|architecture|system/i.test(text)) {
+      return answerLength > 1200 ? 6 : 5;
+    }
+    if (answerLength > 1200) return 6;
+    if (answerLength > 700) return 5;
+    if (answerLength > 360) return 4;
+    return 3;
+  }
+
+  function inferPrimaryModuleIds(count) {
+    const safeCount = Math.max(3, Math.min(Number(count) || 3, 6));
+    if (safeCount <= 3) return ["module_1"];
+    return ["module_1", "module_3"].filter((id) => Number(id.split("_")[1]) <= safeCount);
+  }
+
+  function inferSecondaryModuleIds(count) {
+    const primary = new Set(inferPrimaryModuleIds(count));
+    return Array.from({ length: Math.max(3, Math.min(Number(count) || 3, 6)) }, (_, index) => `module_${index + 1}`).filter(
+      (id) => !primary.has(id)
+    );
+  }
+
   function buildStructurePrompt(question, rawAnswer) {
     return [
       "请把下面的 LLM 原始回答转换成 ChatImage 可视化结构 JSON。",
       "只返回 JSON，不要返回 Markdown，不要代码块。",
       "JSON 格式：",
-      '{"title":"不超过18个中文字符","summary":"一句话摘要","relationType":"parallel|flow|compare|hierarchy|timeline|matrix","visualComposition":{"compositionType":"grid|swimlane-flow|hub-spoke|matrix|timeline|layered-cards|annotated-clusters","visualFocus":"整张图的视觉焦点","primaryModules":["module_1"],"secondaryModules":["module_2"],"densityStrategy":"如何避免模板感并提升信息密度"},"modules":[{"id":"module_1","title":"短标题","imageText":"不超过28个中文字符","detail":"点击后展示的详细说明","sourceExcerpt":"原文相关片段","iconHint":"target|nodes|layout|image|thread|idea|risk|step","priority":1}],"auxiliaryModules":[{"title":"未编号区域","imageText":"短辅助说明","detail":"点击后展示的辅助区域说明","sourceExcerpt":"原文相关片段","iconHint":"user|source|data|tool|summary|risk","priority":10}]}',
+      '{"title":"不超过18个中文字符","summary":"一句话摘要","relationType":"parallel|flow|compare|hierarchy|timeline|matrix","visualComposition":{"compositionType":"grid|swimlane-flow|hub-spoke|matrix|timeline|layered-cards|annotated-clusters","visualFocus":"整张图的视觉焦点","primaryModules":["module_1"],"secondaryModules":["module_2"],"densityStrategy":"如何避免模板感并提升信息密度","moduleCountReason":"为什么选择当前模块数"},"modules":[{"id":"module_1","title":"短标题","imageText":"不超过28个中文字符","detail":"点击后展示的详细说明","sourceExcerpt":"原文相关片段","iconHint":"target|nodes|layout|image|thread|idea|risk|step","priority":1}],"auxiliaryModules":[{"title":"未编号区域","imageText":"短辅助说明","detail":"点击后展示的辅助区域说明","sourceExcerpt":"原文相关片段","iconHint":"user|source|data|tool|summary|risk","priority":10}]}',
       "约束：",
-      "- modules 数量为 4 到 6；除非内容确实很简单，否则优先 5 到 6 个模块。",
+      "- modules 数量必须自适应，允许 3 到 6 个主模块；不要固定 5 个。",
+      "- 模块数选择规则：简单定义/单点解释用 3 个；标准概念或短流程用 4 个；多维对比、复杂流程、产业/战略/系统分析用 5 个；信息很密或需要覆盖多个子系统时才用 6 个。",
+      "- 用尽量少但足够完整的模块承载信息；不要为了凑数拆出空泛的背景/现状/趋势模板。",
+      "- visualComposition.moduleCountReason 用一句话说明为什么选择当前模块数。",
       "- 所有 detail 必须基于原始回答，不要新增事实；但不要只是改写标题，必须解释机制、原因、影响、限制或例子。",
       "- 每个 detail 面向点击后的详情面板，建议提供 160 到 320 个中文字符的信息量；英文问题建议 90 到 160 个英文词。",
       "- detail 尽量覆盖三类信息：机制/原因、影响/结果、例子/边界/注意点；不要只写一句概括。",
@@ -245,14 +287,17 @@
       "Return JSON only. Do not return Markdown. Do not wrap the JSON in a code block.",
       "Return one compact JSON object. Escape line breaks inside JSON strings as \\n. Do not use unescaped quotes inside string values.",
       "JSON shape:",
-      '{"rawAnswer":"complete answer text for the user","visualSpec":{"language":"same language as the user question, e.g. zh-CN or en","title":"short title","summary":"one sentence summary","relationType":"parallel|flow|compare|hierarchy|timeline|matrix","visualComposition":{"compositionType":"grid|swimlane-flow|hub-spoke|matrix|timeline|layered-cards|annotated-clusters","visualFocus":"main visual focus","primaryModules":["module_1"],"secondaryModules":["module_2"],"densityStrategy":"how to increase information hierarchy and avoid template-like design"},"modules":[{"title":"short module title","imageText":"very short card text","detail":"detail shown after hotspot click","sourceExcerpt":"related excerpt from rawAnswer","iconHint":"target|nodes|layout|image|thread|idea|risk|step","priority":1}],"auxiliaryModules":[{"title":"unnumbered panel title","imageText":"short helper text","detail":"detail shown after hotspot click","sourceExcerpt":"related excerpt from rawAnswer","iconHint":"user|source|data|tool|summary|risk","priority":10}]}}',
+      '{"rawAnswer":"complete answer text for the user","visualSpec":{"language":"same language as the user question, e.g. zh-CN or en","title":"short title","summary":"one sentence summary","relationType":"parallel|flow|compare|hierarchy|timeline|matrix","visualComposition":{"compositionType":"grid|swimlane-flow|hub-spoke|matrix|timeline|layered-cards|annotated-clusters","visualFocus":"main visual focus","primaryModules":["module_1"],"secondaryModules":["module_2"],"densityStrategy":"how to increase information hierarchy and avoid template-like design","moduleCountReason":"why this module count is appropriate"},"modules":[{"title":"short module title","imageText":"very short card text","detail":"detail shown after hotspot click","sourceExcerpt":"related excerpt from rawAnswer","iconHint":"target|nodes|layout|image|thread|idea|risk|step","priority":1}],"auxiliaryModules":[{"title":"unnumbered panel title","imageText":"short helper text","detail":"detail shown after hotspot click","sourceExcerpt":"related excerpt from rawAnswer","iconHint":"user|source|data|tool|summary|risk","priority":10}]}}',
       "Constraints:",
       "- rawAnswer, visualSpec.title, summary, modules.title, imageText, detail, and sourceExcerpt must use the same language as the user's question.",
       "- If the user asks in Chinese, use Chinese in the image. If the user asks in English, use English in the image.",
       "- rawAnswer must be fact-focused, clear, and complete enough for follow-up questions. For explanatory or analytical questions, provide enough substance: definitions, mechanism, sequence, tradeoffs, examples, and caveats where relevant.",
       "- Unless the user explicitly asks about ChatImage itself, never mention ChatImage internals, image generation APIs, LayoutSpec, hotspots, transparent layers, prompt engineering, or follow-up branch mechanics in rawAnswer or visualSpec.",
       "- The answer must directly address the user's subject matter, not describe how this product processes answers.",
-      "- visualSpec.modules must contain 4 to 6 modules. Prefer 5 or 6 modules for processes, systems, comparisons, industries, technical concepts, and strategic analysis.",
+      "- visualSpec.modules must use an adaptive count from 3 to 6 main modules. Do not default to 5.",
+      "- Module count guide: use 3 for simple definitions or single-focus explanations; 4 for standard concepts or compact processes; 5 for multi-dimensional comparisons, complex workflows, industry/strategy/system analysis; use 6 only for dense answers that truly need more coverage.",
+      "- Choose the smallest module count that preserves the answer's real structure. Do not invent filler modules, and do not split content into generic background/current state/drivers/challenges/trends just to reach 5.",
+      "- visualSpec.visualComposition.moduleCountReason should briefly explain why the chosen module count fits the content.",
       "- imageText must be short enough to fit inside an infographic card, but it must be dense and specific: include concrete nouns, verbs, conditions, outcomes, or mini-claims instead of generic labels.",
       "- detail and sourceExcerpt must be grounded in rawAnswer.",
       "- Each module.detail is for the click detail panel. It must be substantially richer than imageText: explain the mechanism, why it matters, and at least one concrete implication, example, boundary, or caveat.",
@@ -452,7 +497,8 @@
       visualFocus: String(source.visualFocus || fallbackValue.visualFocus || "").slice(0, 80),
       primaryModules: normalizeModuleIdList(source.primaryModules || fallbackValue.primaryModules),
       secondaryModules: normalizeModuleIdList(source.secondaryModules || fallbackValue.secondaryModules),
-      densityStrategy: String(source.densityStrategy || fallbackValue.densityStrategy || "").slice(0, 180)
+      densityStrategy: String(source.densityStrategy || fallbackValue.densityStrategy || "").slice(0, 180),
+      moduleCountReason: String(source.moduleCountReason || fallbackValue.moduleCountReason || "").slice(0, 160)
     };
   }
 
@@ -540,6 +586,8 @@
       "- rawAnswer should directly answer the user's topic with concrete mechanisms, tradeoffs, examples, and caveats.",
       "- visualSpec.title must be a concise topic title, not the raw user question and not truncated with ellipses.",
       "- module.detail should be useful for a click detail panel and should explain mechanism, impact, and boundary or example.",
+      "- visualSpec.modules must use an adaptive count from 3 to 6. Choose the smallest count that preserves the answer structure; do not force exactly 5 modules.",
+      "- visualComposition.moduleCountReason should briefly explain the chosen module count.",
       "- visualComposition.layoutVariant must be one of compare-matrix, compare-split, asymmetric-focus-stack, swimlane-flow, timeline, or grid.",
       "- For REST vs GraphQL, use concrete comparison dimensions: resource model, query granularity, caching/performance, Schema/version evolution, and suitable scenarios.",
       `User question: ${question}`,
