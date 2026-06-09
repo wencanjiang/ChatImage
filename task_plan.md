@@ -84,3 +84,84 @@ Implement the requested UI and prompt improvements:
   - `product_growth_metrics`
   - `tcp_failure_diagnosis`
 - Default full test suite passed after updating old local mock tests to explicitly use `textRequestFormat: "wuyin-form"`.
+
+---
+
+# Task Plan: Interactive Visual Works Modes
+
+## Objective
+
+Expand ChatImage from card-style infographics into interactive visual works. The first target is a hand-drawn map use case such as "手绘地图，西湖": generate a painterly map-like image, bind clickable semantic geographic regions, and show region-specific explanations and previews.
+
+## Scope Guardrails
+
+- Preserve the current stable infographic template and existing features.
+- Do not replace LocateAnything/local-ocr/planned fallback chain yet.
+- Do not require perfect mask segmentation in phase 1; use semantic regions with planned/box hotspots first.
+- Keep normal hotspots transparent.
+- Keep the fixed local service at `http://127.0.0.1:5178/`.
+- Do not change the current font.
+
+## Architecture Plan
+
+1. `visualMode` introduction
+   - Add visual modes: `infographic`, `map`, `poster`, `scene`.
+   - Default remains `infographic`.
+   - Infer `map` for prompts containing map/地图/手绘地图/西湖/景区/地理/路线.
+
+2. Semantic region model
+   - Keep existing `modules` for compatibility.
+   - Add optional fields on modules:
+     - `regionKind`: `landmark | water | route | district | building | mountain | annotation | object | area`
+     - `regionPrompt`: visual grounding description for locating the region.
+   - Existing hotspot shape remains rect for phase 1.
+
+3. Prompt and layout split
+   - `infographic`: current card/flow/matrix behavior.
+   - `map`: painterly illustrated map, landmarks, terrain/water/route cues, no card-number requirement.
+   - `poster`: visual poster with semantic objects/areas, not card modules.
+   - `scene`: scene illustration with objects/areas.
+
+4. Alignment strategy phase 1
+   - Use planned semantic regions for initial hotspots.
+   - LocateAnything queries should use `regionPrompt` and module title, not only numeric card anchors.
+   - If visual alignment is weak, keep planned layout and expose diagnostics.
+
+5. Mask strategy later
+   - Add `shape: polygon | mask`.
+   - Use grounding/segmentation to convert text region to mask.
+   - Crop/mask the selected area into the detail panel preview.
+   - This requires a separate provider evaluation and should not block phase 1.
+
+## Execution Phases
+
+1. Stable push. `complete`
+   - Commit and push current stable adaptive-module template to `origin/main`.
+
+2. Plan and discovery. `complete`
+   - Inspect structure/layout/prompt/render chain for extension points.
+   - Record implementation boundaries.
+
+3. Phase 1 implementation. `complete`
+   - Add `visualMode` normalization and inference.
+   - Add semantic region fields.
+   - Split image prompt behavior for map/poster/scene vs infographic.
+   - Add map-oriented fallback spec for West Lake.
+   - Update thought-process wording to avoid implying every result is a flow/card infographic.
+
+4. Verification. `complete`
+   - Add focused tests for `visualMode=map`, West Lake fallback, prompt constraints, and existing infographic compatibility.
+   - Run `npm.cmd test`.
+   - Restart only `127.0.0.1:5178`.
+
+## Risks
+
+- Current layout regions are rectangular; map landmarks may still be coarse until mask/polygon lands.
+- Image model may still draw labels or card-like callouts unless map prompt strongly forbids infographic cards.
+- LocateAnything can ground semantic regions but accuracy is not guaranteed; diagnostics must stay visible.
+
+## Errors Encountered
+
+| Error | Attempt | Resolution |
+| --- | --- | --- |
+| None yet | N/A | N/A |

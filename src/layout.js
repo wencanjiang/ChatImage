@@ -33,7 +33,7 @@
     ];
 
     const hasAuxiliaryModules = Array.isArray(spec.auxiliaryModules) && spec.auxiliaryModules.length > 0;
-    const candidateRegions = createModuleRegions(family, spec.modules, layoutVariant, { hasAuxiliaryModules });
+    const candidateRegions = createModuleRegions(family, spec.modules, layoutVariant, { hasAuxiliaryModules, visualMode: getVisualMode(spec) });
     const validation = core.validateLayoutRegions(candidateRegions);
     const moduleRegions = validation.valid
       ? candidateRegions
@@ -61,6 +61,7 @@
   }
 
   function createModuleRegions(family, modules, layoutVariant, options = {}) {
+    if (options.visualMode === "map" || layoutVariant === "map") return createMapRegions(modules);
     if (layoutVariant === "compare-matrix") return createCompareMatrixRegions(modules, options);
     if (layoutVariant === "compare-split") return createCompareSplitRegions(modules);
     if (layoutVariant === "asymmetric-focus-stack") return createAsymmetricFocusStackRegions(modules);
@@ -75,13 +76,20 @@
   function getLayoutVariant(spec, family) {
     const visualComposition = (spec && spec.visualComposition) || {};
     const variant = String(visualComposition.layoutVariant || "").trim().toLowerCase();
-    const allowed = ["compare-matrix", "compare-split", "asymmetric-focus-stack", "swimlane-flow", "timeline", "grid"];
+    const allowed = ["compare-matrix", "compare-split", "asymmetric-focus-stack", "swimlane-flow", "timeline", "grid", "map"];
     if (allowed.includes(variant)) return variant;
+    if (getVisualMode(spec) === "map") return "map";
     if (family === "compare" || family === "matrix") return "compare-matrix";
     if (family === "flow") return "swimlane-flow";
     if (family === "timeline") return "timeline";
     if (family === "hub") return "asymmetric-focus-stack";
     return "grid";
+  }
+
+  function getVisualMode(spec) {
+    const source = String((spec && spec.visualMode) || "").trim().toLowerCase();
+    if (["infographic", "map", "poster", "scene"].includes(source)) return source;
+    return "infographic";
   }
 
   function clamp(value, min, max) {
@@ -113,6 +121,18 @@
       shape: "rect",
       zIndex: 2
     }));
+  }
+
+  function createMapRegions(modules) {
+    const positions = [
+      { x: 0.36, y: 0.34, width: 0.26, height: 0.24, shape: "freeform" },
+      { x: 0.20, y: 0.18, width: 0.50, height: 0.12, shape: "freeform" },
+      { x: 0.10, y: 0.34, width: 0.20, height: 0.34, shape: "freeform" },
+      { x: 0.64, y: 0.36, width: 0.20, height: 0.16, shape: "freeform" },
+      { x: 0.58, y: 0.68, width: 0.28, height: 0.16, shape: "freeform" },
+      { x: 0.12, y: 0.72, width: 0.36, height: 0.14, shape: "freeform" }
+    ];
+    return createPositionedRegions(modules, positions);
   }
 
   function createFlowRegions(modules) {
@@ -443,6 +463,9 @@
   }
 
   function buildImagePrompt(spec, layout) {
+    if (getVisualMode(spec) !== "infographic") {
+      return buildVisualWorkImagePrompt(spec, layout, "standard");
+    }
     const interactiveModules = getInteractiveModules(spec);
     const moduleById = Object.fromEntries(interactiveModules.map((module) => [module.id, module]));
     const moduleRegions = layout.regions
@@ -499,6 +522,9 @@
   }
 
   function buildStyleImagePrompt(spec, layout) {
+    if (getVisualMode(spec) !== "infographic") {
+      return buildVisualWorkImagePrompt(spec, layout, "style");
+    }
     const visualComposition = spec.visualComposition || {};
     const modules = spec.modules.map((module, index) => ({
       order: index + 1,
@@ -573,6 +599,83 @@
     ].join("\n");
   }
 
+  function buildVisualWorkImagePrompt(spec, layout, promptKind) {
+    const visualMode = getVisualMode(spec);
+    const visualComposition = spec.visualComposition || {};
+    const interactiveModules = getInteractiveModules(spec);
+    const moduleById = Object.fromEntries(interactiveModules.map((module) => [module.id, module]));
+    const semanticRegions = layout.regions
+      .filter((region) => region.hotspotId)
+      .map((region) => {
+        const module = moduleById[region.hotspotId];
+        if (!module) return null;
+        return {
+          moduleId: region.hotspotId,
+          title: module.title,
+          visibleLabel: module.imageText,
+          regionKind: module.regionKind || "area",
+          regionPrompt: module.regionPrompt || module.title,
+          bounds: region.bounds,
+          shape: region.shape || "freeform",
+          detailContext: truncateText(module.detail || "", 220)
+        };
+      })
+      .filter(Boolean);
+    const modeBrief =
+      visualMode === "map"
+        ? [
+            "Create one coherent hand-drawn illustrated map, not an infographic flowchart.",
+            "The result should feel like a painterly travel map: water, routes, landmarks, shorelines, plants, terrain, small labels, and atmospheric details integrated into one picture.",
+            "Do not draw large cards, numbered badges, GUI panels, table blocks, or directional flow arrows.",
+            "Geographic regions may be organic shapes. Their visual footprint should stay close to the target bounds, but the internal silhouette can be irregular and map-like."
+          ]
+        : visualMode === "poster"
+          ? [
+              "Create one editorial poster-like visual work, not a card-based infographic.",
+              "Use a strong central motif, supporting objects, short integrated labels, and controlled hierarchy.",
+              "Do not draw numbered GUI modules unless the content explicitly needs them."
+            ]
+          : [
+              "Create one painterly illustrated scene, not a card-based infographic.",
+              "Represent modules as distinguishable semantic objects, zones, people, or environmental regions.",
+              "Use short integrated labels only where they help; avoid large UI panels."
+            ];
+    return [
+      "You are a senior visual designer creating an interactive image for ChatImage.",
+      `Mode: ${visualMode}. Prompt kind: ${promptKind}. Canvas: ${layout.canvas.width}x${layout.canvas.height}, aspect ratio ${layout.aspectRatio}.`,
+      `Image text language: ${spec.language || "same as the user question"}.`,
+      `Distilled title: ${spec.title || ""}`,
+      `Summary: ${spec.summary || ""}`,
+      "Mode-specific art direction:",
+      modeBrief.join("\n"),
+      "Visual composition decision:",
+      JSON.stringify(
+        {
+          compositionType: visualComposition.compositionType || visualMode,
+          layoutVariant: visualComposition.layoutVariant || layout.layoutVariant || visualMode,
+          visualFocus: visualComposition.visualFocus || spec.title,
+          primaryModules: visualComposition.primaryModules || [],
+          secondaryModules: visualComposition.secondaryModules || [],
+          densityStrategy: visualComposition.densityStrategy || ""
+        },
+        null,
+        2
+      ),
+      "Target semantic regions for hotspot planning. Keep each region visually distinguishable and close to its target bounds:",
+      JSON.stringify(semanticRegions, null, 2),
+      "Requirements:",
+      "- Do not draw the user's raw question as the image title. Use the distilled title only when a title helps the picture; it may be small or absent.",
+      "- Do not force every region to have a number. Regions can be identified by landmark shape, route, object, texture, local label, or color.",
+      "- Every semantic region listed above must correspond to a visible separated area, object, route, landmark, or natural zone.",
+      "- Region boundaries can be organic, but leave enough separation for transparent click hotspots to cover the whole intended region.",
+      "- Use visible labels sparingly and keep them short. Never place long detailContext paragraphs into the image.",
+      "- Preserve factual meaning from the content modules. Do not add unsupported facts or extra modules.",
+      "- The image should be visually rich enough to inspect: include secondary details, texture, depth, landmarks, and local cues, not empty blocks.",
+      "- Avoid template infographic artifacts: no big equal cards, no numbered flowchart, no PPT-style arrows, no generic boxes.",
+      "- If the mode is map, show the place as one coherent map-like artwork with water/land/roads/landmarks arranged spatially."
+    ].join("\n");
+  }
+
   function formatFamily(family) {
     return {
       flow: "流程式",
@@ -592,6 +695,7 @@
     applyTextBudgets,
     buildImagePrompt,
     buildStyleImagePrompt,
+    buildVisualWorkImagePrompt,
     createAuxiliaryRegions,
     createAsymmetricFocusStackRegions,
     createCompareRegions,
@@ -601,6 +705,7 @@
     createGridRegions,
     createHubRegions,
     createLayout,
+    createMapRegions,
     createMatrixRegions,
     createModuleRegions,
     createTimelineRegions,
@@ -609,6 +714,7 @@
     formatModuleNumber,
     getInteractiveModules,
     getLayoutVariant,
+    getVisualMode,
     truncateText,
     truncateVisibleText
   };

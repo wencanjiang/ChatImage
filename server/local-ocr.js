@@ -81,7 +81,9 @@ function normalizeModules(modules) {
       moduleId,
       label,
       order: Number(module.order || index + 1),
-      text: String(module.text || module.imageText || "")
+      text: String(module.text || module.imageText || ""),
+      regionKind: String(module.regionKind || "card"),
+      regionPrompt: String(module.regionPrompt || module.visualPrompt || label)
     };
   });
 }

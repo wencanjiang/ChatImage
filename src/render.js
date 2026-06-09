@@ -340,17 +340,20 @@
     const modules = Array.isArray(result.structuredSpec && result.structuredSpec.modules)
       ? result.structuredSpec.modules
       : [];
+    const visualMode = String((result.structuredSpec && result.structuredSpec.visualMode) || "infographic").toLowerCase();
+    const areaLabel = visualMode === "infographic" ? "视觉模块" : "视觉区域";
+    const sourceLabel = visualMode === "infographic" ? "信息图" : "视觉作品";
     const layoutFamily = result.layout && result.layout.family ? result.layout.family : "默认";
     return [
-      { label: "生成文本回答", detail: "先根据用户问题生成完整文本答案，作为信息图的内容来源。" },
+      { label: "生成文本回答", detail: `先根据用户问题生成完整文本答案，作为${sourceLabel}的内容来源。` },
       {
         label: "结构化解析",
-        detail: modules.length ? `将文本拆成标题、摘要和 ${modules.length} 个视觉模块。` : "将文本拆成标题、摘要和视觉模块。"
+        detail: modules.length ? `将文本拆成标题、摘要和 ${modules.length} 个${areaLabel}。` : `将文本拆成标题、摘要和${areaLabel}。`
       },
       { label: "规划版式", detail: `选择 ${layoutFamily} 版式并计算图片区域。` },
       { label: "生成图片", detail: "根据结构化内容、版式和视觉提示词生成最终图片。" },
       options.interactive
-        ? { label: "热点对齐", detail: "把透明点击区域绑定到图片模块，支持点击查看详情和区域追问。" }
+        ? { label: "热点对齐", detail: `把透明点击区域绑定到图片${areaLabel}，支持点击查看详情和区域追问。` }
         : { label: "静态输出", detail: "本次结果不添加可点击热点，避免继续产生新的交互分支。" }
     ];
   }
