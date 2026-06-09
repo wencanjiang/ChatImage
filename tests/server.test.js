@@ -42,6 +42,14 @@ async function main() {
 
     const css = await fetch(`${baseUrl}/styles.css`);
     assert.strictEqual(css.headers.get("content-type"), "text/css; charset=utf-8");
+    assert.strictEqual(css.headers.get("cache-control"), "no-cache");
+
+    const crossOriginPost = await fetch(`${baseUrl}/api/llm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: "https://evil.example" },
+      body: JSON.stringify({ content: "test" })
+    });
+    assert.strictEqual(crossOriginPost.status, 403);
 
     const missingKey = await fetch(`${baseUrl}/api/llm`, {
       method: "POST",

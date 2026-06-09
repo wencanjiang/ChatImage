@@ -104,8 +104,17 @@
     "[tabindex]:not([tabindex='-1'])"
   ].join(",");
 
-  const uid = (prefix) =>
-    `${prefix}_${Math.random().toString(36).slice(2, 8)}_${Date.now().toString(36)}`;
+  const uid = (prefix) => {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return `${prefix}_${window.crypto.randomUUID()}`;
+    }
+    if (window.crypto && typeof window.crypto.getRandomValues === "function") {
+      const bytes = new Uint8Array(16);
+      window.crypto.getRandomValues(bytes);
+      return `${prefix}_${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+    }
+    return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
+  };
   let lastModalFocus = null;
   const SIDEBAR_COLLAPSED_STORAGE_KEY = "chatimage.sidebarCollapsed";
 

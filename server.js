@@ -16,6 +16,7 @@ const {
 } = require("./server/locateanything");
 const {
   loadEnvFile,
+  assertSameOriginRequest,
   readJson,
   requireApiKey,
   sendJson,
@@ -35,8 +36,9 @@ const {
 const { createStore } = require("./server/store");
 
 const rootDir = __dirname;
-loadEnvFile(path.join(rootDir, ".env"));
-loadEnvFile(path.join(rootDir, ".env.local"));
+const initialEnvKeys = new Set(Object.keys(process.env));
+loadEnvFile(path.join(rootDir, ".env"), { preserveKeys: initialEnvKeys });
+loadEnvFile(path.join(rootDir, ".env.local"), { overwrite: true, preserveKeys: initialEnvKeys });
 const WUYIN_TEXT_ENDPOINT = "https://api.wuyinkeji.com/api/chat/index";
 const MIMO_TEXT_ENDPOINT = "https://api.xiaomimimo.com/v1/chat/completions";
 const DEFAULT_TEXT_SYSTEM_PROMPT =
@@ -136,8 +138,9 @@ function createServer(serverConfig = config) {
     sendJson
   };
   const routes = [handleConfigRoute, handleLlmRoute, handleImageRoute, handleVisionRoute, handleChatImagesRoute];
-  return http.createServer(async (req, res) => {
+  const server = http.createServer(async (req, res) => {
     try {
+      assertSameOriginRequest(req, serverConfig);
       const url = new URL(req.url, `http://${req.headers.host}`);
       for (const route of routes) {
         if (await route({ url, req, res, serverConfig, store, helpers })) return;
@@ -146,20 +149,66 @@ function createServer(serverConfig = config) {
       return serveStatic(url.pathname, res, serverConfig.staticDir || rootDir);
     } catch (error) {
       const status = error.statusCode || 500;
+      logRequestError(error, req, status);
       return sendJson(res, status, {
         error: error.message || "Internal Server Error"
       });
     }
   });
+  server.chatImageStore = store;
+  return server;
 }
 
 if (require.main === module) {
   const server = createServer(config);
+  setupGracefulShutdown(server);
   server.listen(config.port, "127.0.0.1", () => {
     console.log(`ChatImage server running at http://127.0.0.1:${config.port}`);
     console.log(`API mode: ${config.apiKey ? "enabled" : "mock fallback (missing CHATIMAGE_API_KEY)"}`);
     preloadLocateAnythingOnStartup(config);
   });
+}
+
+function logRequestError(error, req, status) {
+  const method = req && req.method ? req.method : "UNKNOWN";
+  const url = req && req.url ? req.url : "/";
+  const message = error && error.message ? error.message : String(error);
+  if (status >= 500) {
+    const stack = error && error.stack ? error.stack : message;
+    console.error(`[${new Date().toISOString()}] ${method} ${url} -> ${status}\n${stack}`);
+    return;
+  }
+  console.warn(`[${new Date().toISOString()}] ${method} ${url} -> ${status}: ${message}`);
+}
+
+function setupGracefulShutdown(server) {
+  let shuttingDown = false;
+  const shutdown = (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`Received ${signal}; shutting down ChatImage server...`);
+    server.close((error) => {
+      if (error) {
+        console.error(`HTTP server shutdown failed: ${error.stack || error.message || error}`);
+        process.exitCode = 1;
+      }
+      try {
+        if (server.chatImageStore && typeof server.chatImageStore.close === "function") {
+          server.chatImageStore.close();
+        }
+      } catch (storeError) {
+        console.error(`Store shutdown failed: ${storeError.stack || storeError.message || storeError}`);
+        process.exitCode = 1;
+      }
+      process.exit();
+    });
+    setTimeout(() => {
+      console.error("Graceful shutdown timed out; forcing exit.");
+      process.exit(1);
+    }, 5000).unref();
+  };
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
 function preloadLocateAnythingOnStartup(serverConfig) {
@@ -190,7 +239,9 @@ module.exports = {
   extractTextContent,
   formatApiError,
   isApiErrorPayload,
+  logRequestError,
   MIMO_TEXT_ENDPOINT,
   parseImageBufferDimensions,
-  preloadLocateAnythingOnStartup
+  preloadLocateAnythingOnStartup,
+  setupGracefulShutdown
 };
