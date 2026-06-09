@@ -2,10 +2,15 @@
 
 const assert = require("assert");
 const { Readable } = require("stream");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 const { DatabaseSync } = require("node:sqlite");
 const { createStore, ensureHotspotThreadsSchema } = require("../server/store");
 const { createConcurrencyGate } = require("../server/concurrency");
 const {
+  assertSameOriginRequest,
+  getStaticCacheControl,
   loadEnvFile,
   readJson,
   requireApiKey,
@@ -83,6 +88,26 @@ async function testHttpHelpers() {
   delete process.env[envKey];
   loadEnvFile("tests/fixtures/missing.env");
   assert.strictEqual(process.env[envKey], undefined);
+  const envDir = fs.mkdtempSync(path.join(os.tmpdir(), "chatimage-env-"));
+  const envFile = path.join(envDir, ".env");
+  const localEnvFile = path.join(envDir, ".env.local");
+  fs.writeFileSync(envFile, `${envKey}=from_env\n`);
+  fs.writeFileSync(localEnvFile, `${envKey}=from_local\n`);
+  loadEnvFile(envFile);
+  loadEnvFile(localEnvFile, { overwrite: true });
+  assert.strictEqual(process.env[envKey], "from_local");
+  process.env[envKey] = "from_shell";
+  loadEnvFile(localEnvFile, { overwrite: true, preserveKeys: new Set([envKey]) });
+  assert.strictEqual(process.env[envKey], "from_shell");
+  assert.strictEqual(getStaticCacheControl(".html"), "no-cache");
+  assert.strictEqual(getStaticCacheControl(".css"), "no-cache");
+  assert.match(getStaticCacheControl(".png"), /max-age/);
+  assert.doesNotThrow(() => assertSameOriginRequest({ method: "POST", url: "/api/llm", headers: { host: "127.0.0.1:5178", origin: "http://127.0.0.1:5178" } }));
+  assert.doesNotThrow(() => assertSameOriginRequest({ method: "POST", url: "/api/llm", headers: { host: "127.0.0.1:5178" } }));
+  assert.throws(
+    () => assertSameOriginRequest({ method: "POST", url: "/api/llm", headers: { host: "127.0.0.1:5178", origin: "https://evil.example" } }),
+    /Cross-origin/
+  );
   if (oldValue === undefined) {
     delete process.env[envKey];
   } else {
@@ -243,6 +268,18 @@ function testStoreModule() {
     const saved = store.saveThread("ci_store", "module_1", thread);
     assert.strictEqual(saved.thread.messages[0].content, "追问");
     assert.strictEqual(store.getChatImage("ci_store").result.threads[0].messages[0].content, "追问");
+    assert.throws(
+      () =>
+        store.saveThread("ci_store", "module_1", {
+          ...thread,
+          messages: [
+            { id: "msg_duplicate", role: "user", content: "bad 1", createdAt: "2026-05-31T00:00:01.000Z" },
+            { id: "msg_duplicate", role: "assistant", content: "bad 2", createdAt: "2026-05-31T00:00:02.000Z" }
+          ]
+        }),
+      /constraint|unique/i
+    );
+    assert.strictEqual(store.getThread("ci_store", "module_1").thread.messages[0].id, "msg_store");
     const replacementThread = {
       id: "thread_store_replacement",
       chatImageId: "ci_store",

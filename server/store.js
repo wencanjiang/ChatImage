@@ -69,69 +69,71 @@ function createStore(databasePath) {
     saveChatImage(result) {
       const now = new Date().toISOString();
       const createdAt = result.createdAt || now;
-      db.prepare(`
-        insert into chat_images (
-          id, question, raw_answer, title, summary, structured_spec_json, layout_json, image_url,
-          image_width, image_height, image_prompt, provider_raw_json, alignment_raw_json, created_at, updated_at
-        ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        on conflict(id) do update set
-          question = excluded.question,
-          raw_answer = excluded.raw_answer,
-          title = excluded.title,
-          summary = excluded.summary,
-          structured_spec_json = excluded.structured_spec_json,
-          layout_json = excluded.layout_json,
-          image_url = excluded.image_url,
-          image_width = excluded.image_width,
-          image_height = excluded.image_height,
-          image_prompt = excluded.image_prompt,
-          provider_raw_json = excluded.provider_raw_json,
-          alignment_raw_json = excluded.alignment_raw_json,
-          updated_at = excluded.updated_at
-      `).run(
-        result.id,
-        result.question || "",
-        result.rawAnswer || "",
-        result.title || "",
-        result.summary || "",
-        JSON.stringify(result.structuredSpec || null),
-        JSON.stringify(result.layout || {}),
-        result.imageUrl || "",
-        Number(result.imageWidth || 0),
-        Number(result.imageHeight || 0),
-        result.imagePrompt || "",
-        JSON.stringify(result.providerRaw || null),
-        JSON.stringify(result.alignmentRaw || null),
-        createdAt,
-        now
-      );
-
-      db.prepare("delete from hotspots where chat_image_id = ?").run(result.id);
-      const insertHotspot = db.prepare(`
-        insert into hotspots (
-          storage_id, id, chat_image_id, label, short_text, detail, source_excerpt, icon_hint, bounds_json
-        ) values (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-      for (const hotspot of result.hotspots || []) {
-        insertHotspot.run(
-          `${result.id}:${hotspot.id}`,
-          hotspot.id,
+      withTransaction(db, () => {
+        db.prepare(`
+          insert into chat_images (
+            id, question, raw_answer, title, summary, structured_spec_json, layout_json, image_url,
+            image_width, image_height, image_prompt, provider_raw_json, alignment_raw_json, created_at, updated_at
+          ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          on conflict(id) do update set
+            question = excluded.question,
+            raw_answer = excluded.raw_answer,
+            title = excluded.title,
+            summary = excluded.summary,
+            structured_spec_json = excluded.structured_spec_json,
+            layout_json = excluded.layout_json,
+            image_url = excluded.image_url,
+            image_width = excluded.image_width,
+            image_height = excluded.image_height,
+            image_prompt = excluded.image_prompt,
+            provider_raw_json = excluded.provider_raw_json,
+            alignment_raw_json = excluded.alignment_raw_json,
+            updated_at = excluded.updated_at
+        `).run(
           result.id,
-          hotspot.label || "",
-          hotspot.shortText || "",
-          hotspot.detail || "",
-          hotspot.sourceExcerpt || "",
-          hotspot.iconHint || "",
-          JSON.stringify({
-            x: hotspot.x,
-            y: hotspot.y,
-            width: hotspot.width,
-            height: hotspot.height,
-            textBudget: hotspot.textBudget || null
-          })
+          result.question || "",
+          result.rawAnswer || "",
+          result.title || "",
+          result.summary || "",
+          JSON.stringify(result.structuredSpec || null),
+          JSON.stringify(result.layout || {}),
+          result.imageUrl || "",
+          Number(result.imageWidth || 0),
+          Number(result.imageHeight || 0),
+          result.imagePrompt || "",
+          JSON.stringify(result.providerRaw || null),
+          JSON.stringify(result.alignmentRaw || null),
+          createdAt,
+          now
         );
-      }
-      cleanupThreadsForCurrentHotspots(db, result.id);
+
+        db.prepare("delete from hotspots where chat_image_id = ?").run(result.id);
+        const insertHotspot = db.prepare(`
+          insert into hotspots (
+            storage_id, id, chat_image_id, label, short_text, detail, source_excerpt, icon_hint, bounds_json
+          ) values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        for (const hotspot of result.hotspots || []) {
+          insertHotspot.run(
+            `${result.id}:${hotspot.id}`,
+            hotspot.id,
+            result.id,
+            hotspot.label || "",
+            hotspot.shortText || "",
+            hotspot.detail || "",
+            hotspot.sourceExcerpt || "",
+            hotspot.iconHint || "",
+            JSON.stringify({
+              x: hotspot.x,
+              y: hotspot.y,
+              width: hotspot.width,
+              height: hotspot.height,
+              textBudget: hotspot.textBudget || null
+            })
+          );
+        }
+        cleanupThreadsForCurrentHotspots(db, result.id);
+      });
       return { id: result.id };
     },
 
@@ -253,21 +255,14 @@ function createStore(databasePath) {
         .prepare("select id from hotspot_threads where chat_image_id = ? and hotspot_id = ?")
         .get(chatImageId, hotspotId);
       if (existingThread && existingThread.id !== thread.id) {
-        db.prepare("delete from hotspot_messages where thread_id = ?").run(existingThread.id);
-      }
-      db.prepare(`
-        insert into hotspot_threads (id, chat_image_id, hotspot_id, created_at, updated_at)
-        values (?, ?, ?, ?, ?)
-        on conflict(chat_image_id, hotspot_id) do update set
-          id = excluded.id,
-          updated_at = excluded.updated_at
-      `).run(thread.id, chatImageId, hotspotId, thread.createdAt || now, thread.updatedAt || now);
-      db.prepare("delete from hotspot_messages where thread_id = ?").run(thread.id);
-      const insertMessage = db.prepare(
-        "insert into hotspot_messages (id, thread_id, role, content, created_at) values (?, ?, ?, ?, ?)"
-      );
-      for (const message of thread.messages || []) {
-        insertMessage.run(message.id, thread.id, message.role, message.content, message.createdAt || now);
+        withTransaction(db, () => {
+          db.prepare("delete from hotspot_messages where thread_id = ?").run(existingThread.id);
+          upsertThread(db, chatImageId, hotspotId, thread, now);
+        });
+      } else {
+        withTransaction(db, () => {
+          upsertThread(db, chatImageId, hotspotId, thread, now);
+        });
       }
       return this.getThread(chatImageId, hotspotId);
     },
@@ -362,6 +357,39 @@ function cleanupThreadsForCurrentHotspots(db, chatImageId) {
   ).run(chatImageId, chatImageId);
 }
 
+function upsertThread(db, chatImageId, hotspotId, thread, now) {
+  db.prepare(`
+    insert into hotspot_threads (id, chat_image_id, hotspot_id, created_at, updated_at)
+    values (?, ?, ?, ?, ?)
+    on conflict(chat_image_id, hotspot_id) do update set
+      id = excluded.id,
+      updated_at = excluded.updated_at
+  `).run(thread.id, chatImageId, hotspotId, thread.createdAt || now, thread.updatedAt || now);
+  db.prepare("delete from hotspot_messages where thread_id = ?").run(thread.id);
+  const insertMessage = db.prepare(
+    "insert into hotspot_messages (id, thread_id, role, content, created_at) values (?, ?, ?, ?, ?)"
+  );
+  for (const message of thread.messages || []) {
+    insertMessage.run(message.id, thread.id, message.role, message.content, message.createdAt || now);
+  }
+}
+
+function withTransaction(db, callback) {
+  db.exec("begin immediate transaction");
+  try {
+    const result = callback();
+    db.exec("commit");
+    return result;
+  } catch (error) {
+    try {
+      db.exec("rollback");
+    } catch {
+      // Preserve the original write error.
+    }
+    throw error;
+  }
+}
+
 function listThreads(db, chatImageId) {
   const threads = db
     .prepare("select id, chat_image_id as chatImageId, hotspot_id as hotspotId, created_at as createdAt, updated_at as updatedAt from hotspot_threads where chat_image_id = ? order by updated_at asc")
@@ -430,5 +458,7 @@ module.exports = {
   ensurePinnedAtColumn,
   ensureHotspotThreadsSchema,
   ensureStructuredSpecColumn,
-  migrateHotspotsTable
+  migrateHotspotsTable,
+  upsertThread,
+  withTransaction
 };
