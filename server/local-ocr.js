@@ -97,7 +97,12 @@ async function materializeImage(serverConfig, imageUrl, tempDir) {
   const response = await fetchWithTimeout(
     source,
     {},
-    { label: "Local OCR image download", timeoutMs: serverConfig.apiRequestTimeoutMs || 45_000 }
+    {
+      label: "Local OCR image download",
+      timeoutMs: serverConfig.apiRequestTimeoutMs || 45_000,
+      retryAttempts: serverConfig.apiFetchRetryAttempts,
+      retryDelayMs: serverConfig.apiFetchRetryDelayMs
+    }
   );
   if (!response.ok) {
     const error = new Error(`Local OCR image download failed (${response.status})`);

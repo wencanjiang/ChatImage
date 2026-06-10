@@ -6,8 +6,9 @@ const { callImageApi, callTextApi } = require("../server");
 async function main() {
   await testTextNonJsonError();
   await testTextRequestTimeout();
+  await testTextRequestFetchFailureRetry();
   await testImageTaskFailure();
-  await testImageDimensionProbeUnsupportedFormat();
+  await testImageDimensionProbeFallbackSize();
   await testImageDetailRequestTimeout();
   await testImageTimeout();
   console.log("error-paths.test.js passed");
@@ -77,39 +78,31 @@ async function testImageTaskFailure() {
   }
 }
 
-async function testImageDimensionProbeUnsupportedFormat() {
+async function testImageDimensionProbeFallbackSize() {
   let calls = 0;
   const originalFetch = global.fetch;
   global.fetch = async () => {
     calls += 1;
     if (calls === 1) return jsonResponse({ data: { imageUrl: "https://cdn.example.com/generated.webp" } });
-    return {
-      ok: true,
-      status: 200,
-      headers: new Headers({ "content-type": "image/webp" }),
-      async arrayBuffer() {
-        return Buffer.from("RIFF0000WEBP", "ascii").buffer;
-      }
-    };
+    throw new TypeError("fetch failed");
   };
 
   try {
-    await assert.rejects(
-      () =>
-        callImageApi(
-          {
-            apiKey: "test-key",
-            imageEndpoint: "https://api.wuyinkeji.com/api/async/image_gpt",
-            imageDetailEndpoint: "https://api.wuyinkeji.com/api/async/detail"
-          },
-          {
-            prompt: "unsupported image header",
-            size: "1600x900",
-            model: null
-          }
-        ),
-      /PNG, JPEG or SVG/
+    const result = await callImageApi(
+      {
+        apiKey: "test-key",
+        imageEndpoint: "https://api.wuyinkeji.com/api/async/image_gpt",
+        imageDetailEndpoint: "https://api.wuyinkeji.com/api/async/detail",
+        apiFetchRetryAttempts: 0
+      },
+      {
+        prompt: "dimension fallback",
+        size: "1600x900",
+        model: null
+      }
     );
+    assert.strictEqual(result.width, 1600);
+    assert.strictEqual(result.height, 900);
   } finally {
     global.fetch = originalFetch;
   }
@@ -135,6 +128,36 @@ async function testTextRequestTimeout() {
         ),
       /Text API request timed out/
     );
+  } finally {
+    global.fetch = originalFetch;
+  }
+}
+
+async function testTextRequestFetchFailureRetry() {
+  let calls = 0;
+  const originalFetch = global.fetch;
+  global.fetch = async () => {
+    calls += 1;
+    if (calls === 1) throw new TypeError("fetch failed");
+    return jsonResponse({ data: { choices: [{ message: { content: "retry ok" } }] } });
+  };
+
+  try {
+    const result = await callTextApi(
+      {
+        apiKey: "test-key",
+        textEndpoint: "https://api.example.com/v1/chat/completions",
+        textRequestFormat: "openai-chat",
+        apiFetchRetryAttempts: 1,
+        apiFetchRetryDelayMs: 0
+      },
+      {
+        content: "retry text",
+        model: "test-model"
+      }
+    );
+    assert.strictEqual(result, "retry ok");
+    assert.strictEqual(calls, 2);
   } finally {
     global.fetch = originalFetch;
   }

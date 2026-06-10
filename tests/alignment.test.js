@@ -14,6 +14,7 @@ function main() {
   testInvalidAlignmentResponse();
   testImageDimensionsRequired();
   testApplyAlignmentsToLayout();
+  testPlannedSourceIsNotReportedAsVision();
   testRepairInvalidAlignmentBounds();
   testFinalOverlapFallsBackToPlannedLayout();
   testRestGraphqlFailedSampleBounds();
@@ -122,6 +123,18 @@ function testApplyAlignmentsToLayout() {
   assert.strictEqual(aligned.regions[1].bounds.x, 0.1);
   assert.strictEqual(aligned.regions[1].alignedBy, "vision");
   assert.strictEqual(aligned.alignment.modules.length, 2);
+}
+
+function testPlannedSourceIsNotReportedAsVision() {
+  const layout = createLayout();
+  const aligned = applyAlignmentsToLayout(layout, [
+    { moduleId: "module_1", bounds: { x: 0.1, y: 0.2, width: 0.25, height: 0.22 }, confidence: 0.5, source: "planned" },
+    { moduleId: "module_2", bounds: { x: 0.5, y: 0.2, width: 0.25, height: 0.22 }, confidence: 0.5, source: "planned" }
+  ]);
+  assert.strictEqual(aligned.validation.valid, true);
+  assert.strictEqual(aligned.alignment.provider, "planned-fallback");
+  assert.deepStrictEqual(aligned.alignment.sourceCounts, { planned: 2 });
+  assert.strictEqual(aligned.regions[1].alignedBy, "planned");
 }
 
 function testRepairInvalidAlignmentBounds() {

@@ -128,13 +128,15 @@
     };
     const validation = core.validateLayoutRegions(nextLayout.regions);
     if (validation.valid) {
+      const sourceSummary = summarizeAlignmentSources(alignments);
       return {
         ...nextLayout,
         validation,
         alignment: {
-          provider: "vision",
+          provider: sourceSummary.provider,
           alignedAt: new Date().toISOString(),
-          modules: alignments
+          modules: alignments,
+          sourceCounts: sourceSummary.sourceCounts
         }
       };
     }
@@ -252,6 +254,22 @@
       return !pendingIds.has(region.hotspotId);
     });
     return core.validateLayoutRegions(filteredRegions);
+  }
+
+  function summarizeAlignmentSources(alignments) {
+    const sourceCounts = {};
+    for (const alignment of alignments || []) {
+      const source = String(alignment && alignment.source ? alignment.source : "vision");
+      sourceCounts[source] = (sourceCounts[source] || 0) + 1;
+    }
+    const sources = Object.keys(sourceCounts);
+    if (sources.length === 1 && sources[0] === "planned") {
+      return { provider: "planned-fallback", sourceCounts };
+    }
+    if (sourceCounts.planned) {
+      return { provider: "vision-mixed", sourceCounts };
+    }
+    return { provider: "vision", sourceCounts };
   }
 
   function repairClickableBounds(bounds, options = {}) {
@@ -378,7 +396,8 @@
     buildAlignmentPrompt,
     getAlignableModules,
     parseAlignmentResponse,
-    parseJsonFromText
+    parseJsonFromText,
+    summarizeAlignmentSources
   };
 
   if (typeof module !== "undefined" && module.exports) {

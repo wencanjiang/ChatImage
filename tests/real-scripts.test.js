@@ -31,6 +31,8 @@ function main() {
     CHATIMAGE_LOCATEANYTHING_GENERATION_MODE: "direct",
     CHATIMAGE_LOCATEANYTHING_LICENSE_ACK: "research-evaluation",
     CHATIMAGE_API_REQUEST_TIMEOUT_MS: "4567",
+    CHATIMAGE_API_FETCH_RETRY_ATTEMPTS: "3",
+    CHATIMAGE_API_FETCH_RETRY_DELAY_MS: "123",
     CHATIMAGE_IMAGE_POLL_ATTEMPTS: "12",
     CHATIMAGE_IMAGE_POLL_INITIAL_DELAY_MS: "34",
     CHATIMAGE_IMAGE_POLL_DELAY_MS: "56"
@@ -63,6 +65,8 @@ function main() {
   assert.strictEqual(config.locateAnythingGenerationMode, "direct");
   assert.strictEqual(config.locateAnythingLicenseAck, "research-evaluation");
   assert.strictEqual(config.apiRequestTimeoutMs, 4567);
+  assert.strictEqual(config.apiFetchRetryAttempts, 3);
+  assert.strictEqual(config.apiFetchRetryDelayMs, 123);
   assert.strictEqual(config.imagePollAttempts, 12);
   assert.strictEqual(config.imagePollInitialDelayMs, 34);
   assert.strictEqual(config.imagePollDelayMs, 56);
@@ -85,6 +89,8 @@ function main() {
   assert.strictEqual(defaults.locateAnythingMaxImageSide, 960);
   assert.strictEqual(defaults.locateAnythingLicenseAck, "");
   assert.strictEqual(defaults.apiRequestTimeoutMs, 120000);
+  assert.strictEqual(defaults.apiFetchRetryAttempts, 2);
+  assert.strictEqual(defaults.apiFetchRetryDelayMs, 800);
   assert.strictEqual(defaults.imagePollAttempts, 90);
 
   console.log("real-scripts.test.js passed");

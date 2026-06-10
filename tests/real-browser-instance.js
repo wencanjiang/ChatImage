@@ -328,6 +328,8 @@ function createRealInstanceServerConfig(apiKey, env = process.env) {
     locateAnythingGenerationMode: env.CHATIMAGE_LOCATEANYTHING_GENERATION_MODE || "hybrid",
     locateAnythingLicenseAck: env.CHATIMAGE_LOCATEANYTHING_LICENSE_ACK || "",
     apiRequestTimeoutMs: Number(env.CHATIMAGE_API_REQUEST_TIMEOUT_MS || 120_000),
+    apiFetchRetryAttempts: Number(env.CHATIMAGE_API_FETCH_RETRY_ATTEMPTS || 2),
+    apiFetchRetryDelayMs: Number(env.CHATIMAGE_API_FETCH_RETRY_DELAY_MS || 800),
     imagePollAttempts: Number(env.CHATIMAGE_IMAGE_POLL_ATTEMPTS || 90),
     imagePollInitialDelayMs: Number(env.CHATIMAGE_IMAGE_POLL_INITIAL_DELAY_MS || 1200),
     imagePollDelayMs: Number(env.CHATIMAGE_IMAGE_POLL_DELAY_MS || 2000)

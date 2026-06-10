@@ -92,11 +92,12 @@ async function runLocateAnythingAlignmentWithFallback(serverConfig, request, hel
 
   const modules = normalizeModules(request.modules);
   const byId = new Map();
-  const acceptedModules = [];
+  const acceptedLocateAnythingModules = [];
+  const acceptedLocalOcrModules = [];
   const rejectedModules = [...(locateParsed.rejectedModules || [])];
   for (const item of locateParsed.modules || []) {
     byId.set(item.moduleId, { ...item, source: "locateanything" });
-    acceptedModules.push(item.moduleId);
+    acceptedLocateAnythingModules.push(item.moduleId);
   }
 
   const missingAfterLocate = modules.filter((module) => !byId.has(module.moduleId));
@@ -107,6 +108,7 @@ async function runLocateAnythingAlignmentWithFallback(serverConfig, request, hel
       for (const item of local.modules || []) {
         if (!byId.has(item.moduleId)) {
           byId.set(item.moduleId, { ...item, source: "local-ocr" });
+          acceptedLocalOcrModules.push(item.moduleId);
         }
       }
       warnings.push(...normalizeWarnings(local.warnings));
@@ -148,12 +150,20 @@ async function runLocateAnythingAlignmentWithFallback(serverConfig, request, hel
 
   return {
     provider: "locateanything",
+    effectiveProvider: acceptedLocateAnythingModules.length
+      ? "locateanything"
+      : acceptedLocalOcrModules.length
+      ? "local-ocr"
+      : "planned",
     providerChain: Array.from(new Set(providerChain)),
     modules: finalModules,
     locateAnythingRaw: locateParsed.raw || null,
-    acceptedModules,
+    acceptedModules: acceptedLocateAnythingModules,
+    acceptedLocateAnythingModules,
+    acceptedLocalOcrModules,
     rejectedModules,
     fallbackModules,
+    sourceCounts: countModuleSources(finalModules),
     warnings
   };
 }
@@ -203,9 +213,15 @@ function checkLocateAnythingCudaAvailable(serverConfig) {
 }
 
 function getLocateAnythingClient(serverConfig) {
+  const workerPath = serverConfig.locateAnythingWorkerPath || "";
+  let workerMtime = "";
+  try {
+    workerMtime = workerPath ? String(fs.statSync(workerPath).mtimeMs) : "";
+  } catch {}
   const key = [
     serverConfig.locateAnythingPython || "python",
-    serverConfig.locateAnythingWorkerPath || "",
+    workerPath,
+    workerMtime,
     serverConfig.locateAnythingModel || "",
     serverConfig.locateAnythingDevice || "cuda",
     serverConfig.locateAnythingGenerationMode || "hybrid",
@@ -217,6 +233,15 @@ function getLocateAnythingClient(serverConfig) {
     clients.set(key, new LocateAnythingJsonlClient(serverConfig));
   }
   return clients.get(key);
+}
+
+function countModuleSources(modules) {
+  const counts = {};
+  for (const module of modules || []) {
+    const source = String(module && module.source ? module.source : "unknown");
+    counts[source] = (counts[source] || 0) + 1;
+  }
+  return counts;
 }
 
 class LocateAnythingJsonlClient {
@@ -373,16 +398,68 @@ function normalizeModules(modules) {
       error.statusCode = 400;
       throw error;
     }
+    const text = String(module.text || module.imageText || "");
+    const regionPrompt = String(module.regionPrompt || module.visualPrompt || label);
     return {
       moduleId,
       label,
       order: Number(module.order || index + 1),
-      text: String(module.text || module.imageText || ""),
+      text,
       regionKind: String(module.regionKind || "card"),
-      regionPrompt: String(module.regionPrompt || module.visualPrompt || label),
+      regionPrompt,
+      semanticHint: buildSemanticHint({ ...module, label, text, regionPrompt }),
       plannedBounds: module.plannedBounds ? normalizeBounds(module.plannedBounds, moduleId) : null
     };
   });
+}
+
+function buildSemanticHint(module) {
+  const primaryRaw = [module.regionPrompt, module.label].map((value) => String(value || "")).join(" ");
+  const raw = [primaryRaw, module.text, module.regionKind].map((value) => String(value || "")).join(" ");
+  const keywordMap = [
+    [/\u5c4f\u5e55|\u663e\u793a|\u89e6\u63a7|OLED|AMOLED|LTPO/i, "display screen touch panel"],
+    [/\u7535\u6c60|\u7eed\u822a|\u5145\u7535|\u9502|BMS/i, "battery pack power cell"],
+    [/\u4f20\u611f|\u5fc3\u7387|\u8840\u6c27|PPG|\u5065\u5eb7|\u6e29\u5ea6/i, "health sensor optical sensor"],
+    [/\u5916\u58f3|\u4e2d\u6846|\u9632\u62a4|\u949b|\u4e0d\u9508\u94a2|\u8868\u58f3/i, "protective watch case metal frame"],
+    [/\u8868\u5e26|\u8155\u5e26|\u5feb\u62c6|NFC/i, "watch strap band"],
+    [/\u82af\u7247|\u5904\u7406\u5668|\u4e3b\u677f|PCB|\u7535\u8def/i, "chip mainboard circuit board"],
+    [/\u6444\u50cf|\u955c\u5934|\u76f8\u673a/i, "camera lens optical module"],
+    [/\u897f\u6e56|\u6e56\u6c34|\u6e56\u9762|\u6c34\u57df|\u6e38\u8239/i, "lake water area boats"],
+    [/\u767d\u5824|\u65ad\u6865|\u6865|\u5824/i, "causeway bridge route"],
+    [/\u82cf\u5824|\u957f\u5824|\u8def\u7ebf|\u6b65\u9053/i, "long causeway walking route"],
+    [/\u4e09\u6f6d\u5370\u6708|\u6e56\u5fc3|\u5c9b|\u77f3\u5854/i, "lake island stone pagodas"],
+    [/\u96f7\u5cf0\u5854|\u5854|\u5efa\u7b51/i, "pagoda landmark building"],
+    [/\u8377\u82b1|\u690d\u7269|\u8fdc\u5c71|\u5c71|\u81ea\u7136|\u5cb8/i, "lotus plants mountains shoreline"],
+    [/\u5c55\u54c1|\u5c55\u89c8|\u88c5\u7f6e|\u827a\u672f\u54c1/i, "museum exhibit installation"],
+    [/\u89c2\u4f17|\u4eba\u7269|\u6e38\u5ba2|\u5c45\u6c11|\u4eba\u7fa4/i, "people visitors residents"],
+    [/\u673a\u5668\u4eba|\u5bfc\u89c8|\u52a9\u624b/i, "guide robot assistant"],
+    [/\u7a7a\u95f4|\u7ed3\u6784|\u573a\u9986/i, "spatial structure architecture"],
+    [/\u516c\u4ea4|\u4ea4\u901a|\u5730\u94c1|\u81ea\u884c\u8f66/i, "public transport mobility"],
+    [/\u80fd\u6e90|\u592a\u9633\u80fd|\u98ce\u80fd|\u7535\u7f51/i, "clean energy infrastructure"]
+  ];
+  const parts = [];
+  for (const [pattern, phrase] of keywordMap) {
+    if (pattern.test(primaryRaw)) parts.push(phrase);
+  }
+  if (!parts.length) {
+    for (const [pattern, phrase] of keywordMap) {
+      if (pattern.test(raw)) parts.push(phrase);
+    }
+  }
+  const asciiText = raw.replace(/[^A-Za-z0-9,.;:()/%+\- ]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!parts.length && isUsefulAsciiHint(asciiText)) parts.push(asciiText);
+  if (!parts.length) parts.push("the described visual element or separated region");
+  return Array.from(new Set(parts)).join("; ").slice(0, 180);
+}
+
+function isUsefulAsciiHint(text) {
+  const value = String(text || "").trim();
+  if (value.length < 4) return false;
+  const words = value.match(/[A-Za-z][A-Za-z0-9+\-/%]{2,}/g) || [];
+  if (!words.length) return false;
+  const weak = new Set(["area", "frame", "oled", "nfc", "pcb", "bms", "ltpo", "amoled"]);
+  const strongWords = words.filter((word) => !weak.has(word.toLowerCase()));
+  return strongWords.length >= 2 || (strongWords.length === 1 && strongWords[0].length >= 6);
 }
 
 function normalizeBounds(bounds, moduleId) {
@@ -437,6 +514,7 @@ function throwLocateOutputError(message) {
 
 module.exports = {
   REQUIRED_LICENSE_ACK,
+  buildSemanticHint,
   checkLocateAnythingCudaAvailable,
   createLocateAnythingConfig,
   hasLocateAnythingLicenseAck,

@@ -113,6 +113,22 @@
         </div>
       `;
     }
+    if (layoutProvider === "planned-fallback" || raw.effectiveProvider === "planned") {
+      return `
+        <div class="alignment-notice fail" role="status">
+          <strong>热点使用规划回退</strong>
+          <span>LocateAnything/local-ocr 未能产生可采用的模块边界，当前点击区使用 LayoutSpec 规划坐标。</span>
+        </div>
+      `;
+    }
+    if (layoutProvider === "vision-mixed") {
+      return `
+        <div class="alignment-notice warn" role="status">
+          <strong>部分热点已回退</strong>
+          <span>部分区域使用视觉定位，部分使用规划坐标，校准模式可查看来源。</span>
+        </div>
+      `;
+    }
     if (total > 0) {
       return `
         <div class="alignment-notice warn" role="status">

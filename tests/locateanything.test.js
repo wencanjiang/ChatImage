@@ -6,6 +6,7 @@ const path = require("path");
 const { createServer } = require("../server");
 const { createHealthFixtureDataUrl } = require("../server/local-ocr");
 const {
+  buildSemanticHint,
   normalizeLocateAnythingOutput,
   runLocateAnythingAlignment,
   runLocateAnythingAlignmentWithFallback,
@@ -19,6 +20,7 @@ async function main() {
   await testPlannedFallbackForMissingModule();
   await testInvalidBoundsReject();
   await testVisionRoutesExposeLocateAnything();
+  testSemanticHintUsesPrimaryChineseLabels();
   testNormalizeRejectsBadConfidence();
   console.log("locateanything.test.js passed");
 }
@@ -105,6 +107,10 @@ async function testPlannedFallbackForMissingModule() {
     );
     assert.strictEqual(parsed.modules.length, 3);
     assert.strictEqual(parsed.modules[0].source, "planned");
+    assert.strictEqual(parsed.effectiveProvider, "locateanything");
+    assert.deepStrictEqual(parsed.sourceCounts, { planned: 1, locateanything: 2 });
+    assert.deepStrictEqual(parsed.acceptedLocateAnythingModules, ["module_2", "module_3"]);
+    assert.deepStrictEqual(parsed.acceptedLocalOcrModules, []);
     assert.deepStrictEqual(parsed.fallbackModules, ["module_1"]);
     assert.match(parsed.warnings.join("\n"), /fake locate/);
   });
@@ -179,6 +185,25 @@ function testNormalizeRejectsBadConfidence() {
         createModules()
       ),
     /confidence/
+  );
+}
+
+function testSemanticHintUsesPrimaryChineseLabels() {
+  assert.strictEqual(
+    buildSemanticHint({
+      label: "\u9ad8\u5bc6\u5ea6\u8f6f\u5305\u7535\u6c60",
+      regionPrompt: "\u9ad8\u5bc6\u5ea6\u8f6f\u5305\u7535\u6c60",
+      text: "\u7ed3\u6784 \u4f20\u611f \u82af\u7247"
+    }),
+    "battery pack power cell"
+  );
+  assert.strictEqual(
+    buildSemanticHint({
+      label: "\u667a\u80fd\u4ea4\u4e92\u8868\u5e26",
+      regionPrompt: "\u667a\u80fd\u4ea4\u4e92\u8868\u5e26",
+      text: "\u4f20\u611f\u5668\u63a5\u89e6 NFC"
+    }),
+    "watch strap band"
   );
 }
 

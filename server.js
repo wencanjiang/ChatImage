@@ -92,6 +92,8 @@ function createConfig(overrides = {}) {
     databasePath: process.env.CHATIMAGE_DATABASE_PATH || path.join(rootDir, "tmp", "chatimage.sqlite"),
     staticDir: process.env.CHATIMAGE_STATIC_DIR || rootDir,
     apiRequestTimeoutMs: Number(process.env.CHATIMAGE_API_REQUEST_TIMEOUT_MS || 120_000),
+    apiFetchRetryAttempts: Number(process.env.CHATIMAGE_API_FETCH_RETRY_ATTEMPTS || 2),
+    apiFetchRetryDelayMs: Number(process.env.CHATIMAGE_API_FETCH_RETRY_DELAY_MS || 800),
     imagePollAttempts: Number(process.env.CHATIMAGE_IMAGE_POLL_ATTEMPTS || 90),
     imagePollInitialDelayMs: Number(process.env.CHATIMAGE_IMAGE_POLL_INITIAL_DELAY_MS || 1200),
     imagePollDelayMs: Number(process.env.CHATIMAGE_IMAGE_POLL_DELAY_MS || 2000),

@@ -72,6 +72,20 @@
         `视觉定位失败，当前热点已回退到规划布局。${raw.error || ""}`.trim()
       );
     }
+    if (layoutProvider === "planned-fallback" || raw.effectiveProvider === "planned") {
+      return fail(
+        "alignment_provider",
+        "视觉对齐",
+        "LocateAnything/local-ocr 未产生可采用的模块边界，当前热点使用规划布局。"
+      );
+    }
+    if (layoutProvider === "vision-mixed") {
+      return warn(
+        "alignment_provider",
+        "视觉对齐",
+        "部分热点使用视觉定位，部分热点使用规划布局回退。"
+      );
+    }
     if (layoutProvider === "vision-fallback") {
       return warn(
         "alignment_provider",
