@@ -38,7 +38,7 @@ async function callWuyinFormTextApi(serverConfig, { content, model, purpose, res
       },
       body: payload
     },
-    { label: "Text API request", timeoutMs: serverConfig.apiRequestTimeoutMs }
+    createFetchOptions(serverConfig, "Text API request")
   );
 
   const data = await parseJsonResponse(response);
@@ -88,7 +88,7 @@ async function callOpenAiChatTextApi(serverConfig, { content, model, purpose, re
       },
       body: JSON.stringify(payload)
     },
-    { label: "Text API request", timeoutMs: serverConfig.apiRequestTimeoutMs }
+    createFetchOptions(serverConfig, "Text API request")
   );
 
   const data = await parseJsonResponse(response);
@@ -168,7 +168,7 @@ async function callVisionApi(serverConfig, { content, imageUrl, model, purpose, 
       headers: createVisionHeaders(serverConfig, apiKey),
       body: JSON.stringify(payload)
     },
-    { label: "Vision API request", timeoutMs: serverConfig.apiRequestTimeoutMs }
+    createFetchOptions(serverConfig, "Vision API request")
   );
 
   const data = await parseJsonResponse(response);
@@ -206,7 +206,7 @@ async function callWuyinFormVisionApi(serverConfig, { apiKey, content, imageUrl,
       },
       body: payload
     },
-    { label: "Vision API request", timeoutMs: serverConfig.apiRequestTimeoutMs }
+    createFetchOptions(serverConfig, "Vision API request")
   );
 
   const data = await parseJsonResponse(response);
@@ -282,7 +282,7 @@ async function callImageApi(serverConfig, { prompt, size, model }) {
             }
       )
     },
-    { label: "Image API request", timeoutMs: serverConfig.apiRequestTimeoutMs }
+    createFetchOptions(serverConfig, "Image API request")
   );
 
   const data = await parseJsonResponse(response);
@@ -330,7 +330,7 @@ async function pollImageTask(serverConfig, taskId) {
       {
         headers: { Authorization: serverConfig.apiKey }
       },
-      { label: "Image detail API request", timeoutMs: serverConfig.apiRequestTimeoutMs }
+      createFetchOptions(serverConfig, "Image detail API request")
     );
     const data = await parseJsonResponse(response);
     if (isApiErrorPayload(data)) {
@@ -409,24 +409,29 @@ function parseLeadingJsonValue(text) {
   return null;
 }
 
-async function fetchWithTimeout(url, options = {}, { label = "API request", timeoutMs } = {}) {
+async function fetchWithTimeout(
+  url,
+  options = {},
+  { label = "API request", timeoutMs, retryAttempts = 0, retryDelayMs = 800 } = {}
+) {
   const ms = Number(timeoutMs ?? 45_000);
-  if (!Number.isFinite(ms) || ms <= 0) {
-    return fetch(url, options);
-  }
-  const controller = new AbortController();
-  // Abort stops local waiting/request signaling; it does not guarantee upstream work or TCP resources end immediately.
-  const timeout = setTimeout(() => controller.abort(), ms);
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } catch (error) {
-    if (error && error.name === "AbortError") {
-      throw new Error(`${label} timed out after ${ms}ms`);
+  const attempts = Math.max(1, Number.isInteger(Number(retryAttempts)) ? Number(retryAttempts) + 1 : 1);
+  let lastError = null;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const controller = Number.isFinite(ms) && ms > 0 ? new AbortController() : null;
+    // Abort stops local waiting/request signaling; it does not guarantee upstream work or TCP resources end immediately.
+    const timeout = controller ? setTimeout(() => controller.abort(), ms) : null;
+    try {
+      return await fetch(url, controller ? { ...options, signal: controller.signal } : options);
+    } catch (error) {
+      lastError = normalizeFetchError(error, label, ms);
+      if (attempt >= attempts - 1 || !isRetriableFetchError(error)) throw lastError;
+      await sleep(Number(retryDelayMs) * (attempt + 1));
+    } finally {
+      if (timeout) clearTimeout(timeout);
     }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
   }
+  throw lastError;
 }
 
 function extractTextContent(value) {
@@ -517,13 +522,13 @@ function extractImageDimensions(value, fallbackSize) {
 async function resolveImageDimensions(serverConfig, value, imageUrl, fallbackSize) {
   const direct = findDimensions(value);
   if (direct) return direct;
-  const probed = await probeImageDimensions(serverConfig, imageUrl);
-  if (probed) return probed;
-  throw new Error(
-    `Image dimensions unavailable for generated image; expected PNG, JPEG or SVG with readable dimensions: ${String(
-      imageUrl || ""
-    ).slice(0, 160)}`
-  );
+  try {
+    const probed = await probeImageDimensions(serverConfig, imageUrl);
+    if (probed) return probed;
+  } catch (error) {
+    if (serverConfig.strictImageDimensionProbe) throw error;
+  }
+  return parseImageSize(fallbackSize);
 }
 
 async function probeImageDimensions(serverConfig, imageUrl) {
@@ -540,7 +545,7 @@ async function probeImageDimensions(serverConfig, imageUrl) {
         Accept: "image/png,image/jpeg,image/svg+xml"
       }
     },
-    { label: "Image dimension probe", timeoutMs: serverConfig.apiRequestTimeoutMs }
+    createFetchOptions(serverConfig, "Image dimension probe")
   );
   if (!response.ok) {
     throw new Error(`Image dimension probe failed (${response.status}): ${source.slice(0, 160)}`);
@@ -677,6 +682,32 @@ function parseImageSize(size) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function createFetchOptions(serverConfig, label) {
+  return {
+    label,
+    timeoutMs: serverConfig.apiRequestTimeoutMs,
+    retryAttempts: serverConfig.apiFetchRetryAttempts,
+    retryDelayMs: serverConfig.apiFetchRetryDelayMs
+  };
+}
+
+function normalizeFetchError(error, label, ms) {
+  if (error && error.name === "AbortError") {
+    return new Error(`${label} timed out after ${ms}ms`);
+  }
+  return error;
+}
+
+function isRetriableFetchError(error) {
+  if (!error) return false;
+  if (error.name === "AbortError") return false;
+  const message = String(error.message || error.cause?.message || "");
+  const code = String(error.code || error.cause?.code || "");
+  return /fetch failed|network|socket|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|UND_ERR/i.test(
+    `${message} ${code}`
+  );
 }
 
 module.exports = {
