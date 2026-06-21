@@ -184,9 +184,48 @@ async function withEnv(key, value, fn) {
 function listen(server) {
   return new Promise((resolve, reject) => {
     server.once("error", reject);
-    server.listen(0, "127.0.0.1", resolve);
+    listenOnSafePort(server, resolve, reject);
   });
 }
+
+async function listenOnSafePort(server, resolve, reject) {
+  try {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const port = await getFreeSafePort();
+      try {
+        server.listen(port, "127.0.0.1", resolve);
+        return;
+      } catch {
+        // Try another port.
+      }
+    }
+    reject(new Error("Could not allocate a safe test port"));
+  } catch (error) {
+    reject(error);
+  }
+}
+
+async function getFreeSafePort() {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const probe = http.createServer();
+    await new Promise((resolve, reject) => {
+      probe.once("error", reject);
+      probe.listen(0, "127.0.0.1", resolve);
+    });
+    const { port } = probe.address();
+    await close(probe);
+    if (!UNSAFE_FETCH_PORTS.has(port)) return port;
+  }
+  throw new Error("Could not allocate a browser-safe local port");
+}
+
+const UNSAFE_FETCH_PORTS = new Set([
+  1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79, 87, 95,
+  101, 102, 103, 104, 109, 110, 111, 113, 115, 117, 119, 123, 135, 137, 139, 143, 161,
+  179, 389, 427, 465, 512, 513, 514, 515, 526, 530, 531, 532, 540, 548, 554, 556, 563,
+  587, 601, 636, 989, 990, 993, 995, 1719, 1720, 1723, 2049, 3659, 4045, 5060, 5061,
+  6000, 6566, 6665, 6666, 6667, 6668, 6669, 6697, 10080
+]);
 
 function close(server) {
   return new Promise((resolve, reject) => {

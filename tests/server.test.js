@@ -1,6 +1,8 @@
 "use strict";
 
 const assert = require("assert");
+const fs = require("fs");
+const path = require("path");
 const {
   createStore,
   createServer,
@@ -8,6 +10,7 @@ const {
   extractTaskId,
   extractTextContent
 } = require("../server");
+const { getStaticCacheControl } = require("../server/http");
 
 async function main() {
   const server = createServer({
@@ -43,6 +46,45 @@ async function main() {
     const css = await fetch(`${baseUrl}/styles.css`);
     assert.strictEqual(css.headers.get("content-type"), "text/css; charset=utf-8");
     assert.strictEqual(css.headers.get("cache-control"), "no-cache");
+    await css.text();
+    assert.strictEqual(
+      getStaticCacheControl(".js", "dist/assets/chatimage.729a26d134.min.js"),
+      "public, max-age=31536000, immutable"
+    );
+    assert.strictEqual(getStaticCacheControl(".js", "dist/assets/chatimage.min.js"), "no-cache");
+    assert.strictEqual(getStaticCacheControl(".map", "dist/assets/chatimage.729a26d134.min.js.map"), "no-cache");
+
+    // Cross-site browser request that suppressed Origin/Referer is still blocked
+    // via the Sec-Fetch-Site: cross-site header that real browsers always send.
+    const crossSiteNoOrigin = await fetch(`${baseUrl}/api/llm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Sec-Fetch-Site": "cross-site" },
+      body: JSON.stringify({ content: "test" })
+    });
+    assert.strictEqual(crossSiteNoOrigin.status, 403);
+    await crossSiteNoOrigin.text();
+
+    // A local/tooling request with no Origin and no Sec-Fetch-Site is allowed
+    // (it falls through to normal route handling → 503 missing key, not 403).
+    const localNoOrigin = await fetch(`${baseUrl}/api/llm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Sec-Fetch-Site": "none" },
+      body: JSON.stringify({ content: "test" })
+    });
+    assert.strictEqual(localNoOrigin.status, 503);
+    await localNoOrigin.text();
+
+    // dist/ hash-named assets should be cached long-term and immutably.
+    const distAsset = await locateDistAsset(baseUrl);
+    if (distAsset) {
+      const assetResponse = await fetch(`${baseUrl}/${distAsset}`);
+      assert.strictEqual(assetResponse.status, 200);
+      assert.strictEqual(
+        assetResponse.headers.get("cache-control"),
+        "public, max-age=31536000, immutable"
+      );
+      await assetResponse.arrayBuffer();
+    }
 
     const crossOriginPost = await fetch(`${baseUrl}/api/llm`, {
       method: "POST",
@@ -50,6 +92,7 @@ async function main() {
       body: JSON.stringify({ content: "test" })
     });
     assert.strictEqual(crossOriginPost.status, 403);
+    await crossOriginPost.text();
 
     const missingKey = await fetch(`${baseUrl}/api/llm`, {
       method: "POST",
@@ -241,9 +284,35 @@ function listen(server) {
   });
 }
 
+// Resolve the first hash-named JS asset from the build manifest so the cache
+// assertion survives content-hash changes across rebuilds. Returns a path
+// relative to the project root (e.g. "dist/assets/chatimage.729....min.js").
+function locateDistAsset() {
+  try {
+    const manifestPath = path.join(__dirname, "..", "dist", "build-manifest.json");
+    if (!fs.existsSync(manifestPath)) return null;
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const script = manifest.outputs && manifest.outputs.script;
+    if (typeof script === "string" && /\.min\.js$/.test(script)) {
+      return `dist/${script.replace(/^\/+/, "")}`;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function close(server) {
   return new Promise((resolve, reject) => {
-    server.close((error) => (error ? reject(error) : resolve()));
+    const timer = setTimeout(() => {
+      if (typeof server.closeAllConnections === "function") server.closeAllConnections();
+    }, 500);
+    if (typeof server.closeIdleConnections === "function") server.closeIdleConnections();
+    server.close((error) => {
+      clearTimeout(timer);
+      if (error) reject(error);
+      else resolve();
+    });
   });
 }
 

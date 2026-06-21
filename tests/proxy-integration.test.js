@@ -22,7 +22,7 @@ async function main() {
 
     if (url.pathname === "/image" && req.method === "POST") {
       upstreamState.imageBody = await readBody(req);
-      assert.strictEqual(url.searchParams.get("key"), "proxy-key");
+      assert.strictEqual(url.searchParams.get("key"), null);
       assert.strictEqual(req.headers.authorization, "proxy-key");
       return sendJson(res, 200, { data: { task_id: "task_456" } });
     }
@@ -40,7 +40,7 @@ async function main() {
 
     if (url.pathname === "/detail" && req.method === "GET") {
       upstreamState.detailCalls += 1;
-      assert.strictEqual(url.searchParams.get("key"), "proxy-key");
+      assert.strictEqual(url.searchParams.get("key"), null);
       assert.strictEqual(url.searchParams.get("id"), "task_456");
       assert.strictEqual(req.headers.authorization, "proxy-key");
       return sendJson(res, 200, { data: { status: "done", url: "https://cdn.example.com/proxy.png", width: 1280, height: 720 } });
@@ -236,7 +236,15 @@ function isFetchBlockedPort(port) {
 
 function close(server) {
   return new Promise((resolve, reject) => {
-    server.close((error) => (error ? reject(error) : resolve()));
+    const timer = setTimeout(() => {
+      server.closeAllConnections?.();
+    }, 500);
+    server.closeIdleConnections?.();
+    server.close((error) => {
+      clearTimeout(timer);
+      if (error) reject(error);
+      else resolve();
+    });
   });
 }
 

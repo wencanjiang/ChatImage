@@ -90,6 +90,17 @@ function main() {
   assert.doesNotMatch(resultHtml, /标题<script>/);
   assert.doesNotMatch(resultHtml, /module-label/);
 
+  const questionHtml = renderResult({ ...createResult(), question: "用户问题 <script>" });
+  assert.match(questionHtml, /submitted-question/);
+  assert.match(questionHtml, /用户问题 &lt;script&gt;/);
+  assert.doesNotMatch(questionHtml, /用户问题 <script>/);
+
+  const generatingHtml = renderGeneratingState("正在提交 <script>");
+  assert.match(generatingHtml, /正在生成/);
+  assert.match(generatingHtml, /submitted-question/);
+  assert.match(generatingHtml, /正在提交 &lt;script&gt;/);
+  assert.doesNotMatch(generatingHtml, /<span>你<\/span>/);
+
   const fallbackHtml = renderResult({
     ...createResult(),
     alignmentRaw: {
@@ -107,6 +118,60 @@ function main() {
 
   assert.match(frameHtml, /--fallback-aspect-ratio:1600 \/ 900/);
   assert.match(frameHtml, /width="1600" height="900"/);
+  const explicitZIndexHtml = renderImageFrame({
+    ...createResult(),
+    hotspots: [
+      {
+        ...createResult().hotspots[0],
+        regionKind: "object",
+        zIndex: 3
+      }
+    ]
+  });
+  assert.match(explicitZIndexHtml, /z-index:3/);
+  assert.doesNotMatch(explicitZIndexHtml, /z-index:9/);
+  const maskedFrameHtml = renderImageFrame({
+    ...createResult(),
+    hotspots: [
+      {
+        ...createResult().hotspots[0],
+        mask: {
+          bounds: { x: 0.12, y: 0.22, width: 0.2, height: 0.3 },
+          polygon: [
+            { x: 0.12, y: 0.22 },
+            { x: 0.32, y: 0.22 },
+            { x: 0.28, y: 0.52 },
+            { x: 0.12, y: 0.52 }
+          ]
+        }
+      }
+    ]
+  });
+  assert.doesNotMatch(maskedFrameHtml, /<svg[\s\S]*class="hotspot hotspot-mask/);
+  assert.match(maskedFrameHtml, /<button[\s\S]*class="hotspot"/);
+  assert.match(maskedFrameHtml, /left:10%;top:20%;width:30%;height:40%/);
+  const explicitMaskClickHtml = renderImageFrame({
+    ...createResult(),
+    hotspots: [
+      {
+        ...createResult().hotspots[0],
+        clickShape: "mask",
+        maskUsableForClick: true,
+        mask: {
+          bounds: { x: 0.12, y: 0.22, width: 0.2, height: 0.3 },
+          polygon: [
+            { x: 0.12, y: 0.22 },
+            { x: 0.32, y: 0.22 },
+            { x: 0.28, y: 0.52 },
+            { x: 0.12, y: 0.52 }
+          ]
+        }
+      }
+    ]
+  });
+  assert.match(explicitMaskClickHtml, /<svg[\s\S]*class="hotspot hotspot-mask/);
+  assert.match(explicitMaskClickHtml, /<polygon class="hotspot-shape" points="/);
+  assert.match(explicitMaskClickHtml, /left:10%;top:20%;width:30%;height:40%/);
   assert.deepStrictEqual(getImageDimensions({ imageWidth: 1200, imageHeight: 800 }), { width: 1200, height: 800 });
   assert.deepStrictEqual(getImageDimensions({ imageWidth: 0, imageHeight: 0 }), { width: 1600, height: 900 });
 
@@ -153,6 +218,56 @@ function main() {
   assert.doesNotMatch(detailHtml, /class="source-box"/);
   assert.match(detailHtml, /class="followup-field"/);
 
+  const maskedPreviewHtml = renderHotspotPreview({
+    imageUrl: "data:image/svg+xml,test",
+    alt: "masked",
+    caption: "SAM3 精细区域预览",
+    aspectRatio: 1.2,
+    crop: { x: 0.08, y: 0.18, width: 0.34, height: 0.44 },
+    maskBounds: { x: 0.1, y: 0.2, width: 0.28, height: 0.36 },
+    maskImage: "data:image/png;base64,iVBORw0KGgo="
+  });
+  assert.match(maskedPreviewHtml, /detail-preview-crop has-mask/);
+  assert.match(maskedPreviewHtml, /detail-preview-soft/);
+  assert.match(maskedPreviewHtml, /--mask-image:url/);
+  assert.match(maskedPreviewHtml, /SAM3 精细区域预览/);
+
+  const softFallbackPreviewHtml = renderHotspotPreview({
+    imageUrl: "data:image/svg+xml,test",
+    alt: "soft fallback",
+    caption: "fallback",
+    aspectRatio: 1.4,
+    crop: { x: 0.18, y: 0.18, width: 0.28, height: 0.28 }
+  });
+  assert.match(softFallbackPreviewHtml, /detail-preview-soft/);
+  assert.doesNotMatch(softFallbackPreviewHtml, /detail-preview-organic/);
+
+  const cutoutPreviewHtml = renderHotspotPreview({
+    imageUrl: "data:image/svg+xml,test",
+    cutoutUrl: "data:image/png;base64,iVBORw0KGgo=",
+    alt: "robot cutout",
+    caption: "主体抠图预览",
+    aspectRatio: 0.72,
+    crop: { x: 0.1, y: 0.1, width: 0.2, height: 0.4 },
+    maskBounds: { x: 0.1, y: 0.1, width: 0.2, height: 0.4 }
+  });
+  assert.match(cutoutPreviewHtml, /detail-preview-cutout/);
+  assert.match(cutoutPreviewHtml, /detail-preview-cutout-image/);
+  assert.match(cutoutPreviewHtml, /主体抠图预览/);
+
+  const organicPreviewHtml = renderHotspotPreview({
+    imageUrl: "data:image/svg+xml,test",
+    organicUrl: "data:image/png;base64,iVBORw0KGgo=",
+    alt: "organic region",
+    caption: "区域上下文预览",
+    aspectRatio: 1.68,
+    crop: { x: 0.2, y: 0.2, width: 0.24, height: 0.18 }
+  });
+  assert.match(organicPreviewHtml, /detail-preview-organic/);
+  assert.match(organicPreviewHtml, /detail-preview-organic-image/);
+  assert.match(organicPreviewHtml, /区域上下文预览/);
+  assert.doesNotMatch(organicPreviewHtml, /detail-preview-cutout/);
+
   const emptyMessages = renderMessages([]);
   assert.strictEqual(emptyMessages, "");
   const artifactHtml = renderMessages([
@@ -190,9 +305,13 @@ function main() {
     { id: "ci_4", title: "标题四", question: "问题四", updatedAt: "2026-06-01T10:00:00.000Z" },
     { id: "ci_5", title: "标题五", question: "问题五", updatedAt: "2026-05-31T10:00:00.000Z" },
     { id: "ci_6", title: "标题六", question: "问题六", updatedAt: "2026-05-30T10:00:00.000Z" },
-    { id: "ci_7", title: "标题七", question: "问题七", updatedAt: "2026-05-29T10:00:00.000Z" }
+    { id: "ci_7", title: "标题七", question: "问题七", updatedAt: "2026-05-29T10:00:00.000Z" },
+    { id: "ci_8", title: "标题八", question: "问题八", updatedAt: "2026-05-28T10:00:00.000Z" },
+    { id: "ci_9", title: "标题九", question: "问题九", updatedAt: "2026-05-27T10:00:00.000Z" },
+    { id: "ci_10", title: "标题十", question: "问题十", updatedAt: "2026-05-26T10:00:00.000Z" },
+    { id: "ci_11", title: "标题十一", question: "问题十一", updatedAt: "2026-05-25T10:00:00.000Z" }
   ], "ci_1", { now: new Date("2026-06-05T00:00:00.000Z") });
-  assert.strictEqual((historyHtml.match(/<div class="history-item/g) || []).length, 6);
+  assert.strictEqual((historyHtml.match(/<div class="history-item/g) || []).length, 11);
   assert.match(historyHtml, /data-history-pin="ci_1"/);
   assert.match(historyHtml, /data-history-rename="ci_1"/);
   assert.match(historyHtml, /data-history-delete="ci_1"/);
@@ -200,7 +319,8 @@ function main() {
   assert.match(historyHtml, /class="history-item-time">1 天/);
   assert.doesNotMatch(historyHtml, /history-item-index/);
   assert.doesNotMatch(historyHtml, />PIN</);
-  assert.doesNotMatch(historyHtml, /标题七/);
+  assert.match(historyHtml, /标题十/);
+  assert.match(historyHtml, /标题十一/);
   assert.strictEqual(formatHistoryTime("2026-06-04T23:59:30.000Z", new Date("2026-06-05T00:00:00.000Z")), "刚刚");
 
   const historyErrorHtml = renderHistoryRestoreError("恢复失败<script>", "ci_<1>");

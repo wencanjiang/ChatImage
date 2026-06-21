@@ -7,7 +7,11 @@ async function main() {
   await testTextNonJsonError();
   await testTextRequestTimeout();
   await testTextRequestFetchFailureRetry();
+  await testImageCreateTransientPayloadRetry();
+  await testImageCreateAmbiguous400Retry();
+  await testImageCreateParameter400NoRetry();
   await testImageTaskFailure();
+  await testImageDetailTransientPayloadRetry();
   await testImageDimensionProbeFallbackSize();
   await testImageDetailRequestTimeout();
   await testImageTimeout();
@@ -44,6 +48,112 @@ async function testTextNonJsonError() {
   }
 }
 
+async function testImageCreateTransientPayloadRetry() {
+  let calls = 0;
+  const originalFetch = global.fetch;
+  global.fetch = async () => {
+    calls += 1;
+    if (calls === 1) {
+      return jsonResponse({
+        code: 500,
+        message: "CURL request failed: Connection timed out after 30001 milliseconds"
+      });
+    }
+    return jsonResponse({ data: { imageUrl: "https://cdn.example.com/create-retry-ok.png" } });
+  };
+
+  try {
+    const result = await callImageApi(
+      {
+        apiKey: "test-key",
+        imageEndpoint: "https://api.wuyinkeji.com/api/async/image_gpt",
+        imageDetailEndpoint: "https://api.wuyinkeji.com/api/async/detail",
+        apiFetchRetryAttempts: 1,
+        apiFetchRetryDelayMs: 0
+      },
+      {
+        prompt: "创建任务临时超时后成功",
+        size: "1600x900",
+        model: "GPT-Image-2"
+      }
+    );
+    assert.strictEqual(result.imageUrl, "https://cdn.example.com/create-retry-ok.png");
+    assert.ok(calls >= 2);
+  } finally {
+    global.fetch = originalFetch;
+  }
+}
+
+async function testImageCreateAmbiguous400Retry() {
+  let createCalls = 0;
+  const originalFetch = global.fetch;
+  global.fetch = async (url) => {
+    if (String(url).includes("/api/async/image_gpt")) {
+      createCalls += 1;
+    }
+    if (createCalls === 1 && String(url).includes("/api/async/image_gpt")) {
+      return jsonResponse({ code: 400 });
+    }
+    return jsonResponse({ data: { imageUrl: "https://cdn.example.com/ambiguous-400-retry-ok.png" } });
+  };
+
+  try {
+    const result = await callImageApi(
+      {
+        apiKey: "test-key",
+        imageEndpoint: "https://api.wuyinkeji.com/api/async/image_gpt",
+        imageDetailEndpoint: "https://api.wuyinkeji.com/api/async/detail",
+        apiFetchRetryAttempts: 1,
+        apiFetchRetryDelayMs: 0
+      },
+      {
+        prompt: "ambiguous 400 retry",
+        size: "1024x1024",
+        model: null
+      }
+    );
+    assert.strictEqual(result.imageUrl, "https://cdn.example.com/ambiguous-400-retry-ok.png");
+    assert.strictEqual(createCalls, 2);
+  } finally {
+    global.fetch = originalFetch;
+  }
+}
+
+async function testImageCreateParameter400NoRetry() {
+  let createCalls = 0;
+  const originalFetch = global.fetch;
+  global.fetch = async (url) => {
+    if (String(url).includes("/api/async/image_gpt")) {
+      createCalls += 1;
+    }
+    return jsonResponse({ code: 400, msg: "invalid model parameter" });
+  };
+
+  try {
+    await assert.rejects(
+      () =>
+        callImageApi(
+          {
+            apiKey: "test-key",
+            imageEndpoint: "https://api.wuyinkeji.com/api/async/image_gpt",
+            imageDetailEndpoint: "https://api.wuyinkeji.com/api/async/detail",
+            apiFetchRetryAttempts: 2,
+            apiFetchRetryDelayMs: 0
+          },
+          {
+            prompt: "parameter 400 should not retry",
+            size: "1024x1024",
+            model: null
+          }
+        ),
+      /Image API error/
+    );
+    assert.strictEqual(createCalls, 1);
+  } finally {
+    global.fetch = originalFetch;
+  }
+}
+
 async function testImageTaskFailure() {
   let calls = 0;
   const originalFetch = global.fetch;
@@ -73,6 +183,45 @@ async function testImageTaskFailure() {
         ),
       /failed/
     );
+  } finally {
+    global.fetch = originalFetch;
+  }
+}
+
+async function testImageDetailTransientPayloadRetry() {
+  let calls = 0;
+  const originalFetch = global.fetch;
+  global.fetch = async () => {
+    calls += 1;
+    if (calls === 1) return jsonResponse({ data: { task_id: "task_retry" } });
+    if (calls === 2) {
+      return jsonResponse({
+        code: 500,
+        message: "CURL request failed: Operation timed out after 30001 milliseconds with 0 bytes received"
+      });
+    }
+    return jsonResponse({ data: { imageUrl: "https://cdn.example.com/retry-ok.png" } });
+  };
+
+  try {
+    const result = await callImageApi(
+      {
+        apiKey: "test-key",
+        imageEndpoint: "https://api.wuyinkeji.com/api/async/image_gpt",
+        imageDetailEndpoint: "https://api.wuyinkeji.com/api/async/detail",
+        imagePollAttempts: 3,
+        imagePollInitialDelayMs: 0,
+        imagePollDelayMs: 0,
+        apiFetchRetryAttempts: 0
+      },
+      {
+        prompt: "详情临时超时后成功",
+        size: "1600x900",
+        model: "GPT-Image-2"
+      }
+    );
+    assert.strictEqual(result.imageUrl, "https://cdn.example.com/retry-ok.png");
+    assert.ok(calls >= 3);
   } finally {
     global.fetch = originalFetch;
   }

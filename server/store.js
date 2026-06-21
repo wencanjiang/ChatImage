@@ -128,7 +128,16 @@ function createStore(databasePath) {
               y: hotspot.y,
               width: hotspot.width,
               height: hotspot.height,
-              textBudget: hotspot.textBudget || null
+              textBudget: hotspot.textBudget || null,
+              zIndex: hotspot.zIndex || null,
+              alignmentSource: hotspot.alignmentSource || "",
+              regionKind: hotspot.regionKind || "",
+              maskPolicy: hotspot.maskPolicy || "",
+              mask: hotspot.mask || null,
+              shape: hotspot.shape || null,
+              clickShape: hotspot.clickShape || null,
+              maskUsableForClick: hotspot.maskUsableForClick === true,
+              clickDiagnostics: Array.isArray(hotspot.clickDiagnostics) ? hotspot.clickDiagnostics : []
             })
           );
         }
@@ -152,6 +161,8 @@ function createStore(databasePath) {
         )
         .get(chatImageId);
       if (!row) return { result: null };
+      const structuredSpec = safeJsonParse(row.structuredSpecJson, null);
+      const alignmentRaw = safeJsonParse(row.alignmentRawJson, null);
       const hotspots = db
         .prepare(
           "select id, label, short_text as shortText, detail, source_excerpt as sourceExcerpt, icon_hint as iconHint, bounds_json as boundsJson from hotspots where chat_image_id = ? order by id asc"
@@ -173,7 +184,7 @@ function createStore(databasePath) {
           rawAnswer: row.rawAnswer,
           title: row.title,
           summary: row.summary,
-          structuredSpec: safeJsonParse(row.structuredSpecJson, null),
+          structuredSpec,
           layout: safeJsonParse(row.layoutJson, {}),
           hotspots,
           threads: listThreads(db, chatImageId),
@@ -182,7 +193,12 @@ function createStore(databasePath) {
           imageHeight: row.imageHeight,
           imagePrompt: row.imagePrompt || "",
           providerRaw: safeJsonParse(row.providerRawJson, null),
-          alignmentRaw: safeJsonParse(row.alignmentRawJson, null),
+          alignmentRaw,
+          textModelUsed: (structuredSpec && structuredSpec.textModelUsed) || "",
+          textModelFallbackReason: (structuredSpec && structuredSpec.textModelFallbackReason) || "",
+          visualQualityRaw: alignmentRaw && alignmentRaw.visualQa ? alignmentRaw.visualQa : null,
+          visualQualityWarnings:
+            alignmentRaw && alignmentRaw.visualQa && Array.isArray(alignmentRaw.visualQa.warnings) ? alignmentRaw.visualQa.warnings : [],
           pinnedAt: row.pinnedAt,
           createdAt: row.createdAt,
           updatedAt: row.updatedAt
@@ -375,6 +391,16 @@ function upsertThread(db, chatImageId, hotspotId, thread, now) {
 }
 
 function withTransaction(db, callback) {
+  // If a previous request crashed mid-transaction and its rollback also failed,
+  // the connection can be left with an open transaction. The next "begin
+  // immediate" would then throw "cannot start a transaction within a
+  // transaction" and stall every subsequent write. Defensively roll back any
+  // lingering transaction before starting a new one.
+  try {
+    db.exec("rollback");
+  } catch {
+    // Expected when no transaction is open.
+  }
   db.exec("begin immediate transaction");
   try {
     const result = callback();
@@ -383,8 +409,12 @@ function withTransaction(db, callback) {
   } catch (error) {
     try {
       db.exec("rollback");
-    } catch {
-      // Preserve the original write error.
+    } catch (rollbackError) {
+      // Surface rollback failure: the connection may now be unusable for
+      // future writes, and silently swallowing it would mask a deadlock.
+      console.error(
+        `[store] rollback failed after write error: ${rollbackError && rollbackError.message ? rollbackError.message : rollbackError}`
+      );
     }
     throw error;
   }

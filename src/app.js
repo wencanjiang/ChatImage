@@ -14,6 +14,7 @@
   const renderModel = window.ChatImageRender;
   const downloadModel = window.ChatImageDownload;
   const filesModel = window.ChatImageFiles;
+  const previewStrategyModel = window.ChatImagePreviewStrategy;
   const providerConfig = apiClient.config;
 
   const state = stateModel.createChatImageState();
@@ -23,6 +24,7 @@
   let progressHideTimer = null;
   let historyItems = [];
   let historySearchQuery = "";
+  const cutoutPreviewCache = new Map();
 
   const ATTACHMENT_ICON_GROUPS = {
     code: new Set([
@@ -144,17 +146,23 @@
   });
   const { chatImageService, layoutPlanner, persistence } = services;
 
+  function setStatusText(text) {
+    if (elements.statusPill) elements.statusPill.textContent = text;
+  }
+
   function setStatus(step) {
     const order = ["answering", "structuring", "layout", "image", "align"];
     clearProgressHideTimer();
-    elements.progress.hidden = false;
-    elements.progress.classList.remove("is-hiding", "is-complete");
-    elements.progress.querySelectorAll(".progress-step").forEach((item) => {
-      const index = order.indexOf(item.dataset.step);
-      const currentIndex = order.indexOf(step);
-      item.classList.toggle("active", item.dataset.step === step);
-      item.classList.toggle("done", index < currentIndex);
-    });
+    if (elements.progress) {
+      elements.progress.hidden = false;
+      elements.progress.classList.remove("is-hiding", "is-complete");
+      elements.progress.querySelectorAll(".progress-step").forEach((item) => {
+        const index = order.indexOf(item.dataset.step);
+        const currentIndex = order.indexOf(step);
+        item.classList.toggle("active", item.dataset.step === step);
+        item.classList.toggle("done", index < currentIndex);
+      });
+    }
     const labels = {
       answering: "正在生成文本",
       structuring: "正在结构化",
@@ -162,19 +170,23 @@
       image: "正在生成图片",
       align: "正在对齐热点"
     };
-    elements.statusPill.textContent = labels[step] || "Mock API";
+    setStatusText(labels[step] || "Mock API");
   }
 
   function finishStatus() {
-    elements.progress.querySelectorAll(".progress-step").forEach((item) => {
-      item.classList.remove("active");
-      item.classList.add("done");
-    });
-    elements.progress.classList.add("is-complete");
-    elements.statusPill.textContent = "可交互";
+    if (elements.progress) {
+      elements.progress.querySelectorAll(".progress-step").forEach((item) => {
+        item.classList.remove("active");
+        item.classList.add("done");
+      });
+      elements.progress.classList.add("is-complete");
+    }
+    setStatusText("可交互");
     progressHideTimer = setTimeout(() => {
+      if (!elements.progress) return;
       elements.progress.classList.add("is-hiding");
       progressHideTimer = setTimeout(() => {
+        if (!elements.progress) return;
         elements.progress.hidden = true;
         elements.progress.classList.remove("is-hiding", "is-complete");
         progressHideTimer = null;
@@ -190,6 +202,7 @@
 
   function hideProgress() {
     clearProgressHideTimer();
+    if (!elements.progress) return;
     elements.progress.hidden = true;
     elements.progress.classList.remove("is-hiding", "is-complete");
     elements.progress.querySelectorAll(".progress-step").forEach((item) => {
@@ -244,12 +257,12 @@
       const nextResult = calibrationModel.buildCalibratedResult(state.result, input.value);
       state.result = nextResult;
       await persistence.saveResult(nextResult);
-      elements.statusPill.textContent = "热点已校准";
+      setStatusText("热点已校准");
       renderResult();
       renderDetail();
       if (state.modalOpen) renderModalStage();
     } catch (error) {
-      elements.statusPill.textContent = "校准失败";
+      setStatusText("校准失败");
       input.focus();
       input.setAttribute("aria-invalid", "true");
       input.title = error.message || String(error);
@@ -263,6 +276,11 @@
         void button.offsetWidth;
         button.classList.add("clicked");
         selectHotspot(button.dataset.hotspotId);
+      });
+      button.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        button.click();
       });
       button.addEventListener("animationend", () => button.classList.remove("clicked"));
     });
@@ -309,13 +327,52 @@
     if (state.modalOpen) renderModalStage();
   }
 
+  // Set the CSS variables --origin-x / --origin-y on the detail panel so the
+  // open animation visually emanates from the hotspot the user clicked.
+  // Falls back to the panel center when the hotspot element is not in the DOM.
+  function setDetailAnchorOrigin(hotspotId) {
+    if (!elements.detailPanel || !hotspotId) return;
+    let originX = "50%";
+    let originY = "50%";
+    try {
+      const safeId = (typeof CSS !== "undefined" && typeof CSS.escape === "function")
+        ? CSS.escape(String(hotspotId))
+        : String(hotspotId).replace(/"/g, "\\\"");
+      const target = document.querySelector(`[data-hotspot-id="${safeId}"]`);
+      if (target) {
+        const rect = target.getBoundingClientRect();
+        originX = `${Math.round(rect.left + rect.width / 2)}px`;
+        originY = `${Math.round(rect.top + rect.height / 2)}px`;
+      }
+    } catch (_) {
+      // ignore — keep defaults
+    }
+    elements.detailPanel.style.setProperty("--origin-x", originX);
+    elements.detailPanel.style.setProperty("--origin-y", originY);
+  }
+
   function renderDetail(options = {}) {
     const result = state.result;
     if (!result || !state.selectedHotspotId || !state.detailOpen) {
-      elements.detailPanel.hidden = true;
-      elements.detailBackdrop.hidden = true;
+      // Cancel any pending close animation callback before force-hiding so a
+      // late timer cannot strip classes off / re-hide the panel unexpectedly.
+      cancelDetailCloseTimer();
+      cancelDetailMotionTimer();
+      if (elements.detailPanel) {
+        elements.detailPanel.classList.remove("is-closing", "is-entering", "is-preview-entering");
+        elements.detailPanel.hidden = true;
+      }
+      if (elements.detailBackdrop) {
+        elements.detailBackdrop.classList.remove("is-closing", "is-entering");
+        elements.detailBackdrop.hidden = true;
+      }
       return;
     }
+
+    // If a previous close animation is still pending its hidden=true callback,
+    // cancel it now — we are about to show a new hotspot's detail and the
+    // delayed callback would otherwise hide the freshly-opened panel.
+    cancelDetailCloseTimer();
 
     const hotspot = result.hotspots.find((item) => item.id === state.selectedHotspotId);
     const thread = stateModel.getThread(state, hotspot.id);
@@ -324,9 +381,17 @@
     const error = stateModel.getHotspotError(state, hotspot.id);
     const preview = buildHotspotPreview(result, hotspot);
 
+    // Anchor the panel's open animation to the clicked hotspot's location so
+    // the detail surface visually grows out of the spot the user just clicked
+    // (Apple/Claude-style transition origin).
+    setDetailAnchorOrigin(hotspot.id);
+
+    elements.detailPanel.classList.remove("is-closing");
+    elements.detailBackdrop.classList.remove("is-closing");
     elements.detailPanel.hidden = false;
     elements.detailBackdrop.hidden = false;
     elements.detailPanel.innerHTML = renderModel.renderDetail({ hotspot, messages, pending, error, preview });
+    hydrateHotspotCutoutPreview(result, hotspot);
 
     elements.detailPanel.querySelector("#closeDetailButton").addEventListener("click", closeDetail);
     elements.detailPanel.querySelector("#followupForm").addEventListener("submit", onFollowup);
@@ -361,28 +426,747 @@
     if (options.focusPanel) {
       elements.detailPanel.focus({ preventScroll: true });
     }
+    restartDetailMotion({
+      panel: Boolean(options.focusPanel),
+      preview: Boolean(options.focusPanel || options.animatePreview)
+    });
   }
+
+  const inferPreviewStrategy = previewStrategyModel.inferPreviewStrategy;
+  const getOrganicPreviewGeometry = previewStrategyModel.getOrganicPreviewGeometry;
+  const padNormalizedBounds = previewStrategyModel.padNormalizedBounds;
+  const normalizeBounds = previewStrategyModel.normalizeBounds;
+  const shouldUseContextPreviewShape = previewStrategyModel.shouldUseContextPreviewShape;
+  const FULL_PREVIEW_CROP = { x: 0, y: 0, width: 1, height: 1 };
 
   function buildHotspotPreview(result, hotspot) {
     if (!result || !hotspot || !result.imageUrl) return null;
     const dimensions = renderModel.getImageDimensions(result);
-    const expanded = expandNormalizedBounds(
-      {
-        x: Number(hotspot.x || 0),
-        y: Number(hotspot.y || 0),
-        width: Number(hotspot.width || 0),
-        height: Number(hotspot.height || 0)
-      },
-      0.035
+    const rawMaskBounds = findHotspotMaskBounds(result, hotspot.id);
+    const rawMaskImage = findHotspotMaskImage(result, hotspot.id);
+    const rawMaskPolygon = findHotspotMaskPolygon(result, hotspot.id);
+    const rawServerCutoutImage = findHotspotCutoutImage(result, hotspot.id);
+    const strategy = inferPreviewStrategy(result, hotspot);
+    const preferContextCrop = strategy.preferContextCrop;
+    const hotspotBounds = {
+      x: Number(hotspot.x || 0),
+      y: Number(hotspot.y || 0),
+      width: Number(hotspot.width || 0),
+      height: Number(hotspot.height || 0)
+    };
+    const maskConsistent = isMaskConsistentWithHotspot(rawMaskBounds, hotspotBounds, strategy);
+    const maskBounds = maskConsistent ? rawMaskBounds : null;
+    const maskImage = maskConsistent ? rawMaskImage : "";
+    const maskPolygon = maskConsistent ? rawMaskPolygon : [];
+    const serverCutoutImage = maskConsistent ? rawServerCutoutImage : "";
+    const forceContextShape = shouldForceContextShapePreview(strategy, maskBounds, hotspotBounds);
+    const contextPreviewShape = shouldUseContextPreviewShape(strategy) || forceContextShape;
+    const previewSourceBounds = contextPreviewShape
+      ? getOrganicSourceBounds(result, hotspot, maskBounds || hotspotBounds, strategy)
+      : maskBounds || hotspotBounds;
+    const previewKey = getCutoutPreviewKey(
+      result,
+      hotspot.id,
+      maskImage,
+      strategy,
+      contextPreviewShape ? [] : maskPolygon,
+      previewSourceBounds,
+      { contextPreviewShape }
     );
-    const aspectRatio = (expanded.width * dimensions.width) / Math.max(1, expanded.height * dimensions.height);
+    const cached = previewKey ? cutoutPreviewCache.get(previewKey) : null;
+    const baseBounds = contextPreviewShape ? previewSourceBounds : (maskBounds && !preferContextCrop ? maskBounds : hotspotBounds);
+    const expanded = expandNormalizedBounds(baseBounds, maskBounds && !preferContextCrop && !contextPreviewShape ? 0.018 : 0.026);
+    const keepTargetShape = !contextPreviewShape && !preferContextCrop && Boolean(maskBounds || hotspot.mask || hotspot.shape === "mask" || hotspot.shape === "freeform");
+    const targetCrop = keepTargetShape ? expanded : fitCropAspect(expanded, dimensions, 0.9, 3.0);
+    const fallbackCrop = fitCropAspect(expanded, dimensions, 0.9, 3.0);
+    const aspectRatio = (targetCrop.width * dimensions.width) / Math.max(1, targetCrop.height * dimensions.height);
+
+    // Independent subject: transparent SAM3 cutout (server or client canvas).
+    if (!preferContextCrop && !contextPreviewShape) {
+      if (serverCutoutImage) {
+        return {
+          imageUrl: result.imageUrl,
+          cutoutUrl: serverCutoutImage,
+          alt: `${hotspot.label} 独立抠图`,
+          caption: strategy.caption || "主体抠图预览",
+          crop: FULL_PREVIEW_CROP,
+          maskBounds,
+          aspectRatio: clampPreviewAspect(aspectRatio),
+          source: "sam3-server-cutout",
+          maskImage
+        };
+      }
+      if (cached && cached.url && !cached.organic) {
+        return {
+          imageUrl: result.imageUrl,
+          cutoutUrl: cached.url,
+          alt: `${hotspot.label} 独立抠图`,
+          caption: strategy.caption || "主体抠图预览",
+          crop: FULL_PREVIEW_CROP,
+          maskBounds,
+          aspectRatio: clampPreviewAspect(cached.aspectRatio || aspectRatio),
+          source: "sam3-cutout",
+          maskImage
+        };
+      }
+    }
+
+    // Map/scene region with a mask: prefer the async organic feathered preview
+    // once it is ready. It is an opaque, irregularly-shaped region image with
+    // a soft halo — not a transparent cutout, not a hard rectangle.
+    if (cached && cached.url && cached.organic) {
+      const organicBounds = getOrganicSourceBounds(result, hotspot, previewSourceBounds, strategy);
+      const organicPolygon = cached.synthetic ? [] : (contextPreviewShape ? [] : maskPolygon);
+      const organicCrop = computeOrganicCropBounds(result, hotspot, organicBounds, dimensions, organicPolygon);
+      return {
+        imageUrl: result.imageUrl,
+        organicUrl: cached.url,
+        alt: `${hotspot.label} 区域图像`,
+        caption: strategy.caption || "区域上下文预览",
+        crop: FULL_PREVIEW_CROP,
+        aspectRatio: clampPreviewAspect(cached.aspectRatio || organicCrop.aspectRatio),
+        source: "organic-mask",
+        maskImage: ""
+      };
+    }
+
+    // Fallback while the organic preview is generating, or when there is no
+    // mask at all. If a mask exists, keep the CSS mask-image so the preview is
+    // already irregular (hard-edged) instead of a plain rectangle; the organic
+    // soft-edge version replaces it once rendered.
+    const fallbackAspectRatio = (fallbackCrop.width * dimensions.width) / Math.max(1, fallbackCrop.height * dimensions.height);
+    const fallbackCaption = strategy.caption || (maskBounds ? "SAM3 精细区域预览" : "热点区域预览");
+    const polygonMaskImage = preferContextCrop && maskBounds && maskPolygon.length >= 3 && !contextPreviewShape
+      ? createPolygonMaskDataUrl(maskPolygon, maskBounds)
+      : "";
+    const fallbackMaskImage = contextPreviewShape ? "" : polygonMaskImage || maskImage;
+    const useMaskFallback = contextPreviewShape ? false : (preferContextCrop ? Boolean(fallbackMaskImage) : Boolean(maskBounds));
     return {
       imageUrl: result.imageUrl,
       alt: `${hotspot.label} 区域图像`,
-      caption: "热点区域预览",
-      crop: expanded,
-      aspectRatio
+      caption: fallbackCaption,
+      crop: fallbackCrop,
+      maskBounds: useMaskFallback ? maskBounds : null,
+      aspectRatio: clampPreviewAspect(fallbackAspectRatio),
+      source: maskBounds ? "sam3" : "bounds",
+      maskImage: useMaskFallback ? fallbackMaskImage : "",
+      softEdge: true
     };
+  }
+
+  // Compute the crop window shown while the organic preview is the source. The
+  // organic canvas already includes its own buffer/feather, so the visible crop
+  // should match the padded bounds used to build it.
+  function computeOrganicCropBounds(result, hotspot, maskBounds, dimensions, polygon) {
+    if (!maskBounds) {
+      return { crop: { x: 0, y: 0, width: 1, height: 1 }, aspectRatio: 1.5 };
+    }
+    const geometry = getOrganicPreviewGeometry(maskBounds, dimensions, polygon);
+    const padded = geometry.paddedBounds;
+    const aspectRatio = (padded.width * dimensions.width) / Math.max(1, padded.height * dimensions.height);
+    return { crop: padded, aspectRatio };
+  }
+
+  function hydrateHotspotCutoutPreview(result, hotspot) {
+    if (!result || !hotspot || !state.detailOpen || state.selectedHotspotId !== hotspot.id) return;
+    const strategy = inferPreviewStrategy(result, hotspot);
+    const rawMaskBounds = findHotspotMaskBounds(result, hotspot.id);
+    const rawMaskImage = findHotspotMaskImage(result, hotspot.id);
+    const rawMaskPolygon = findHotspotMaskPolygon(result, hotspot.id);
+    const hotspotBounds = normalizeBounds({
+      x: Number(hotspot.x),
+      y: Number(hotspot.y),
+      width: Number(hotspot.width),
+      height: Number(hotspot.height)
+    });
+    const maskConsistent = isMaskConsistentWithHotspot(rawMaskBounds, hotspotBounds, strategy);
+    const maskBounds = maskConsistent ? rawMaskBounds : null;
+    const maskImage = maskConsistent ? rawMaskImage : "";
+    const maskPolygon = maskConsistent ? rawMaskPolygon : [];
+    const forceContextShape = shouldForceContextShapePreview(strategy, maskBounds, hotspotBounds);
+    const contextPreviewShape = shouldUseContextPreviewShape(strategy) || forceContextShape;
+    const previewBounds = contextPreviewShape
+      ? getOrganicSourceBounds(result, hotspot, maskBounds || hotspotBounds, strategy)
+      : maskBounds || hotspotBounds;
+    const key = getCutoutPreviewKey(
+      result,
+      hotspot.id,
+      maskImage,
+      strategy,
+      contextPreviewShape ? [] : maskPolygon,
+      previewBounds,
+      { contextPreviewShape }
+    );
+    if (!previewBounds || !key || cutoutPreviewCache.has(key)) return;
+    cutoutPreviewCache.set(key, { loading: true });
+    const useCutoutBuilder = Boolean(strategy.independentSubject && !strategy.mapLike && !contextPreviewShape && maskBounds && maskImage);
+    const builder = useCutoutBuilder ? createHotspotCutoutPreview : createOrganicPreview;
+    builder
+      .call(null, result, hotspot, previewBounds, maskImage, {
+        forceContextShape: contextPreviewShape || !useCutoutBuilder,
+        synthetic: !maskBounds || contextPreviewShape
+      })
+      .then((cutout) => {
+        if (!cutout || !cutout.url) {
+          cutoutPreviewCache.delete(key);
+          return;
+        }
+        cutoutPreviewCache.set(key, cutout);
+        if (state.detailOpen && state.selectedHotspotId === hotspot.id && state.result === result) {
+          renderDetail({ focusPanel: false, animatePreview: true });
+        }
+      })
+      .catch(() => {
+        cutoutPreviewCache.delete(key);
+      });
+  }
+
+  function getCutoutPreviewKey(result, hotspotId, maskImage, strategy, polygon, bounds, options = {}) {
+    if (!result || !hotspotId) return "";
+    const kind = strategy && (strategy.preferContextCrop || shouldUseContextPreviewShape(strategy)) ? "organic" : "cutout";
+    const polygonSignature = Array.isArray(polygon) && polygon.length >= 3
+      ? polygon
+          .slice(0, 64)
+          .map((point) => `${Number(point.x || 0).toFixed(4)},${Number(point.y || 0).toFixed(4)}`)
+          .join(";")
+      : "";
+    const normalizedBounds = normalizeBounds(bounds);
+    const boundsSignature = normalizedBounds
+      ? [
+          Number(normalizedBounds.x || 0).toFixed(4),
+          Number(normalizedBounds.y || 0).toFixed(4),
+          Number(normalizedBounds.width || 0).toFixed(4),
+          Number(normalizedBounds.height || 0).toFixed(4)
+        ].join(",")
+      : "";
+    const marker = [
+      options && options.contextPreviewShape ? "context-shape" : "",
+      maskImage ? `img:${maskImage.length}` : "",
+      polygonSignature ? `poly:${polygon.length}:${polygonSignature}` : "",
+      boundsSignature ? `bounds:${boundsSignature}` : ""
+    ]
+      .filter(Boolean)
+      .join(":");
+    if (!marker) return "";
+    return [result.id || result.title || result.imageUrl, hotspotId, kind, marker].join("|");
+  }
+
+  async function createHotspotCutoutPreview(result, hotspot, maskBounds, maskImage) {
+    const dimensions = renderModel.getImageDimensions(result);
+    const image = await loadCanvasImage(result.imageUrl);
+    const mask = await loadCanvasImage(maskImage);
+    const sourceWidth = image.naturalWidth || image.width || dimensions.width;
+    const sourceHeight = image.naturalHeight || image.height || dimensions.height;
+    const crop = normalizedBoundsToPixels(maskBounds, sourceWidth, sourceHeight);
+    if (!crop.width || !crop.height) return null;
+    const maxSide = 720;
+    const scale = Math.min(1, maxSide / Math.max(crop.width, crop.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(crop.width * scale));
+    canvas.height = Math.max(1, Math.round(crop.height * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, crop.x, crop.y, crop.width, crop.height, 0, 0, canvas.width, canvas.height);
+    ctx.globalCompositeOperation = "destination-in";
+    ctx.drawImage(mask, 0, 0, canvas.width, canvas.height);
+    ctx.globalCompositeOperation = "source-over";
+    const tight = cropCanvasToAlpha(canvas, 10);
+    if (!tight) return null;
+    return {
+      url: tight.canvas.toDataURL("image/png"),
+      width: tight.canvas.width,
+      height: tight.canvas.height,
+      aspectRatio: tight.canvas.width / Math.max(1, tight.canvas.height),
+      label: hotspot.label
+    };
+  }
+
+  // Builds an organic, feathered region preview: the original image filled
+  // inside the mask silhouette, with the mask dilated outward (buffer scales
+  // with mask area) and blurred so the edge fades softly instead of a hard
+  // rectangle cut. This is what the user wants for map/scene hotspots like
+  // 三潭印月 / 宝石山: an irregular shape that hugs the region contour with a
+  // little surrounding context, not a flat rectangle and not a shredded
+  // transparent cutout.
+  //
+  // Deliberately simple and deterministic: no pixel-level content detection,
+  // no edge filtering. Just mask geometry + dilation + blur + image fill.
+  async function createOrganicPreview(result, hotspot, maskBounds, maskImage, options = {}) {
+    const dimensions = renderModel.getImageDimensions(result);
+    const image = await loadCanvasImage(result.imageUrl);
+    const strategy = inferPreviewStrategy(result, hotspot);
+    const forceContextShape = Boolean(options && options.forceContextShape);
+    const useContextShape = forceContextShape || shouldUseContextPreviewShape(strategy);
+    let organicBounds = getOrganicSourceBounds(result, hotspot, maskBounds, strategy);
+    if (useContextShape) {
+      const padRatio = strategy && strategy.visualMode === "infographic" ? 0.08 : 0.045;
+      organicBounds = padNormalizedBounds(organicBounds, padRatio);
+    }
+    const maskPolygon = useContextShape ? [] : findHotspotMaskPolygon(result, hotspot.id);
+    const hasMaskImage = Boolean(maskImage);
+    const mask = hasMaskImage && maskPolygon.length < 3 ? await loadCanvasImage(maskImage) : null;
+    const sourceWidth = image.naturalWidth || image.width || dimensions.width;
+    const sourceHeight = image.naturalHeight || image.height || dimensions.height;
+
+    const geometry = getOrganicPreviewGeometry(organicBounds, dimensions, maskPolygon);
+    const paddedBounds = geometry.paddedBounds;
+    const crop = normalizedBoundsToPixels(paddedBounds, sourceWidth, sourceHeight);
+    if (!crop.width || !crop.height) return null;
+
+    const maxSide = 760;
+    const scale = Math.min(1, maxSide / Math.max(crop.width, crop.height));
+    const cw = Math.max(1, Math.round(crop.width * scale));
+    const ch = Math.max(1, Math.round(crop.height * scale));
+
+    // Step 1: build the mask silhouette on a canvas matching the crop window.
+    const maskCanvas = document.createElement("canvas");
+    maskCanvas.width = cw;
+    maskCanvas.height = ch;
+    const maskCtx = maskCanvas.getContext("2d");
+    if (!maskCtx) return null;
+    maskCtx.imageSmoothingEnabled = true;
+    maskCtx.imageSmoothingQuality = "high";
+    maskCtx.clearRect(0, 0, cw, ch);
+    if (maskPolygon.length >= 3) {
+      drawNormalizedPolygonMask(maskCtx, geometry.polygon, paddedBounds, cw, ch);
+    } else if (useContextShape) {
+      drawContextRegionMask(maskCtx, cw, ch, strategy);
+    } else if (mask) {
+      // mask.image is alpha over maskBounds; place it proportionally inside
+      // the padded crop window.
+      const maskPlacedW = (maskBounds.width / paddedBounds.width) * cw;
+      const maskPlacedH = (maskBounds.height / paddedBounds.height) * ch;
+      const maskPlacedX = ((maskBounds.x - paddedBounds.x) / paddedBounds.width) * cw;
+      const maskPlacedY = ((maskBounds.y - paddedBounds.y) / paddedBounds.height) * ch;
+      maskCtx.drawImage(mask, maskPlacedX, maskPlacedY, maskPlacedW, maskPlacedH);
+    } else {
+      return null;
+    }
+
+    // Step 2: dilate (grow) the silhouette outward so a little surrounding
+    // context is included, then blur for a feathered edge.
+    const maskArea = Math.max(0.0001, maskBounds.width * maskBounds.height);
+    const growPx = Math.round(Math.max(2, Math.min(16, Math.sqrt(maskArea) * Math.min(cw, ch) * 0.08)));
+    dilateMaskAlpha(maskCtx, cw, ch, growPx);
+    const featherRadius = Math.max(2, Math.round(Math.min(cw, ch) * 0.022));
+    const featherCanvas = document.createElement("canvas");
+    featherCanvas.width = cw;
+    featherCanvas.height = ch;
+    const featherCtx = featherCanvas.getContext("2d");
+    if (!featherCtx) return null;
+    featherCtx.filter = `blur(${featherRadius}px)`;
+    featherCtx.drawImage(maskCanvas, 0, 0);
+    featherCtx.filter = "none";
+    maskCtx.globalCompositeOperation = "copy";
+    maskCtx.drawImage(featherCanvas, 0, 0);
+    maskCtx.filter = "none";
+    maskCtx.globalCompositeOperation = "source-over";
+
+    // Step 3: composite the original image with the feathered mask.
+    const canvas = document.createElement("canvas");
+    canvas.width = cw;
+    canvas.height = ch;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.drawImage(image, crop.x, crop.y, crop.width, crop.height, 0, 0, cw, ch);
+    ctx.globalCompositeOperation = "destination-in";
+    ctx.drawImage(maskCanvas, 0, 0);
+    ctx.globalCompositeOperation = "source-over";
+
+    // Step 4: trim near-empty borders but keep the feathered halo.
+    const tight = cropCanvasToAlpha(canvas, featherRadius);
+    if (!tight) return null;
+    return {
+      url: tight.canvas.toDataURL("image/png"),
+      width: tight.canvas.width,
+      height: tight.canvas.height,
+      aspectRatio: tight.canvas.width / Math.max(1, tight.canvas.height),
+      label: hotspot.label,
+      organic: true,
+      synthetic: Boolean(options && options.synthetic)
+    };
+  }
+
+
+  function drawNormalizedPolygonMask(ctx, polygon, bounds, width, height) {
+    if (!ctx || !Array.isArray(polygon) || polygon.length < 3 || !bounds) return;
+    ctx.beginPath();
+    polygon.forEach((point, index) => {
+      const x = clamp01((point.x - bounds.x) / bounds.width) * width;
+      const y = clamp01((point.y - bounds.y) / bounds.height) * height;
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = "rgba(0, 0, 0, 1)";
+    ctx.fill();
+  }
+
+  function drawContextRegionMask(ctx, width, height, strategy) {
+    const insetX = Math.max(3, Math.round(width * 0.025));
+    const insetY = Math.max(3, Math.round(height * 0.025));
+    const x = insetX;
+    const y = insetY;
+    const w = Math.max(1, width - insetX * 2);
+    const h = Math.max(1, height - insetY * 2);
+    const route = strategy && strategy.route;
+    const flowStrip = strategy && strategy.flowStrip;
+    const radius = route || flowStrip
+      ? Math.max(10, Math.min(w, h) * 0.42)
+      : Math.max(12, Math.min(w, h) * 0.18);
+    drawRoundedRectPath(ctx, x, y, w, h, radius);
+    ctx.fillStyle = "rgba(0, 0, 0, 1)";
+    ctx.fill();
+  }
+
+  function drawRoundedRectPath(ctx, x, y, width, height, radius) {
+    const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + width - r, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+    ctx.lineTo(x + width, y + height - r);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+    ctx.lineTo(x + r, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function createPolygonMaskDataUrl(polygon, bounds) {
+    const normalizedBounds = normalizeBounds(bounds);
+    const normalizedPolygon = normalizePolygonPoints(polygon);
+    if (!normalizedBounds || normalizedPolygon.length < 3) return "";
+    const points = normalizedPolygon
+      .map((point) => {
+        const x = clamp01((point.x - normalizedBounds.x) / normalizedBounds.width);
+        const y = clamp01((point.y - normalizedBounds.y) / normalizedBounds.height);
+        return `${Math.round(x * 1000)},${Math.round(y * 1000)}`;
+      })
+      .join(" ");
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><polygon points="${points}" fill="#fff"/></svg>`;
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  }
+
+  function normalizePolygonPoints(polygon) {
+    if (!Array.isArray(polygon)) return [];
+    return polygon
+      .map((point) => ({
+        x: clamp01(Number(point && point.x)),
+        y: clamp01(Number(point && point.y))
+      }))
+      .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
+  }
+
+  function getPolygonBounds(polygon) {
+    const points = normalizePolygonPoints(polygon);
+    if (points.length < 3) return null;
+    let minX = 1;
+    let minY = 1;
+    let maxX = 0;
+    let maxY = 0;
+    points.forEach((point) => {
+      minX = Math.min(minX, point.x);
+      minY = Math.min(minY, point.y);
+      maxX = Math.max(maxX, point.x);
+      maxY = Math.max(maxY, point.y);
+    });
+    if (maxX <= minX || maxY <= minY) return null;
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  }
+
+  function expandPolygonAroundCenter(polygon, scale) {
+    const points = normalizePolygonPoints(polygon);
+    const bounds = getPolygonBounds(points);
+    if (!bounds || points.length < 3) return [];
+    const centerX = bounds.x + bounds.width / 2;
+    const centerY = bounds.y + bounds.height / 2;
+    const factor = Math.max(1, Number(scale) || 1);
+    return points.map((point) => ({
+      x: clamp01(centerX + (point.x - centerX) * factor),
+      y: clamp01(centerY + (point.y - centerY) * factor)
+    }));
+  }
+
+  // Cheap morphological dilation of an alpha silhouette by `radius` px using
+  // stacked shadow-offset draws. Good enough for a soft preview edge without a
+  // separate image-processing dependency.
+  function dilateMaskAlpha(ctx, width, height, radius) {
+    if (radius <= 0) return;
+    const source = document.createElement("canvas");
+    source.width = width;
+    source.height = height;
+    const sctx = source.getContext("2d");
+    if (!sctx) return;
+    sctx.drawImage(ctx.canvas, 0, 0);
+    const steps = 8;
+    for (let i = 0; i < steps; i += 1) {
+      const angle = (i / steps) * Math.PI * 2;
+      const dx = Math.round(Math.cos(angle) * radius);
+      const dy = Math.round(Math.sin(angle) * radius);
+      ctx.drawImage(source, dx, dy);
+    }
+  }
+
+  function unionNormalizedBounds(a, b) {
+    const first = normalizeBounds(a);
+    const second = normalizeBounds(b);
+    if (!first) return second;
+    if (!second) return first;
+    const x = Math.max(0, Math.min(first.x, second.x));
+    const y = Math.max(0, Math.min(first.y, second.y));
+    const right = Math.min(1, Math.max(first.x + first.width, second.x + second.width));
+    const bottom = Math.min(1, Math.max(first.y + first.height, second.y + second.height));
+    return normalizeBounds({ x, y, width: right - x, height: bottom - y }) || first;
+  }
+
+  function clamp01(value) {
+    if (!Number.isFinite(value)) return NaN;
+    return Math.max(0, Math.min(1, value));
+  }
+
+  function loadCanvasImage(src) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      if (!String(src || "").startsWith("data:")) image.crossOrigin = "anonymous";
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("image load failed"));
+      image.src = src;
+    });
+  }
+
+  function normalizedBoundsToPixels(bounds, width, height) {
+    const x = Math.max(0, Math.min(width - 1, Math.floor(Number(bounds.x || 0) * width)));
+    const y = Math.max(0, Math.min(height - 1, Math.floor(Number(bounds.y || 0) * height)));
+    const right = Math.max(x + 1, Math.min(width, Math.ceil((Number(bounds.x || 0) + Number(bounds.width || 0)) * width)));
+    const bottom = Math.max(y + 1, Math.min(height, Math.ceil((Number(bounds.y || 0) + Number(bounds.height || 0)) * height)));
+    return { x, y, width: right - x, height: bottom - y };
+  }
+
+  function cropCanvasToAlpha(canvas, padding) {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    const width = canvas.width;
+    const height = canvas.height;
+    const pixels = ctx.getImageData(0, 0, width, height);
+    let minX = width;
+    let minY = height;
+    let maxX = -1;
+    let maxY = -1;
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const alpha = pixels.data[(y * width + x) * 4 + 3];
+        if (alpha < 8) continue;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+    if (maxX < minX || maxY < minY) return null;
+    const pad = Math.max(0, Number(padding || 0));
+    minX = Math.max(0, minX - pad);
+    minY = Math.max(0, minY - pad);
+    maxX = Math.min(width - 1, maxX + pad);
+    maxY = Math.min(height - 1, maxY + pad);
+    const output = document.createElement("canvas");
+    output.width = Math.max(1, maxX - minX + 1);
+    output.height = Math.max(1, maxY - minY + 1);
+    const outputCtx = output.getContext("2d");
+    if (!outputCtx) return null;
+    outputCtx.clearRect(0, 0, output.width, output.height);
+    outputCtx.drawImage(canvas, minX, minY, output.width, output.height, 0, 0, output.width, output.height);
+    return { canvas: output };
+  }
+
+  function findHotspotMaskBounds(result, hotspotId) {
+    const mask = findHotspotMaskRecord(result, hotspotId);
+    return normalizeBounds(mask && mask.bounds);
+  }
+
+  function findHotspotMaskInputBounds(result, hotspotId) {
+    const regions = result && result.layout && Array.isArray(result.layout.regions) ? result.layout.regions : [];
+    const region = regions.find((item) => item && item.hotspotId === hotspotId);
+    return normalizeBounds(region && region.mask && region.mask.inputBounds);
+  }
+
+  function findHotspotLayoutBounds(result, hotspotId) {
+    const regions = result && result.layout && Array.isArray(result.layout.regions) ? result.layout.regions : [];
+    const region = regions.find((item) => item && item.hotspotId === hotspotId);
+    return normalizeBounds(region && region.bounds);
+  }
+
+  function findHotspotMaskImage(result, hotspotId) {
+    const mask = findHotspotMaskRecord(result, hotspotId);
+    const image = mask && mask.image;
+    return typeof image === "string" && image.startsWith("data:image/png;base64,") ? image : "";
+  }
+
+  function findHotspotMaskPolygon(result, hotspotId) {
+    const mask = findHotspotMaskRecord(result, hotspotId);
+    const polygon = (mask && mask.polygon) || [];
+    return normalizePolygonPoints(polygon);
+  }
+
+  function findHotspotCutoutImage(result, hotspotId) {
+    const mask = findHotspotMaskRecord(result, hotspotId);
+    const image = mask && mask.cutoutImage;
+    return typeof image === "string" && image.startsWith("data:image/png;base64,") ? image : "";
+  }
+
+  function findHotspotMaskRecord(result, hotspotId) {
+    const regions = result && result.layout && Array.isArray(result.layout.regions) ? result.layout.regions : [];
+    const region = regions.find((item) => item && item.hotspotId === hotspotId);
+    const hotspots = result && Array.isArray(result.hotspots) ? result.hotspots : [];
+    const hotspot = hotspots.find((item) => item && item.id === hotspotId);
+    const mask = (region && region.mask) || (hotspot && hotspot.mask) || null;
+    return isReliableMaskForPreview(result, hotspot, region, mask) ? mask : null;
+  }
+
+  function isReliableMaskForPreview(result, hotspot, region, mask) {
+    if (!mask) return false;
+    const score = Number(mask.score);
+    const visualMode = String((result && result.structuredSpec && result.structuredSpec.visualMode) || "").toLowerCase();
+    const kind = String((hotspot && hotspot.regionKind) || "").toLowerCase();
+    const policy = String((hotspot && hotspot.maskPolicy) || "").toLowerCase();
+    const alignedBy = String((region && region.alignedBy) || (hotspot && hotspot.alignmentSource) || "").toLowerCase();
+    const cardLike = visualMode === "infographic" && !["route", "axis", "object", "person", "product", "object-with-label"].includes(kind) && policy !== "route";
+    if (cardLike && Number.isFinite(score) && score < 0.35) return false;
+    if (cardLike && alignedBy === "planned" && Number.isFinite(score) && score < 0.5) return false;
+    return true;
+  }
+
+  function getOrganicSourceBounds(result, hotspot, maskBounds, strategy) {
+    const hotspotBounds = normalizeBounds({
+      x: Number(hotspot && hotspot.x),
+      y: Number(hotspot && hotspot.y),
+      width: Number(hotspot && hotspot.width),
+      height: Number(hotspot && hotspot.height)
+    });
+    let bounds = normalizeBounds(maskBounds) || hotspotBounds || { x: 0, y: 0, width: 1, height: 1 };
+    if (shouldUseUnionPreviewBounds(strategy)) {
+      bounds = unionNormalizedBounds(bounds, hotspotBounds) || bounds;
+      bounds = unionNormalizedBounds(bounds, findHotspotMaskInputBounds(result, hotspot.id)) || bounds;
+      bounds = unionNormalizedBounds(bounds, findHotspotLayoutBounds(result, hotspot.id)) || bounds;
+    }
+    if (strategy && strategy.route) return ensureMinimumNormalizedSize(bounds, 0.18, 0.18);
+    if (strategy && strategy.flowStrip) return expandFlowStripSourceBounds(bounds);
+    if (strategy && strategy.visualMode === "map" && strategy.subjectWithLabel) {
+      return ensureMinimumNormalizedSize(bounds, 0.16, 0.12);
+    }
+    return bounds;
+  }
+
+  function shouldUseUnionPreviewBounds(strategy) {
+    if (!strategy) return false;
+    if (strategy.cardLike || (String(strategy.visualMode || "").toLowerCase() === "infographic" && !strategy.route && !strategy.flowStrip)) {
+      return false;
+    }
+    if (shouldUseContextPreviewShape(strategy)) return true;
+    if (!strategy.preferContextCrop || strategy.independentSubject) return false;
+    const visualMode = String(strategy.visualMode || "").toLowerCase();
+    return strategy.mapLike || visualMode === "map" || visualMode === "scene" || visualMode === "poster";
+  }
+
+  function shouldForceContextShapePreview(strategy, maskBounds, hotspotBounds) {
+    if (!strategy || !strategy.preferContextCrop || strategy.independentSubject || strategy.route || strategy.flowStrip) {
+      return false;
+    }
+    const visualMode = String(strategy.visualMode || "").toLowerCase();
+    if (!strategy.mapLike && visualMode !== "map" && visualMode !== "scene" && visualMode !== "poster") return false;
+    const mask = normalizeBounds(maskBounds);
+    const hotspot = normalizeBounds(hotspotBounds);
+    if (!mask || !hotspot) return false;
+    const maskArea = mask.width * mask.height;
+    const hotspotArea = Math.max(0.0001, hotspot.width * hotspot.height);
+    const maskCenter = {
+      x: mask.x + mask.width / 2,
+      y: mask.y + mask.height / 2
+    };
+    const hotspotCenter = {
+      x: hotspot.x + hotspot.width / 2,
+      y: hotspot.y + hotspot.height / 2
+    };
+    const centerDistance = Math.hypot(maskCenter.x - hotspotCenter.x, maskCenter.y - hotspotCenter.y);
+    const allowedDistance = Math.max(0.028, Math.max(hotspot.width, hotspot.height) * 0.16);
+    if (maskArea / hotspotArea < 0.64) return true;
+    if (centerDistance > allowedDistance) return true;
+    return false;
+  }
+
+  function isMaskConsistentWithHotspot(maskBounds, hotspotBounds, strategy) {
+    const mask = normalizeBounds(maskBounds);
+    const hotspot = normalizeBounds(hotspotBounds);
+    if (!mask) return false;
+    if (!hotspot) return true;
+    if (strategy && strategy.visualMode === "infographic" && !strategy.independentSubject) {
+      const tightHotspot = padNormalizedBounds(hotspot, 0.08);
+      const overlap = getNormalizedIntersectionArea(mask, tightHotspot);
+      const maskArea = Math.max(0.0001, mask.width * mask.height);
+      const maskCenter = {
+        x: mask.x + mask.width / 2,
+        y: mask.y + mask.height / 2
+      };
+      const hotspotCenter = {
+        x: hotspot.x + hotspot.width / 2,
+        y: hotspot.y + hotspot.height / 2
+      };
+      const centerDistance = Math.hypot(maskCenter.x - hotspotCenter.x, maskCenter.y - hotspotCenter.y);
+      const allowedDistance = Math.max(hotspot.width, hotspot.height) * 0.58;
+      if (overlap / maskArea < 0.34) return false;
+      if (!pointInNormalizedBounds(maskCenter, tightHotspot) && centerDistance > allowedDistance) return false;
+      return true;
+    }
+    const paddedHotspot = padNormalizedBounds(hotspot, strategy && strategy.mapLike ? 0.26 : 0.18);
+    const overlap = getNormalizedIntersectionArea(mask, paddedHotspot);
+    const minArea = Math.min(mask.width * mask.height, paddedHotspot.width * paddedHotspot.height);
+    if (minArea > 0 && overlap / minArea >= 0.18) return true;
+    const maskCenter = {
+      x: mask.x + mask.width / 2,
+      y: mask.y + mask.height / 2
+    };
+    if (pointInNormalizedBounds(maskCenter, paddedHotspot)) return true;
+    const hotspotCenter = {
+      x: hotspot.x + hotspot.width / 2,
+      y: hotspot.y + hotspot.height / 2
+    };
+    if (pointInNormalizedBounds(hotspotCenter, padNormalizedBounds(mask, 0.24))) return true;
+    return false;
+  }
+
+  function getNormalizedIntersectionArea(a, b) {
+    const first = normalizeBounds(a);
+    const second = normalizeBounds(b);
+    if (!first || !second) return 0;
+    const left = Math.max(first.x, second.x);
+    const top = Math.max(first.y, second.y);
+    const right = Math.min(first.x + first.width, second.x + second.width);
+    const bottom = Math.min(first.y + first.height, second.y + second.height);
+    return Math.max(0, right - left) * Math.max(0, bottom - top);
+  }
+
+  function pointInNormalizedBounds(point, bounds) {
+    const normalized = normalizeBounds(bounds);
+    if (!point || !normalized) return false;
+    const x = Number(point.x);
+    const y = Number(point.y);
+    return (
+      Number.isFinite(x) &&
+      Number.isFinite(y) &&
+      x >= normalized.x &&
+      x <= normalized.x + normalized.width &&
+      y >= normalized.y &&
+      y <= normalized.y + normalized.height
+    );
+  }
+
+  function clampPreviewAspect(value) {
+    const aspect = Number(value);
+    if (!Number.isFinite(aspect) || aspect <= 0) return 1.35;
+    return Math.max(0.9, Math.min(3, aspect));
   }
 
   function expandNormalizedBounds(bounds, ratio) {
@@ -407,6 +1191,43 @@
       y,
       width: Math.max(0.01, right - x),
       height: Math.max(0.01, bottom - y)
+    };
+  }
+
+  function ensureMinimumNormalizedSize(bounds, minWidth, minHeight) {
+    const normalized = normalizeBounds(bounds) || { x: 0, y: 0, width: 1, height: 1 };
+    const targetWidth = Math.min(1, Math.max(normalized.width, Number(minWidth) || normalized.width));
+    const targetHeight = Math.min(1, Math.max(normalized.height, Number(minHeight) || normalized.height));
+    const centerX = normalized.x + normalized.width / 2;
+    const centerY = normalized.y + normalized.height / 2;
+    const x = Math.max(0, Math.min(1 - targetWidth, centerX - targetWidth / 2));
+    const y = Math.max(0, Math.min(1 - targetHeight, centerY - targetHeight / 2));
+    return {
+      x,
+      y,
+      width: targetWidth,
+      height: targetHeight
+    };
+  }
+
+  function expandFlowStripSourceBounds(bounds) {
+    const normalized = normalizeBounds(bounds) || { x: 0, y: 0, width: 1, height: 1 };
+    const targetWidth = Math.min(0.92, Math.max(normalized.width, 0.84));
+    const targetHeight = Math.min(0.22, Math.max(normalized.height, 0.12));
+    const nearLeft = normalized.x < 0.18;
+    const nearRight = normalized.x + normalized.width > 0.82;
+    const centerX = normalized.x + normalized.width / 2;
+    const centerY = normalized.y + normalized.height / 2;
+    const x = nearLeft
+      ? Math.max(0, Math.min(normalized.x, 0.04))
+      : nearRight
+        ? Math.min(1 - targetWidth, Math.max(normalized.x + normalized.width - targetWidth, 0))
+        : Math.max(0, Math.min(1 - targetWidth, centerX - targetWidth / 2));
+    return {
+      x,
+      y: Math.max(0, Math.min(1 - targetHeight, centerY - targetHeight / 2)),
+      width: targetWidth,
+      height: targetHeight
     };
   }
 
@@ -443,15 +1264,108 @@
     return { ...bounds, y, height: Math.min(1, targetHeight) };
   }
 
+  let detailCloseTimer = null;
+  let detailMotionTimer = null;
+
+  function cancelDetailMotionTimer() {
+    if (detailMotionTimer !== null) {
+      clearTimeout(detailMotionTimer);
+      detailMotionTimer = null;
+    }
+  }
+
+  // Entrance animation orchestration. The detail surface is layered so the
+  // motion reads as a single, deliberate reveal rather than a single pop:
+  //   1. backdrop fades in                       (220ms, starts immediately)
+  //   2. panel scales + de-blurs into place      (280ms, starts immediately)
+  //   3. hotspot preview floats up               (520ms, starts immediately)
+  //   4. summary copy fades in                   (360ms, starts at +70ms)
+  //   5. followup form fades in                  (360ms, starts at +130ms)
+  // The cleanup timer must outlast the longest animation (520ms) plus the
+  // followup form delay (130ms) = 650ms; we use 700ms for a small safety
+  // margin so the classes are not stripped while an animation is still on
+  // its final frame, which would cause a visible snap.
+  const DETAIL_MOTION_MS = 700;
+
+  function restartDetailMotion(options = {}) {
+    if (!elements.detailPanel) return;
+    cancelDetailMotionTimer();
+    // is-preview-entering is replayed on both the initial open and the async
+    // hydrate callback, so it is always stripped + re-added here.
+    elements.detailPanel.classList.remove("is-preview-entering");
+    // is-entering (the panel pop-in) is ONLY replayed when the caller asks for
+    // a full panel entrance (options.panel). The async hydrate path passes
+    // panel:false; if we stripped is-entering there, we would cut short the
+    // 320ms panel pop-in animation mid-flight. So leave it alone when the
+    // caller did not request a panel re-entrance.
+    if (options.panel) {
+      elements.detailPanel.classList.remove("is-entering");
+      if (elements.detailBackdrop) elements.detailBackdrop.classList.remove("is-entering");
+    }
+    // Force a style flush so repeated hotspot clicks replay the same motion.
+    void elements.detailPanel.offsetWidth;
+    if (options.panel) {
+      elements.detailPanel.classList.add("is-entering");
+      if (elements.detailBackdrop) elements.detailBackdrop.classList.add("is-entering");
+    }
+    if (options.preview) {
+      elements.detailPanel.classList.add("is-preview-entering");
+    }
+    detailMotionTimer = setTimeout(() => {
+      elements.detailPanel.classList.remove("is-entering", "is-preview-entering");
+      if (elements.detailBackdrop) elements.detailBackdrop.classList.remove("is-entering");
+      detailMotionTimer = null;
+    }, DETAIL_MOTION_MS);
+  }
+
+  function cancelDetailCloseTimer() {
+    if (detailCloseTimer !== null) {
+      clearTimeout(detailCloseTimer);
+      detailCloseTimer = null;
+    }
+  }
+
+  // Close the detail surface with a graceful exit animation instead of an
+  // abrupt `hidden = true`. We add the `is-closing` class to let the CSS
+  // exit keyframes play, then hide the nodes once the longest exit animation
+  // (panel 200ms) has finished. If the user re-opens a hotspot mid-close,
+  // `cancelDetailCloseTimer()` (called from `renderDetail`) cancels the
+  // pending hide so the freshly-opened panel is never wrongly hidden.
+  const DETAIL_CLOSE_ANIM_MS = 220;
+
   function closeDetail() {
     stateModel.closeDetail(state);
-    elements.detailPanel.hidden = true;
-    elements.detailBackdrop.hidden = true;
+    cancelDetailMotionTimer();
+
+    if (!elements.detailPanel || elements.detailPanel.hidden) {
+      if (elements.detailBackdrop) elements.detailBackdrop.hidden = true;
+      return;
+    }
+
+    // Remove any in-progress entrance classes so only the exit animation runs.
+    elements.detailPanel.classList.remove("is-entering", "is-preview-entering");
+    if (elements.detailBackdrop) elements.detailBackdrop.classList.remove("is-entering");
+    // Force a style flush so the exit animation replays on rapid re-close.
+    void elements.detailPanel.offsetWidth;
+    elements.detailPanel.classList.add("is-closing");
+    if (elements.detailBackdrop) elements.detailBackdrop.classList.add("is-closing");
+
+    cancelDetailCloseTimer();
+    detailCloseTimer = setTimeout(() => {
+      elements.detailPanel.classList.remove("is-closing");
+      elements.detailPanel.hidden = true;
+      if (elements.detailBackdrop) {
+        elements.detailBackdrop.classList.remove("is-closing");
+        elements.detailBackdrop.hidden = true;
+      }
+      detailCloseTimer = null;
+    }, DETAIL_CLOSE_ANIM_MS);
   }
 
   function startNewConversation() {
     if (isGenerating) return;
     stateModel.resetConversation(state);
+    cutoutPreviewCache.clear();
     activeHistoryId = null;
     attachments = [];
     hideProgress();
@@ -465,10 +1379,18 @@
     markActiveHistory(null);
     elements.resultArea.innerHTML = initialResultAreaHtml;
     bindExamplePrompts();
-    elements.detailPanel.hidden = true;
-    elements.detailBackdrop.hidden = true;
+    cancelDetailCloseTimer();
+    cancelDetailMotionTimer();
+    if (elements.detailPanel) {
+      elements.detailPanel.classList.remove("is-closing", "is-entering", "is-preview-entering");
+      elements.detailPanel.hidden = true;
+    }
+    if (elements.detailBackdrop) {
+      elements.detailBackdrop.classList.remove("is-closing", "is-entering");
+      elements.detailBackdrop.hidden = true;
+    }
     elements.modal.hidden = true;
-    elements.statusPill.textContent = "新对话";
+    setStatusText("新对话");
   }
 
   async function renderHistory() {
@@ -610,14 +1532,14 @@
     try {
       if (navigator.share) {
         await navigator.share({ title, text, url });
-        elements.statusPill.textContent = "已分享";
+        setStatusText("已分享");
         return;
       }
       await copyTextToClipboard(url);
-      elements.statusPill.textContent = "链接已复制";
+      setStatusText("链接已复制");
     } catch (error) {
       if (error && error.name === "AbortError") return;
-      elements.statusPill.textContent = "分享失败";
+      setStatusText("分享失败");
     }
   }
 
@@ -632,9 +1554,13 @@
     input.style.position = "fixed";
     input.style.left = "-9999px";
     document.body.appendChild(input);
-    input.select();
-    const copied = document.execCommand("copy");
-    input.remove();
+    let copied = false;
+    try {
+      input.select();
+      copied = document.execCommand("copy");
+    } finally {
+      input.remove();
+    }
     if (!copied) throw new Error("clipboard unavailable");
   }
 
@@ -654,17 +1580,18 @@
       const result = await persistence.loadResult(chatImageId);
       if (!result) return;
       stateModel.setResult(state, result);
+      cutoutPreviewCache.clear();
       for (const thread of result.threads || []) {
         stateModel.setThread(state, thread.hotspotId, thread);
       }
       activeHistoryId = chatImageId;
       markActiveHistory(chatImageId);
-      elements.statusPill.textContent = "已恢复";
+      setStatusText("已恢复");
       hideProgress();
       renderResult();
       renderDetail();
     } catch (error) {
-      elements.statusPill.textContent = "恢复失败";
+      setStatusText("恢复失败");
       showHistoryRestoreError(error, chatImageId);
     }
   }
@@ -677,7 +1604,7 @@
     if (!chatImageId) return;
     try {
       await persistence.updateHistoryItem(chatImageId, { pinned: !pinned });
-      elements.statusPill.textContent = pinned ? "已取消置顶" : "已置顶";
+      setStatusText(pinned ? "已取消置顶" : "已置顶");
       await renderHistory();
     } catch (error) {
       showHistoryRestoreError(error, chatImageId, {
@@ -703,7 +1630,7 @@
         renderResult();
         renderDetail();
       }
-      elements.statusPill.textContent = "已重命名";
+      setStatusText("已重命名");
       await renderHistory();
     } catch (error) {
       showHistoryRestoreError(error, chatImageId, { title: "重命名失败" });
@@ -716,7 +1643,7 @@
     try {
       await persistence.deleteHistoryItem(chatImageId);
       if (activeHistoryId === chatImageId) activeHistoryId = null;
-      elements.statusPill.textContent = "历史记录已删除";
+      setStatusText("历史记录已删除");
       await renderHistory();
     } catch (error) {
       showHistoryRestoreError(error, chatImageId, { title: "删除失败" });
@@ -752,22 +1679,28 @@
     const displayQuestion = filesModel.buildVisibleQuestion(question, attachments);
     const prompt = filesModel.buildPromptWithAttachments(question, attachments);
     stateModel.beginGeneration(state, displayQuestion);
+    cutoutPreviewCache.clear();
+    // Clear the composer so the user gets immediate visual feedback that the
+    // submission was accepted (Claude/ChatGPT-style behaviour).
+    elements.questionInput.value = "";
+    autoSizeQuestion();
 
     isGenerating = true;
     syncSendButton();
-    elements.resultArea.innerHTML = renderModel.renderGeneratingState();
+    elements.resultArea.innerHTML = renderModel.renderGeneratingState(displayQuestion);
     renderDetail();
 
     try {
       const result = await chatImageService.create(prompt, setStatus, { displayQuestion });
       stateModel.setResult(state, result);
+      cutoutPreviewCache.clear();
       activeHistoryId = result.id || null;
       finishStatus();
       renderResult();
       renderDetail();
       renderHistory();
     } catch (error) {
-      elements.statusPill.textContent = "生成失败";
+      setStatusText("生成失败");
       elements.resultArea.innerHTML = renderModel.renderErrorState(error.message, error.partialResult);
       bindImageInteractions(elements.resultArea);
       bindQualityActions(elements.resultArea);
@@ -910,6 +1843,7 @@
 
   function retryLastQuestion() {
     if (!state.lastQuestion) return;
+    if (!elements.questionInput || !elements.form) return;
     elements.questionInput.value = state.lastQuestion;
     elements.form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
   }
@@ -917,8 +1851,9 @@
   function retryCurrentResultQuestion() {
     const question = (state.result && state.result.question) || state.lastQuestion;
     if (!question) return;
+    if (!elements.questionInput || !elements.form) return;
     stateModel.setModalOpen(state, false);
-    elements.modal.hidden = true;
+    if (elements.modal) elements.modal.hidden = true;
     elements.questionInput.value = question;
     elements.form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
   }
@@ -926,7 +1861,9 @@
   async function onFollowup(event) {
     event.preventDefault();
     if (!state.result || !state.selectedHotspotId) return;
+    if (!elements.detailPanel) return;
     const input = elements.detailPanel.querySelector("#followupInput");
+    if (!input) return;
     const message = input.value.trim();
     if (!message) {
       input.focus();
@@ -934,19 +1871,26 @@
     }
 
     const hotspotId = state.selectedHotspotId;
+    // Snapshot the active result so a concurrent regeneration mid-await cannot
+    // write the followup thread into a result that no longer matches the UI.
+    const inFlightResult = state.result;
     stateModel.setHotspotError(state, hotspotId, null);
     stateModel.setHotspotPending(state, hotspotId, true);
     renderDetail();
     try {
-      await chatImageService.followup(state.result, hotspotId, message);
+      await chatImageService.followup(inFlightResult, hotspotId, message);
     } catch (error) {
-      stateModel.setHotspotError(state, hotspotId, {
-        message: error.message || "追问失败",
-        retryQuestion: message
-      });
+      if (state.result === inFlightResult) {
+        stateModel.setHotspotError(state, hotspotId, {
+          message: error.message || "追问失败",
+          retryQuestion: message
+        });
+      }
     } finally {
-      stateModel.setHotspotPending(state, hotspotId, false);
-      renderDetail();
+      if (state.result === inFlightResult) {
+        stateModel.setHotspotPending(state, hotspotId, false);
+        renderDetail();
+      }
     }
   }
 
@@ -1110,17 +2054,21 @@
     calibrationModel,
     validateLayoutRegions: core.validateLayoutRegions,
     iconGlyph: core.iconGlyph,
-    buildImageDownloadName: downloadModel.buildImageDownloadName
+    buildImageDownloadName: downloadModel.buildImageDownloadName,
+    previewStrategyModel,
+    buildHotspotPreviewForTest: buildHotspotPreview,
+    createOrganicPreviewForTest: createOrganicPreview,
+    createPolygonMaskDataUrlForTest: createPolygonMaskDataUrl
   };
 
   getRuntimeConfig().then((runtimeConfig) => {
     if (providerConfig.mode === "mock") {
-      elements.statusPill.textContent = "Mock API";
+      setStatusText("Mock API");
     } else if (runtimeConfig && runtimeConfig.realApiAvailable) {
       const visionLabel = runtimeConfig.visionApiAvailable ? runtimeConfig.visionModel || "Vision" : "未配置视觉对齐";
-      elements.statusPill.textContent = `${runtimeConfig.textModel} / ${runtimeConfig.imageModel} / ${visionLabel}`;
+      setStatusText(`${runtimeConfig.textModel} / ${runtimeConfig.imageModel} / ${visionLabel}`);
     } else {
-      elements.statusPill.textContent = "Mock fallback";
+      setStatusText("Mock fallback");
     }
     renderHistory();
   });

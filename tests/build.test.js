@@ -35,6 +35,7 @@ async function main() {
     "src/render.js",
     "src/download.js",
     "src/files.js",
+    "src/preview-strategy.js",
     "src/app.js"
   ]);
   assert.strictEqual(manifest.stylesheet, "styles.css");
@@ -130,7 +131,9 @@ function listen(server) {
 
 function close(server) {
   return new Promise((resolve, reject) => {
+    if (typeof server.closeIdleConnections === "function") server.closeIdleConnections();
     server.close((error) => (error ? reject(error) : resolve()));
+    if (typeof server.closeAllConnections === "function") server.closeAllConnections();
   });
 }
 

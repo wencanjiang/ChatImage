@@ -1,7 +1,7 @@
 "use strict";
 
 const assert = require("assert");
-const { callImageApi, callTextApi, callVisionApi, createServer } = require("../server");
+const { callImageApi, callTextApi, callTextApiDetailed, callVisionApi, createServer } = require("../server");
 const {
   buildWuyinVisionContent,
   createVisionHeaders,
@@ -15,8 +15,12 @@ const { createVisionHealthPrompt } = require("../server/routes/vision");
 async function main() {
   await testTextApiPayload();
   await testOpenAiTextApiPayload();
+  await testOpenAiTextApiFallbackOn5xx();
+  await testOpenAiTextApiDoesNotFallbackOn4xx();
+  await testOpenAiTextApiExplicitTokenBudget();
   await testOpenAiNativeJsonResponseFormat();
   await testParseJsonResponseAcceptsLeadingJson();
+  await testParseJsonResponseRedactsFailedPayload();
   testLlmHealthPromptIsStable();
   await testLlmHealthRoute();
   await testVisionApiPayload();
@@ -31,6 +35,7 @@ async function main() {
   await testVisionHealthProbe();
   await testVisionHealthRejectsInvisibleImage();
   await testImageApiPayload();
+  await testImageApiLegacyQuerySwitch();
   await testImageApiPayloadWithoutModel();
   await testImageDimensionProbe();
   await testImageRouteOmitsDefaultModel();
@@ -45,6 +50,39 @@ async function testParseJsonResponseAcceptsLeadingJson() {
   );
   const data = await parseJsonResponse(response);
   assert.deepStrictEqual(data, { code: 200, msg: "成功", data: { content: "ok" } });
+}
+
+async function testParseJsonResponseRedactsFailedPayload() {
+  const response = new Response(
+    JSON.stringify({
+      error: {
+        code: "server_error",
+        message: "secret token sk-test and original prompt should not be returned"
+      }
+    }),
+    { status: 500, headers: { "Content-Type": "application/json" } }
+  );
+  await assert.rejects(
+    () => parseJsonResponse(response),
+    (error) => {
+      assert.strictEqual(error.statusCode, 500);
+      assert.match(error.message, /API request failed \(500\)/);
+      assert.doesNotMatch(error.message, /secret token|sk-test|original prompt/);
+      assert.match(error.upstreamError, /code=server_error/);
+      return true;
+    }
+  );
+
+  const htmlResponse = new Response("<html>secret debug page</html>", { status: 502 });
+  await assert.rejects(
+    () => parseJsonResponse(htmlResponse),
+    (error) => {
+      assert.strictEqual(error.statusCode, 502);
+      assert.match(error.message, /non-JSON response \(502\)/);
+      assert.doesNotMatch(error.message, /secret debug page/);
+      return true;
+    }
+  );
 }
 
 async function testWuyinFormVisionApiPayload() {
@@ -562,12 +600,117 @@ async function testOpenAiTextApiPayload() {
       { role: "system", content: "You are MiMo." },
       { role: "user", content: "只返回 JSON" }
     ]);
-    assert.strictEqual(body.max_completion_tokens, 4096);
+    assert.strictEqual(body.max_completion_tokens, undefined);
     assert.strictEqual(body.temperature, 1);
     assert.strictEqual(body.top_p, 0.95);
     assert.deepStrictEqual(body.thinking, { type: "disabled" });
     assert.strictEqual(body.stream, false);
     assert.strictEqual(resolveTextRequestFormat({ textEndpoint: "https://api.xiaomimimo.com/v1/chat/completions" }), "openai-chat");
+  } finally {
+    global.fetch = originalFetch;
+  }
+}
+
+async function testOpenAiTextApiFallbackOn5xx() {
+  const calls = [];
+  const originalFetch = global.fetch;
+  global.fetch = async (url, options) => {
+    calls.push({ url: String(url), options });
+    if (calls.length === 1) {
+      return jsonResponse({ error: { message: "Bad Gateway" } }, { status: 502 });
+    }
+    return jsonResponse({ choices: [{ message: { content: "fallback ok" } }] });
+  };
+
+  try {
+    const result = await callTextApiDetailed(
+      {
+        textApiKey: "text-key",
+        textEndpoint: "https://api.xiaomimimo.com/v1/chat/completions",
+        textModel: "mimo-v2.5-pro",
+        textFallbackModel: "mimo-v2.5",
+        textFallbackOn5xx: true,
+        textRequestFormat: "openai-chat",
+        apiRequestTimeoutMs: 1000,
+        apiFetchRetryAttempts: 0
+      },
+      {
+        content: "hello",
+        responseFormat: "json"
+      }
+    );
+
+    assert.strictEqual(result.content, "fallback ok");
+    assert.strictEqual(result.modelUsed, "mimo-v2.5");
+    assert.match(result.fallbackReason, /mimo-v2\.5-pro -> mimo-v2\.5/);
+    assert.strictEqual(calls.length, 2);
+    assert.strictEqual(JSON.parse(calls[0].options.body).model, "mimo-v2.5-pro");
+    assert.strictEqual(JSON.parse(calls[1].options.body).model, "mimo-v2.5");
+  } finally {
+    global.fetch = originalFetch;
+  }
+}
+
+async function testOpenAiTextApiDoesNotFallbackOn4xx() {
+  const calls = [];
+  const originalFetch = global.fetch;
+  global.fetch = async (url, options) => {
+    calls.push({ url: String(url), options });
+    return jsonResponse({ error: { message: "Unauthorized" } }, { status: 401 });
+  };
+
+  try {
+    await assert.rejects(
+      () =>
+        callTextApiDetailed(
+          {
+            textApiKey: "bad-key",
+            textEndpoint: "https://api.xiaomimimo.com/v1/chat/completions",
+            textModel: "mimo-v2.5-pro",
+            textFallbackModel: "mimo-v2.5",
+            textFallbackOn5xx: true,
+            textRequestFormat: "openai-chat",
+            apiRequestTimeoutMs: 1000,
+            apiFetchRetryAttempts: 0
+          },
+          {
+            content: "hello"
+          }
+        ),
+      /401/
+    );
+    assert.strictEqual(calls.length, 1);
+  } finally {
+    global.fetch = originalFetch;
+  }
+}
+
+async function testOpenAiTextApiExplicitTokenBudget() {
+  const calls = [];
+  const originalFetch = global.fetch;
+  global.fetch = async (url, options) => {
+    calls.push({ url: String(url), options });
+    return jsonResponse({ choices: [{ message: { content: "ok" } }] });
+  };
+
+  try {
+    await callTextApi(
+      {
+        textApiKey: "text-key",
+        textEndpoint: "https://api.xiaomimimo.com/v1/chat/completions",
+        textModel: "mimo-v2.5-pro",
+        textRequestFormat: "openai-chat",
+        textMaxCompletionTokens: 2048,
+        apiRequestTimeoutMs: 1000
+      },
+      {
+        content: "hello",
+        model: "mimo-v2.5-pro"
+      }
+    );
+
+    const body = JSON.parse(calls[0].options.body);
+    assert.strictEqual(body.max_completion_tokens, 2048);
   } finally {
     global.fetch = originalFetch;
   }
@@ -747,7 +890,7 @@ async function testImageAsyncPolling() {
     assert.strictEqual(result.width, 2048);
     assert.strictEqual(result.height, 1152);
     assert.strictEqual(calls.length, 2);
-    assert.match(calls[1].url, /^https:\/\/api\.wuyinkeji\.com\/api\/async\/detail\?key=test-key&id=task_123$/);
+    assert.match(calls[1].url, /^https:\/\/api\.wuyinkeji\.com\/api\/async\/detail\?id=task_123$/);
     assert.strictEqual(calls[1].options.headers.Authorization, "test-key");
   } finally {
     global.fetch = originalFetch;
@@ -780,7 +923,7 @@ async function testImageApiPayload() {
     assert.strictEqual(result.width, 1024);
     assert.strictEqual(result.height, 1024);
     assert.strictEqual(calls.length, 1);
-    assert.match(calls[0].url, /^https:\/\/api\.wuyinkeji\.com\/api\/async\/image_gpt\?key=test-key$/);
+    assert.strictEqual(calls[0].url, "https://api.wuyinkeji.com/api/async/image_gpt");
     assert.strictEqual(calls[0].options.method, "POST");
     assert.strictEqual(calls[0].options.headers.Authorization, "test-key");
     assert.strictEqual(calls[0].options.headers["Content-Type"], "application/json");
@@ -794,10 +937,48 @@ async function testImageApiPayload() {
   }
 }
 
-function jsonResponse(value) {
+async function testImageApiLegacyQuerySwitch() {
+  const calls = [];
+  const originalFetch = global.fetch;
+  global.fetch = async (url, options = {}) => {
+    calls.push({ url: String(url), options });
+    if (calls.length === 1) return jsonResponse({ data: { task_id: "task_legacy" } });
+    return jsonResponse({ data: { url: "https://cdn.example.com/legacy.png", status: "succeeded" } });
+  };
+
+  try {
+    const result = await callImageApi(
+      {
+        apiKey: "test-key",
+        imageEndpoint: "https://api.wuyinkeji.com/api/async/image_gpt",
+        imageDetailEndpoint: "https://api.wuyinkeji.com/api/async/detail",
+        imageKeyInQuery: true,
+        imagePollAttempts: 2,
+        imagePollInitialDelayMs: 0,
+        imagePollDelayMs: 0
+      },
+      {
+        prompt: "legacy query auth",
+        size: "1024x1024",
+        model: "GPT-Image-2"
+      }
+    );
+
+    assert.strictEqual(result.imageUrl, "https://cdn.example.com/legacy.png");
+    assert.match(calls[0].url, /^https:\/\/api\.wuyinkeji\.com\/api\/async\/image_gpt\?key=test-key$/);
+    assert.match(calls[1].url, /^https:\/\/api\.wuyinkeji\.com\/api\/async\/detail\?key=test-key&id=task_legacy$/);
+    assert.strictEqual(calls[0].options.headers.Authorization, "test-key");
+    assert.strictEqual(calls[1].options.headers.Authorization, "test-key");
+  } finally {
+    global.fetch = originalFetch;
+  }
+}
+
+function jsonResponse(value, init = {}) {
+  const status = Number(init.status || 200);
   return {
-    ok: true,
-    status: 200,
+    ok: status >= 200 && status < 300,
+    status,
     headers: new Headers({ "content-type": "application/json" }),
     async text() {
       return JSON.stringify(value);

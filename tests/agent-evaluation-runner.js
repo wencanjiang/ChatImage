@@ -203,8 +203,14 @@ async function runCase(cdp, baseUrl, provider, testCase, artifactDir, options) {
   if (beforeClick.errorState) {
     throw new Error(`Generation failed at ${beforeClick.progress.activeStep || "unknown"}: ${beforeClick.errorState.text}`);
   }
+  const clickAudit = await auditHotspotClicks(cdp, beforeClick.hotspots);
   const clickTargetId = chooseClickTarget(beforeClick.hotspots, testCase);
-  await cdp.evaluate(`document.querySelector(${JSON.stringify(`[data-hotspot-id='${cssEscape(clickTargetId)}']`)})?.click()`);
+  const clickTarget = (await getCurrentHotspotSnapshot(cdp, clickTargetId)) || beforeClick.hotspots.find((hotspot) => hotspot.id === clickTargetId);
+  if (clickTarget && clickTarget.hitTargetId === clickTarget.id) {
+    await clickHotspotAtCenter(cdp, clickTarget);
+  } else {
+    await cdp.evaluate(`document.querySelector(${JSON.stringify(`[data-hotspot-id='${cssEscape(clickTargetId)}']`)})?.click()`);
+  }
   await cdp.waitForFunction(`!document.querySelector("#detailPanel").hidden && document.querySelector(".detail-content h2")`, 5000);
   const afterClick = await collectDetailState(cdp);
   const screenshotPath = path.join(artifactDir, `${testCase.id}.png`);
@@ -214,6 +220,7 @@ async function runCase(cdp, baseUrl, provider, testCase, artifactDir, options) {
     testCase,
     pageState: beforeClick,
     detailState: afterClick,
+    clickAudit,
     clickTargetId,
     durationMs: Date.now() - startedAt,
     screenshotPath
@@ -243,15 +250,30 @@ async function collectPageState(cdp) {
       }));
       const activeStep = progressSteps.find((step) => step.active);
       const errorNode = document.querySelector("#retryButton") ? document.querySelector(".empty-state") : document.querySelector(".image-load-error");
+      const modules = [
+        ...((structured && Array.isArray(structured.modules)) ? structured.modules : []),
+        ...((structured && Array.isArray(structured.auxiliaryModules)) ? structured.auxiliaryModules : [])
+      ];
+      const moduleById = new Map(modules.map((module) => [module.id, module]));
       const hotspots = Array.from(document.querySelectorAll(".image-stage > [data-hotspot-id]")).map((node) => {
         const rect = node.getBoundingClientRect();
         const style = getComputedStyle(node);
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const hit = document.elementFromPoint(centerX, centerY);
+        const hitHotspot = hit && hit.closest ? hit.closest("[data-hotspot-id]") : null;
+        const id = node.getAttribute("data-hotspot-id");
+        const module = moduleById.get(id) || {};
         return {
-          id: node.getAttribute("data-hotspot-id"),
+          id,
           ariaLabel: node.getAttribute("aria-label") || "",
           text: node.textContent || "",
+          regionKind: module.regionKind || "",
+          maskPolicy: module.maskPolicy || "",
           background: style.backgroundColor,
           borderTopWidth: style.borderTopWidth,
+          zIndex: style.zIndex,
+          hitTargetId: hitHotspot ? hitHotspot.getAttribute("data-hotspot-id") : "",
           rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
           style: node.getAttribute("style") || ""
         };
@@ -288,6 +310,80 @@ async function collectPageState(cdp) {
   `);
 }
 
+async function auditHotspotClicks(cdp, hotspots) {
+  const results = [];
+  for (const hotspot of hotspots) {
+    if (!hotspot || !hotspot.id) continue;
+    const current = (await getCurrentHotspotSnapshot(cdp, hotspot.id)) || hotspot;
+    if (current.hitTargetId !== current.id) {
+      results.push({
+        id: current.id,
+        label: cleanHotspotLabel(current),
+        status: isLowPriorityHotspot(current) ? "covered-low-priority" : "covered",
+        hitTargetId: current.hitTargetId || ""
+      });
+      continue;
+    }
+    await clickHotspotAtCenter(cdp, current);
+    try {
+      await cdp.waitForFunction(`!document.querySelector("#detailPanel").hidden && document.querySelector(".detail-content h2")`, 3000);
+      const detail = await collectDetailState(cdp);
+      results.push({
+        id: current.id,
+        label: cleanHotspotLabel(current),
+        status: "clicked",
+        detailTitle: detail.title
+      });
+    } catch (error) {
+      results.push({
+        id: current.id,
+        label: cleanHotspotLabel(current),
+        status: "click-failed",
+        error: error.message || String(error)
+      });
+    }
+    await cdp.evaluate(`document.querySelector("#closeDetailButton")?.click()`);
+    await cdp.waitForFunction(`document.querySelector("#detailPanel")?.hidden === true`, 2000).catch(() => {});
+  }
+  return results;
+}
+
+async function clickHotspotAtCenter(cdp, hotspot) {
+  const current = hotspot && hotspot.id ? (await getCurrentHotspotSnapshot(cdp, hotspot.id)) || hotspot : hotspot;
+  const x = current.rect.left + current.rect.width / 2;
+  const y = current.rect.top + current.rect.height / 2;
+  await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y });
+  await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", x, y, button: "left", clickCount: 1 });
+  await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", clickCount: 1 });
+}
+
+async function getCurrentHotspotSnapshot(cdp, hotspotId) {
+  return cdp.evaluate(`
+    ((hotspotId) => {
+      const node = Array.from(document.querySelectorAll(".image-stage > [data-hotspot-id]"))
+        .find((item) => item.getAttribute("data-hotspot-id") === hotspotId);
+      if (!node) return null;
+      const rect = node.getBoundingClientRect();
+      const style = getComputedStyle(node);
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const hit = document.elementFromPoint(centerX, centerY);
+      const hitHotspot = hit && hit.closest ? hit.closest("[data-hotspot-id]") : null;
+      return {
+        id: node.getAttribute("data-hotspot-id"),
+        ariaLabel: node.getAttribute("aria-label") || "",
+        text: node.textContent || "",
+        background: style.backgroundColor,
+        borderTopWidth: style.borderTopWidth,
+        zIndex: style.zIndex,
+        hitTargetId: hitHotspot ? hitHotspot.getAttribute("data-hotspot-id") : "",
+        rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+        style: node.getAttribute("style") || ""
+      };
+    })(${JSON.stringify(String(hotspotId || ""))})
+  `);
+}
+
 async function collectDetailState(cdp) {
   return cdp.evaluate(`
     (() => {
@@ -303,7 +399,7 @@ async function collectDetailState(cdp) {
   `);
 }
 
-function evaluateCase({ testCase, pageState, detailState, clickTargetId, durationMs, screenshotPath }) {
+function evaluateCase({ testCase, pageState, detailState, clickAudit, clickTargetId, durationMs, screenshotPath }) {
   const structured = pageState.structured || {};
   const modules = Array.isArray(structured.modules) ? structured.modules : [];
   const auxiliaryModules = Array.isArray(structured.auxiliaryModules) ? structured.auxiliaryModules : [];
@@ -313,8 +409,10 @@ function evaluateCase({ testCase, pageState, detailState, clickTargetId, duratio
     auxiliaryModuleCount: auxiliaryModules.length,
     hotspotCount: pageState.hotspots.length,
     alignmentProvider: String((pageState.alignmentRaw && pageState.alignmentRaw.provider) || ""),
+    alignment: summarizeAlignmentForReport(pageState),
     imageSize: `${pageState.imageNaturalWidth}x${pageState.imageNaturalHeight}`,
     clickedHotspotId: clickTargetId,
+    clickAudit,
     moduleSummaries: modules.map(toModuleSummary),
     auxiliaryModuleSummaries: auxiliaryModules.map(toModuleSummary)
   };
@@ -322,10 +420,13 @@ function evaluateCase({ testCase, pageState, detailState, clickTargetId, duratio
     checkVisualMode(testCase, actual.visualMode),
     checkKeywordCoverage(testCase, pageState),
     checkHotspotCoverage(testCase, pageState),
+    checkHotspotClickAudit(testCase, clickAudit),
     checkClickDetail(testCase, pageState, detailState, clickTargetId),
     checkDetailQuality(testCase, modules),
     checkImageGeneration(testCase, pageState),
-    checkDiversityFields(testCase, structured)
+    checkAlignmentQuality(testCase, pageState, actual.alignment),
+    checkDiversityFields(testCase, structured),
+    checkTargetContract(testCase, structured)
   ];
   const failed = checks.filter((check) => check.status === "fail").length;
   const warnings = checks.filter((check) => check.status === "warn").length;
@@ -386,11 +487,33 @@ function checkHotspotCoverage(testCase, pageState) {
     if (areaRatio < 0.012) problems.push(`${hotspot.id} area too small (${areaRatio.toFixed(3)})`);
     if (hotspot.borderTopWidth !== "0px") problems.push(`${hotspot.id} is not visually transparent`);
     if (hotspot.background !== "rgba(0, 0, 0, 0)") problems.push(`${hotspot.id} has visible background`);
+    if (!isLowPriorityHotspot(hotspot) && hotspot.hitTargetId && hotspot.hitTargetId !== hotspot.id) {
+      problems.push(`${hotspot.id} center is covered by ${hotspot.hitTargetId}`);
+    }
   }
   const optionalIou = evaluateOptionalBoundsIou(testCase, pageState);
   if (problems.length) return fail("hotspot_coverage", problems.join("; "), optionalIou);
   if (optionalIou && optionalIou.minIou < 0.55) return warn("hotspot_coverage", `manual bounds IoU is low: ${optionalIou.minIou}`, optionalIou);
   return ok("hotspot_coverage", `${pageState.hotspots.length} transparent hotspots fit inside stage`, optionalIou);
+}
+
+function checkHotspotClickAudit(testCase, clickAudit) {
+  if (!Array.isArray(clickAudit) || !clickAudit.length) return fail("hotspot_click_audit", "no hotspot click audit");
+  const problems = [];
+  for (const item of clickAudit) {
+    if (item.status === "covered" || item.status === "click-failed") {
+      problems.push(`${item.id} ${item.status}${item.hitTargetId ? ` by ${item.hitTargetId}` : ""}`);
+      continue;
+    }
+    if (item.status !== "clicked") continue;
+    const label = String(item.label || "").trim();
+    const title = String(item.detailTitle || "").trim();
+    if (label && title && !title.includes(label) && !label.includes(title)) {
+      problems.push(`${item.id} opened ${title || "empty detail"} instead of ${label}`);
+    }
+  }
+  if (problems.length) return fail("hotspot_click_audit", problems.join("; "), { clickAudit });
+  return ok("hotspot_click_audit", `${clickAudit.filter((item) => item.status === "clicked").length} hotspot centers open matching details`, { clickAudit });
 }
 
 function evaluateOptionalBoundsIou(testCase, pageState) {
@@ -441,10 +564,84 @@ function checkImageGeneration(testCase, pageState) {
   const forbidden = testCase.forbiddenTitleFragments || [];
   const leaked = forbidden.find((fragment) => title.includes(fragment));
   if (leaked) return fail("image_generation", `title leaks raw question fragment: ${leaked}`);
-  if (String(pageState.imagePrompt || "").includes(testCase.question.slice(0, 18))) {
-    return warn("image_generation", "image prompt contains raw question prefix; check title distillation");
+  if (imagePromptVisibleFieldsContain(pageState.imagePrompt, testCase.question.slice(0, 18))) {
+    return warn("image_generation", "visible image text fields contain raw question prefix; check title distillation");
   }
   return ok("image_generation", `image loaded ${pageState.imageNaturalWidth}x${pageState.imageNaturalHeight}`);
+}
+
+function imagePromptVisibleFieldsContain(imagePrompt, fragment) {
+  const target = String(fragment || "").trim();
+  if (!target) return false;
+  const prompt = String(imagePrompt || "");
+  return prompt
+    .split(/\r?\n/)
+    .some((line) => {
+      const source = line.trim();
+      if (!source.includes(target)) return false;
+      return /^(Title|Summary|Distilled title|title|text|visibleLabel|cardNumber)\b/i.test(source) ||
+        /^"(title|text|visibleLabel|imageText|summary)"\s*:/i.test(source);
+    });
+}
+
+function checkAlignmentQuality(testCase, pageState, alignmentSummary) {
+  const raw = pageState.alignmentRaw || {};
+  const provider = String(raw.provider || "");
+  if (!provider || provider === "mock-alignment") return ok("alignment_quality", `provider=${provider || "none"}`);
+  if (provider === "alignment-fallback") {
+    return fail("alignment_quality", `alignment-fallback: ${raw.error || "unknown error"}`, {
+      previousProvider: raw.previous && raw.previous.provider,
+      previousChain: raw.previous && raw.previous.providerChain,
+      previousSourceCounts: raw.previous && raw.previous.sourceCounts
+    });
+  }
+  const total = Number(alignmentSummary.totalModules || 0);
+  if (!total) return warn("alignment_quality", `provider=${provider}, no module diagnostics`, alignmentSummary);
+  const chain = alignmentSummary.providerChain.join(">");
+  const maskRatio = alignmentSummary.maskCount / total;
+  const plannedRatio = alignmentSummary.plannedCount / total;
+  if (alignmentSummary.providerChain.includes("sam3") && maskRatio < 0.7) {
+    return fail("alignment_quality", `SAM3 mask coverage too low: ${alignmentSummary.maskCount}/${total}`, alignmentSummary);
+  }
+  if (plannedRatio >= 0.9 && !alignmentSummary.maskCount) {
+    return fail("alignment_quality", `all or nearly all hotspots are planned without masks: ${alignmentSummary.plannedCount}/${total}`, alignmentSummary);
+  }
+  if (plannedRatio >= Number(testCase.plannedAlignmentWarnRatio || 0.75)) {
+    return warn(
+      "alignment_quality",
+      `semantic locator weak; planned=${alignmentSummary.plannedCount}/${total}, mask=${alignmentSummary.maskCount}/${total}, chain=${chain}`,
+      alignmentSummary
+    );
+  }
+  return ok("alignment_quality", `provider=${provider}, chain=${chain || "none"}, mask=${alignmentSummary.maskCount}/${total}`, alignmentSummary);
+}
+
+function summarizeAlignmentForReport(pageState) {
+  const raw = pageState.alignmentRaw || {};
+  const layoutRegions = pageState.layout && Array.isArray(pageState.layout.regions) ? pageState.layout.regions : [];
+  const moduleRegions = layoutRegions.filter((region) => region && region.hotspotId);
+  const sourceCounts = raw.sourceCounts && typeof raw.sourceCounts === "object" ? raw.sourceCounts : {};
+  return {
+    provider: String(raw.provider || ""),
+    effectiveProvider: String(raw.effectiveProvider || ""),
+    providerChain: Array.isArray(raw.providerChain) ? raw.providerChain.map(String) : [],
+    sourceCounts,
+    totalModules: moduleRegions.length || pageState.hotspots.length,
+    plannedCount:
+      Number(sourceCounts.planned || 0) ||
+      moduleRegions.filter((region) => String(region.alignedBy || "planned").toLowerCase().includes("planned")).length,
+    locateAnythingCount:
+      Number(sourceCounts.locateanything || 0) +
+      Number(sourceCounts["locateanything-crop"] || 0) +
+      Number(sourceCounts["layout-guided-locateanything"] || 0) +
+      Number(sourceCounts["mimo-vision"] || 0),
+    localOcrCount: Number(sourceCounts["local-ocr"] || 0),
+    maskCount: moduleRegions.filter((region) => region && region.mask && region.mask.bounds).length,
+    acceptedSam3Count: Array.isArray(raw.acceptedSam3Modules) ? raw.acceptedSam3Modules.length : 0,
+    rejectedSam3Count: Array.isArray(raw.rejectedSam3Modules) ? raw.rejectedSam3Modules.length : 0,
+    fallbackCount: Array.isArray(raw.fallbackModules) ? raw.fallbackModules.length : 0,
+    warnings: Array.isArray(raw.warnings) ? raw.warnings : []
+  };
 }
 
 function checkDiversityFields(testCase, structured) {
@@ -465,6 +662,36 @@ function checkDiversityFields(testCase, structured) {
   }
   if (!testCase.expectedRegionKinds || !testCase.expectedRegionKinds.length) return ok("diversity_fields", "no region kind expectation");
   return ok("diversity_fields", `region kinds: ${Array.from(kinds).join(", ")}`);
+}
+
+function checkTargetContract(testCase, structured) {
+  const modules = [...(structured.modules || []), ...(structured.auxiliaryModules || [])];
+  if (!modules.length) return fail("target_contract", "structured modules missing");
+  const visualMode = String(structured.visualMode || "infographic");
+  const problems = [];
+  const expectedPolicies = new Set(testCase.expectedMaskPolicies || []);
+  const seenPolicies = new Set();
+  for (const module of modules) {
+    const id = module.id || module.title || "module";
+    const policy = String(module.maskPolicy || "");
+    if (policy) seenPolicies.add(policy);
+    if (!module.regionKind) problems.push(`${id} missing regionKind`);
+    if (!policy) problems.push(`${id} missing maskPolicy`);
+    if (!Array.isArray(module.visualEvidence) || !module.visualEvidence.length) problems.push(`${id} missing visualEvidence`);
+    if (!Array.isArray(module.locatorQueries) || !module.locatorQueries.length) problems.push(`${id} missing locatorQueries`);
+    if ((module.regionKind === "object-with-label" || policy === "subject-with-label") && (!Array.isArray(module.componentHints) || module.componentHints.length < 2)) {
+      problems.push(`${id} missing object-with-label componentHints`);
+    }
+  }
+  const missingPolicies = Array.from(expectedPolicies).filter((policy) => !seenPolicies.has(policy));
+  if (missingPolicies.length) problems.push(`missing maskPolicy groups: ${missingPolicies.join(", ")}`);
+  if (problems.length) {
+    const status = visualMode === "infographic" && !testCase.expectedMaskPolicies ? "warn" : "fail";
+    return status === "fail"
+      ? fail("target_contract", problems.join("; "), { seenPolicies: Array.from(seenPolicies) })
+      : warn("target_contract", problems.join("; "), { seenPolicies: Array.from(seenPolicies) });
+  }
+  return ok("target_contract", `mask policies: ${Array.from(seenPolicies).join(", ") || "none"}`);
 }
 
 function toModuleSummary(module) {
@@ -547,6 +774,19 @@ function chooseClickTarget(hotspots, testCase) {
   }
   const middle = hotspots[Math.floor(hotspots.length / 2)];
   return (middle && middle.id) || (hotspots[0] && hotspots[0].id);
+}
+
+function cleanHotspotLabel(hotspot) {
+  return String((hotspot && hotspot.ariaLabel) || "")
+    .replace(/^查看/, "")
+    .replace(/详情$/, "")
+    .trim();
+}
+
+function isLowPriorityHotspot(hotspot) {
+  const kind = String((hotspot && hotspot.regionKind) || "").toLowerCase();
+  const policy = String((hotspot && hotspot.maskPolicy) || "").toLowerCase();
+  return kind === "background" || policy === "full-region" || ["water", "mountain", "foreground", "panel"].includes(kind);
 }
 
 function isPageReadyForCase(pageState, testCase) {

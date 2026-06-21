@@ -63,6 +63,7 @@ async function main() {
   await testAnswerStructureProviderRepairsParseFailure();
   await testAnswerStructureProviderRepairsThinResult();
   await testAlignmentFailureFallsBackToPlannedLayout();
+  await testHitTestMatchesDomOrderWhenZIndexTies();
   await testAlignmentProviderUsesVisionEndpoint();
   await testAlignmentProviderRequiresImageDimensions();
   await testAlignmentPreflightBlocksMissingVision();
@@ -134,6 +135,117 @@ async function testAlignmentFailureFallsBackToPlannedLayout() {
   assert.strictEqual(result.alignmentRaw.fallback, "planned-layout");
   assert.match(result.alignmentRaw.error, /Local OCR missing module_2/);
   assert.deepStrictEqual(result.alignmentRaw.previous, { provider: "local-ocr", warnings: ["missing module_2"] });
+  assert.strictEqual(result.alignmentRaw.hitTest.ok, true);
+  assert.strictEqual(result.visualQualityRaw.provider, "limited-local");
+  assert.deepStrictEqual(result.visualQualityWarnings, []);
+}
+
+async function testHitTestMatchesDomOrderWhenZIndexTies() {
+  const uid = createUid();
+  const spec = {
+    title: "Overlap",
+    summary: "Overlap audit",
+    modules: [
+      {
+        id: "module_1",
+        title: "Back card",
+        imageText: "Back",
+        detail: "Back detail",
+        sourceExcerpt: "Back source",
+        iconHint: "card"
+      },
+      {
+        id: "module_2",
+        title: "Front card",
+        imageText: "Front",
+        detail: "Front detail",
+        sourceExcerpt: "Front source",
+        iconHint: "card"
+      }
+    ]
+  };
+  const service = createChatImageService({
+    uid,
+    sleep: async () => {},
+    state: stateModel.createChatImageState(),
+    stateModel,
+    threadModel,
+    layoutModel: {
+      applyTextBudgets(inputSpec) {
+        return inputSpec;
+      },
+      getInteractiveModules(inputSpec) {
+        return inputSpec.modules;
+      },
+      deriveHotspots() {
+        return [
+          {
+            id: "module_1",
+            label: "Back card",
+            x: 0.1,
+            y: 0.1,
+            width: 0.4,
+            height: 0.4,
+            zIndex: 5
+          },
+          {
+            id: "module_2",
+            label: "Front card",
+            x: 0.25,
+            y: 0.25,
+            width: 0.1,
+            height: 0.1,
+            zIndex: 5
+          }
+        ];
+      }
+    },
+    persistence: {
+      async saveResult() {},
+      async saveThread() {}
+    },
+    answerStructureProvider: {
+      async create() {
+        return { rawAnswer: "raw", visualSpec: spec };
+      }
+    },
+    llmProvider: {},
+    structureProvider: {},
+    layoutPlanner: {
+      create() {
+        return { canvas: { width: 1600, height: 900 }, regions: [] };
+      }
+    },
+    imageProvider: {
+      async generate() {
+        return {
+          imageUrl: "data:image/png;base64,test",
+          width: 1600,
+          height: 900,
+          providerRaw: { ok: true },
+          prompt: "prompt",
+          usedApi: false
+        };
+      }
+    },
+    alignmentProvider: {
+      async align({ layout }) {
+        return { layout, alignmentRaw: { provider: "test" } };
+      }
+    },
+    followupProvider: {}
+  });
+
+  const result = await service.create("question", () => {});
+  assert.strictEqual(result.alignmentRaw.hitTest.ok, true);
+  assert.deepStrictEqual(
+    result.alignmentRaw.hitTest.modules.map((item) => [item.moduleId, item.ok, item.topModuleId]),
+    [
+      ["module_1", true, "module_1"],
+      ["module_2", true, "module_2"]
+    ]
+  );
+  assert.deepStrictEqual(result.visualQualityWarnings, []);
 }
 
 async function testAnswerStructureProviderUsesOneTextCall() {
@@ -597,7 +709,10 @@ async function testCreateService() {
   assert.strictEqual(result.structuredSpec.title, "测试图");
   assert.strictEqual(result.structuredSpec.modules[0].textBudget, result.hotspots[0].textBudget);
   assert.strictEqual(result.hotspots.length, 3);
-  assert.strictEqual(result.hotspots[0].x, 0.2);
+  assert.ok(result.hotspots[0].x < 0.2);
+  assert.ok(result.hotspots[0].width > 0.3);
+  assert.ok(Math.abs(result.hotspots[0].x + result.hotspots[0].width / 2 - 0.35) < 1e-9);
+  assert.strictEqual(result.hotspots[0].alignmentSource, "vision");
   assert.strictEqual(result.imageWidth, 1600);
   assert.strictEqual(result.imagePrompt, "exact prompt");
   assert.strictEqual(result.alignmentRaw.provider, "test-align");

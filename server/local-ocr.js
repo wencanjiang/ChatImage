@@ -50,17 +50,28 @@ async function createOcrHealthFixtureDataUrl(serverConfig) {
 async function runLocalOcrAlignment(serverConfig, { imageUrl, imageWidth, imageHeight, modules, purpose }) {
   const normalizedModules = normalizeModules(modules);
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "chatimage-local-ocr-"));
-  const image = await materializeImage(serverConfig, imageUrl, tempDir);
-  const modulesPath = path.join(tempDir, "modules.json");
-  fs.writeFileSync(modulesPath, JSON.stringify(normalizedModules, null, 2));
-  const output = await runWorker(serverConfig, {
-    imagePath: image.filePath,
-    modulesPath,
-    imageWidth,
-    imageHeight,
-    purpose
-  });
-  return normalizeWorkerOutput(output, normalizedModules);
+  try {
+    const image = await materializeImage(serverConfig, imageUrl, tempDir);
+    const modulesPath = path.join(tempDir, "modules.json");
+    fs.writeFileSync(modulesPath, JSON.stringify(normalizedModules, null, 2));
+    const output = await runWorker(serverConfig, {
+      imagePath: image.filePath,
+      modulesPath,
+      imageWidth,
+      imageHeight,
+      purpose
+    });
+    return normalizeWorkerOutput(output, normalizedModules);
+  } finally {
+    // Always remove the temp dir even on failure; never let it leak.
+    fs.rm(tempDir, { recursive: true, force: true }, (rmError) => {
+      if (rmError) {
+        // Don't throw from the callback — just log; the worker may briefly hold
+        // the file open on Windows. The OS will reclaim it on next restart.
+        console.warn(`[local-ocr] could not remove temp dir ${tempDir}: ${rmError.message}`);
+      }
+    });
+  }
 }
 
 function normalizeModules(modules) {
