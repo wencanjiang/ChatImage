@@ -111,10 +111,25 @@
       return fail("layout_validation", "布局校验", "LayoutSpec 中没有可点击模块 region。");
     }
     const validation = core.validateLayoutRegions(moduleRegions);
+    if (!validation.valid && (isSemanticVisualWork(result) || isAllowedOverlapLayout(result))) {
+      const nonOverlapErrors = validation.errors.filter((error) => !/\boverlaps\b/.test(String(error)));
+      if (!nonOverlapErrors.length) {
+        return ok("layout_validation", "布局校验", `${moduleRegions.length} semantic regions passed bounds and click-area checks; overlap is expected for mask-based visual works.`);
+      }
+      return fail("layout_validation", "布局校验", nonOverlapErrors.join("; "));
+    }
     if (!validation.valid) {
       return fail("layout_validation", "布局校验", validation.errors.join("；"));
     }
     return ok("layout_validation", "布局校验", `${moduleRegions.length} 个模块 region 通过安全边距、点击面积和重叠检查。`);
+  }
+
+  function isAllowedOverlapLayout(result) {
+    const validation = result && result.layout && result.layout.validation;
+    if (validation && validation.valid === true && validation.allowedOverlap === true) return true;
+    const clickBoundsSource = String(result && result.layout && result.layout.clickBoundsSource ? result.layout.clickBoundsSource : "").toLowerCase();
+    const hitTestOk = Boolean(result && result.alignmentRaw && result.alignmentRaw.hitTest && result.alignmentRaw.hitTest.ok);
+    return (clickBoundsSource === "hotspot-derived" && hitTestOk) || clickBoundsSource === "manual-calibration";
   }
 
   function checkHotspotBindings(result) {
@@ -165,6 +180,15 @@
     const prompt = String((result && result.imagePrompt) || "");
     if (result && result.alignmentRaw && !/mock-alignment/.test(JSON.stringify(result.alignmentRaw))) {
       const missing = [];
+      if (isSemanticVisualWork(result)) {
+        if (!/Target semantic regions|Every semantic region|visible separated area|semantic region/i.test(prompt)) missing.push("semantic regions");
+        if (!/visualEvidence|maskPolicy|locatorQueries/i.test(prompt)) missing.push("visual target contract");
+        if (!/easy to segment|segment later|SAM-style|mask/i.test(prompt)) missing.push("segmentation constraints");
+        if (missing.length) {
+          return warn("image_prompt", "生图提示词", `Semantic visual prompt is missing: ${missing.join(", ")}.`);
+        }
+        return ok("image_prompt", "生图提示词", "Prompt includes semantic regions, target contract, and segmentation constraints.");
+      }
       if (!/独立可辨识|independent/i.test(prompt)) missing.push("独立卡片");
       if (!/中文文字必须清晰|legible|清晰可读/i.test(prompt)) missing.push("中文清晰");
       if (!/视觉边界|卡片边缘|card/i.test(prompt)) missing.push("视觉边界");
@@ -186,6 +210,21 @@
   function getModuleRegions(result) {
     const regions = result && result.layout && Array.isArray(result.layout.regions) ? result.layout.regions : [];
     return regions.filter((region) => region.hotspotId);
+  }
+
+  function isSemanticVisualWork(result) {
+    const visualMode = String(
+      (result && result.structuredSpec && result.structuredSpec.visualMode) ||
+        (result && result.layout && result.layout.visualMode) ||
+        ""
+    ).toLowerCase();
+    const layoutVariant = String(
+      result && result.layout && (result.layout.layoutVariant || result.layout.variant)
+        ? result.layout.layoutVariant || result.layout.variant
+        : ""
+    ).toLowerCase();
+    const family = String(result && result.layout && result.layout.family ? result.layout.family : "").toLowerCase();
+    return /^(map|scene|poster)$/.test(visualMode) || /^(map|scene|poster|organic-map|illustrated-scene)$/.test(layoutVariant) || /^(map|scene|poster)$/.test(family);
   }
 
   function sameBounds(hotspot, bounds) {

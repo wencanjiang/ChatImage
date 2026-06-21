@@ -291,15 +291,28 @@ function findBrowser() {
 
 function createRealInstanceServerConfig(apiKey, env = process.env) {
   const textBaseUrl = String(env.CHATIMAGE_TEXT_BASE_URL || "").trim().replace(/\/+$/, "");
+  const visionMode = env.CHATIMAGE_VISION_MODE || "local-ocr";
+  const visionFallbackMode = env.CHATIMAGE_VISION_FALLBACK_MODE || "";
+  const visionUsesMimo = visionMode === "mimo-vision" || visionFallbackMode === "mimo-vision";
+  const visionBaseUrl = String(env.CHATIMAGE_VISION_BASE_URL || env.CHATIMAGE_TEXT_BASE_URL || "https://api.xiaomimimo.com/v1")
+    .trim()
+    .replace(/\/+$/, "");
   const defaultLocateAnythingPython = env.USERPROFILE
     ? path.join(env.USERPROFILE, "miniconda3", "envs", "chatimage", "python.exe")
     : "python";
+  const defaultSam3Python = env.USERPROFILE
+    ? path.join(env.USERPROFILE, "miniconda3", "envs", "sam3", "python.exe")
+    : "python";
+  const defaultSam3Checkpoint = env.USERPROFILE
+    ? path.join(env.USERPROFILE, ".cache", "modelscope", "hub", "models", "facebook", "sam3", "sam3.pt")
+    : "";
   return {
     port: 0,
     apiKey,
     textApiKey: env.CHATIMAGE_TEXT_API_KEY || apiKey,
     textModel: env.CHATIMAGE_TEXT_MODEL || "mimo-v2.5-pro",
     imageModel: env.CHATIMAGE_IMAGE_MODEL || "GPT-Image-2",
+    imageApiSize: env.CHATIMAGE_IMAGE_API_SIZE || "1024x1024",
     textEndpoint:
       env.CHATIMAGE_TEXT_ENDPOINT ||
       (textBaseUrl ? `${textBaseUrl}/chat/completions` : "https://api.xiaomimimo.com/v1/chat/completions"),
@@ -308,10 +321,13 @@ function createRealInstanceServerConfig(apiKey, env = process.env) {
     textThinkingType: env.CHATIMAGE_TEXT_THINKING_TYPE || "disabled",
     imageEndpoint: "https://api.wuyinkeji.com/api/async/image_gpt",
     imageDetailEndpoint: "https://api.wuyinkeji.com/api/async/detail",
-    visionMode: env.CHATIMAGE_VISION_MODE || "local-ocr",
-    visionEndpoint: env.CHATIMAGE_VISION_ENDPOINT || "",
+    visionMode,
+    visionFallbackMode,
+    visionEndpoint:
+      env.CHATIMAGE_VISION_ENDPOINT ||
+      (visionUsesMimo ? `${visionBaseUrl}/chat/completions` : ""),
     visionApiKey: env.CHATIMAGE_VISION_API_KEY || "",
-    visionModel: env.CHATIMAGE_VISION_MODEL || "",
+    visionModel: env.CHATIMAGE_VISION_MODEL || (visionUsesMimo ? "mimo-v2.5" : ""),
     visionAuthMode: env.CHATIMAGE_VISION_AUTH_MODE || "bearer",
     visionRequestFormat: env.CHATIMAGE_VISION_REQUEST_FORMAT || "openai-chat",
     localOcrPython: env.CHATIMAGE_LOCAL_OCR_PYTHON || "python",
@@ -327,10 +343,17 @@ function createRealInstanceServerConfig(apiKey, env = process.env) {
     locateAnythingMaxImageSide: Number(env.CHATIMAGE_LOCATEANYTHING_MAX_IMAGE_SIDE || 960),
     locateAnythingGenerationMode: env.CHATIMAGE_LOCATEANYTHING_GENERATION_MODE || "hybrid",
     locateAnythingLicenseAck: env.CHATIMAGE_LOCATEANYTHING_LICENSE_ACK || "",
+    sam3Enabled: env.CHATIMAGE_SAM3_ENABLED || "",
+    sam3Python: env.CHATIMAGE_SAM3_PYTHON || defaultSam3Python,
+    sam3WorkerPath: env.CHATIMAGE_SAM3_WORKER || path.join(process.cwd(), "scripts", "sam3_worker.py"),
+    sam3Checkpoint: env.CHATIMAGE_SAM3_CHECKPOINT || defaultSam3Checkpoint,
+    sam3Device: env.CHATIMAGE_SAM3_DEVICE || "cuda",
+    sam3TimeoutMs: Number(env.CHATIMAGE_SAM3_TIMEOUT_MS || 120_000),
+    sam3LicenseAck: env.CHATIMAGE_SAM3_LICENSE_ACK || "",
     apiRequestTimeoutMs: Number(env.CHATIMAGE_API_REQUEST_TIMEOUT_MS || 120_000),
     apiFetchRetryAttempts: Number(env.CHATIMAGE_API_FETCH_RETRY_ATTEMPTS || 2),
     apiFetchRetryDelayMs: Number(env.CHATIMAGE_API_FETCH_RETRY_DELAY_MS || 800),
-    imagePollAttempts: Number(env.CHATIMAGE_IMAGE_POLL_ATTEMPTS || 90),
+    imagePollAttempts: Number(env.CHATIMAGE_IMAGE_POLL_ATTEMPTS || 180),
     imagePollInitialDelayMs: Number(env.CHATIMAGE_IMAGE_POLL_INITIAL_DELAY_MS || 1200),
     imagePollDelayMs: Number(env.CHATIMAGE_IMAGE_POLL_DELAY_MS || 2000)
   };

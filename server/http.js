@@ -39,7 +39,15 @@ function assertSameOriginRequest(req, serverConfig = {}) {
   const url = String(req.url || "");
   if (!url.startsWith("/api/")) return;
   const source = req.headers.origin || req.headers.referer || "";
-  if (!source) return;
+  if (!source) {
+    // No Origin/Referer header: this is a non-browser client (curl, local tooling,
+    // or the in-process Node test client). Those cannot be CSRF-forged, so allow.
+    // But still defend against a real browser that suppressed Origin/Referer: a
+    // cross-origin browser request always carries Sec-Fetch-Site: cross-site.
+    const fetchSite = String(req.headers["sec-fetch-site"] || "").toLowerCase();
+    if (fetchSite === "cross-site") rejectCrossOrigin("cross-site (no origin header)");
+    return;
+  }
   let parsed;
   try {
     parsed = new URL(source);
@@ -73,29 +81,52 @@ function requireApiKey(serverConfig) {
   throw error;
 }
 
+const DEFAULT_MAX_JSON_BODY_BYTES = 8 * 1024 * 1024;
+
 function readJson(req) {
   return new Promise((resolve, reject) => {
     let raw = "";
+    let receivedBytes = 0;
+    let settled = false;
+    const maxBytes = getMaxJsonBodyBytes();
+    const fail = (error) => {
+      if (settled) return;
+      settled = true;
+      raw = "";
+      reject(error);
+    };
     req.on("data", (chunk) => {
-      raw += chunk;
-      if (raw.length > 2 * 1024 * 1024) {
+      if (settled) return;
+      receivedBytes += Buffer.byteLength(chunk);
+      if (receivedBytes > maxBytes) {
         const error = new Error("Request body too large");
         error.statusCode = 413;
+        fail(error);
         req.destroy();
-        reject(error);
+        return;
       }
+      raw += chunk;
     });
     req.on("end", () => {
+      if (settled) return;
+      settled = true;
       if (!raw) return resolve({});
       try {
         resolve(JSON.parse(raw));
       } catch (error) {
         error.statusCode = 400;
+        raw = "";
         reject(error);
       }
     });
-    req.on("error", reject);
+    req.on("error", fail);
   });
+}
+
+function getMaxJsonBodyBytes() {
+  const configured = Number(process.env.CHATIMAGE_MAX_JSON_BODY_BYTES || "");
+  if (Number.isFinite(configured) && configured >= 1024 * 1024) return configured;
+  return DEFAULT_MAX_JSON_BODY_BYTES;
 }
 
 function sendJson(res, status, value) {
@@ -120,13 +151,23 @@ function serveStatic(urlPath, res, staticDir) {
   const ext = path.extname(filePath);
   res.writeHead(200, {
     "Content-Type": mimeTypes[ext] || "application/octet-stream",
-    "Cache-Control": getStaticCacheControl(ext)
+    "Cache-Control": getStaticCacheControl(ext, relativePath)
   });
   fs.createReadStream(filePath).pipe(res);
 }
 
-function getStaticCacheControl(ext) {
+function getStaticCacheControl(ext, relativePath = "") {
   if (ext === ".html" || ext === ".json") return "no-cache";
+  // dist/ assets are emitted with content-hash filenames (e.g. app.a1b2c3d4.js),
+  // so they are safe to cache long-term and immutable.
+  const normalized = String(relativePath).replace(/\\/g, "/");
+  const basename = path.basename(normalized);
+  const isHashedDistAsset =
+    /^dist\//i.test(normalized) &&
+    !/\.map$/i.test(normalized) &&
+    /\.[a-f0-9]{8,}\./i.test(basename) &&
+    [".js", ".css", ".png", ".jpg", ".jpeg", ".svg", ".ttf", ".otf", ".woff", ".woff2"].includes(ext);
+  if (isHashedDistAsset) return "public, max-age=31536000, immutable";
   if ([".png", ".jpg", ".jpeg", ".svg", ".ttf", ".otf", ".woff", ".woff2"].includes(ext)) {
     return "public, max-age=86400";
   }

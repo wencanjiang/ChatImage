@@ -39,13 +39,27 @@ function testImageUrlValidation() {
     "http://[::1]/image.png",
     "http://[fc00::1]/image.png",
     "http://[fd12::1]/image.png",
-    "http://[fe80::1]/image.png"
+    "http://[fe80::1]/image.png",
+    // SSRF bypass forms that the original allowlist missed.
+    "http://2130706433/image.png",            // 127.0.0.1 as decimal
+    "http://0x7f000001/image.png",            // 127.0.0.1 as hex
+    "http://0177.0.0.1/image.png",            // 127.0.0.1 with octal first octet
+    "http://127.1/image.png",                 // 2-part shorthand for 127.0.0.1
+    "http://100.64.0.1/image.png",            // CGNAT 100.64/10
+    "http://100.127.255.255/image.png",       // top of CGNAT range
+    "http://198.18.0.1/image.png",            // benchmark 198.18/15
+    "http://169.254.169.254/image.png",       // AWS/GCP metadata link-local
+    "http://224.0.0.1/image.png",             // multicast
+    "http://[::ffff:127.0.0.1]/image.png"     // IPv4-mapped IPv6 loopback
   ]) {
     assert.throws(
       () => validateExternalImageUrl(privateUrl),
       /vision proxy must be a public http\(s\) URL or data:image URL/
     );
   }
+  // Public IP-encoded forms that look numeric must still pass.
+  assert.doesNotThrow(() => validateExternalImageUrl("https://8.8.8.8/image.png"));
+  assert.doesNotThrow(() => validateExternalImageUrl("https://1.1.1.1/image.png"));
   assert.throws(
     () => validateChatImagePayload({ ...createPayload(), imageUrl: "javascript:alert(1)" }),
     /imageUrl must be an http\(s\) URL or data:image URL/
@@ -129,6 +143,32 @@ function testInvalidHotspots() {
       }),
     /shortText exceeds textBudget/
   );
+  assert.doesNotThrow(() =>
+    validateChatImagePayload({
+      ...createPayload(),
+      hotspots: [
+        {
+          ...createPayload().hotspots[0],
+          label: "Service 与 Ingress 完整交互标题",
+          imageTitle: "Service"
+        }
+      ]
+    })
+  );
+  assert.throws(
+    () =>
+      validateChatImagePayload({
+        ...createPayload(),
+        hotspots: [
+          {
+            ...createPayload().hotspots[0],
+            label: "Service 与 Ingress 完整交互标题",
+            imageTitle: "Service 与 Ingress 完整交互标题"
+          }
+        ]
+      }),
+    /imageTitle exceeds textBudget/
+  );
 }
 
 function testInvalidLayoutRegions() {
@@ -171,6 +211,12 @@ function testInvalidLayoutQuality() {
     () => validateChatImagePayload(overlapping),
     /layout quality check failed.*overlaps/
   );
+  const generatedOverlap = createTwoModulePayload();
+  generatedOverlap.hotspots[1].x = 0.2;
+  generatedOverlap.layout.regions[1].bounds.x = 0.2;
+  generatedOverlap.layout.clickBoundsSource = "hotspot-derived";
+  generatedOverlap.alignmentRaw = { hitTest: { ok: true } };
+  assert.doesNotThrow(() => validateChatImagePayload(generatedOverlap));
 }
 
 function testInvalidHotspotRegionBindings() {

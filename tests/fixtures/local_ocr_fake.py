@@ -34,6 +34,7 @@ def main():
     else:
         bounds = {"x": 0.1, "y": 0.2, "width": 0.2, "height": 0.2}
 
+    confidence = 0.35 if mode == "low-confidence" else 0.9
     output_modules = []
     for index, module in enumerate(modules):
         output_modules.append({
@@ -46,7 +47,7 @@ def main():
                 "width": 0.2,
                 "height": 0.2
             },
-            "confidence": 0.9
+            "confidence": confidence
         })
 
     print(json.dumps({

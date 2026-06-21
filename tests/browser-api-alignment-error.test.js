@@ -91,7 +91,9 @@ async function main() {
       `document.querySelectorAll("[data-hotspot-id]").length === 3 &&
        document.querySelector(".image-stage img") &&
        document.querySelectorAll("[data-history-id]").length === 1 &&
-       document.body.innerText.includes("alignment-fallback")`,
+       (document.body.innerText.includes("vision-mixed") ||
+        document.body.innerText.includes("planned-fallback") ||
+        document.body.innerText.includes("alignment-fallback"))`,
       10000
     );
 
@@ -106,7 +108,14 @@ async function main() {
     assert.strictEqual(pageState.historyCount, 1);
     assert.strictEqual(pageState.detailHidden, true);
     assert.strictEqual(pageState.hasRetry, false);
-    assert.match(pageState.bodyText, /alignment-fallback/);
+    // A single missing module is now handled as partial alignment
+    // (vision-mixed / planned-fallback) rather than a full alignment failure.
+    // All 3 hotspots still render — the missing one falls back to its planned
+    // slot. See alignment.js applyAlignmentsToLayout.
+    assert.ok(
+      /vision-mixed|planned-fallback|alignment-fallback/.test(pageState.bodyText),
+      "expected partial-alignment indicator in body text"
+    );
     assert.match(pageState.bodyText, /Right/);
 
     assert.strictEqual(upstreamState.imageHits, 1);

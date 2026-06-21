@@ -276,7 +276,20 @@
   }
 
   function createAttachmentId(file) {
-    return `file_${Math.random().toString(36).slice(2, 8)}_${String(file.name || "upload").replace(/\W+/g, "_")}`;
+    return `file_${createRandomIdPart()}_${String(file.name || "upload").replace(/\W+/g, "_")}`;
+  }
+
+  function createRandomIdPart() {
+    const cryptoApi =
+      typeof globalThis !== "undefined" && globalThis.crypto && typeof globalThis.crypto.getRandomValues === "function"
+        ? globalThis.crypto
+        : null;
+    if (cryptoApi) {
+      const bytes = new Uint8Array(6);
+      cryptoApi.getRandomValues(bytes);
+      return Array.from(bytes, (byte) => byte.toString(36).padStart(2, "0")).join("");
+    }
+    return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   }
 
   const api = {

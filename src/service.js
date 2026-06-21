@@ -62,6 +62,7 @@
               responseFormat: "json",
               content: structureModel.buildAnswerStructurePrompt(question)
             });
+            const textMeta = extractTextModelMeta(data);
             let parsedContent;
             try {
               parsedContent = structureModel.parseJsonFromText(data.content);
@@ -76,6 +77,7 @@
                   parseError.message || String(parseError)
                 )
               });
+              mergeTextModelMeta(textMeta, repairedParseData);
               parsedContent = structureModel.parseJsonFromText(repairedParseData.content);
             }
             const normalized = structureModel.normalizeAnswerStructure(
@@ -93,6 +95,7 @@
                   responseFormat: "json",
                   content: structureModel.buildAnswerStructureRepairPrompt(question, normalized, warnings)
                 });
+                mergeTextModelMeta(textMeta, repairedData);
                 const repaired = structureModel.normalizeAnswerStructure(
                   structureModel.parseJsonFromText(repairedData.content),
                   question
@@ -101,18 +104,37 @@
                   typeof structureModel.assessAnswerStructureQuality === "function"
                     ? structureModel.assessAnswerStructureQuality(repaired, question)
                     : [];
-                return structureModel.attachQualityWarnings
+                if (hasSevereTopicMismatch(repairedWarnings)) {
+                  return attachTextModelMeta(
+                    buildFallbackAnswerStructure(structureModel, question, warnings.concat(repairedWarnings)),
+                    textMeta
+                  );
+                }
+                return attachTextModelMeta(structureModel.attachQualityWarnings
                   ? structureModel.attachQualityWarnings(repaired, repairedWarnings)
-                  : repaired;
+                  : repaired, textMeta);
               } catch (repairError) {
-                return structureModel.attachQualityWarnings
+                if (hasSevereTopicMismatch(warnings)) {
+                  return attachTextModelMeta(
+                    buildFallbackAnswerStructure(
+                      structureModel,
+                      question,
+                      warnings.concat(`repair_failed:${repairError.message || repairError}`)
+                    ),
+                    textMeta
+                  );
+                }
+                return attachTextModelMeta(structureModel.attachQualityWarnings
                   ? structureModel.attachQualityWarnings(normalized, warnings.concat(`repair_failed:${repairError.message || repairError}`))
-                  : normalized;
+                  : normalized, textMeta);
               }
             }
-            return structureModel.attachQualityWarnings
+            if (hasSevereTopicMismatch(warnings)) {
+              return attachTextModelMeta(buildFallbackAnswerStructure(structureModel, question, warnings), textMeta);
+            }
+            return attachTextModelMeta(structureModel.attachQualityWarnings
               ? structureModel.attachQualityWarnings(normalized, warnings)
-              : normalized;
+              : normalized, textMeta);
           } catch (error) {
             if (providerConfig.mode === "api") throw error;
           }
@@ -134,6 +156,234 @@
     };
   }
 
+  function hasSevereTopicMismatch(warnings) {
+    return (
+      Array.isArray(warnings) &&
+      warnings.some((warning) =>
+        ["topic_mismatch", "generic_five_part_framework", "title_raw_question", "title_looks_like_raw_question_or_template"].includes(
+          String(warning)
+        )
+      )
+    );
+  }
+
+  function extractTextModelMeta(data) {
+    return {
+      textModelUsed: data && data.textModelUsed ? String(data.textModelUsed) : "",
+      textModelFallbackReason: data && data.textModelFallbackReason ? String(data.textModelFallbackReason) : ""
+    };
+  }
+
+  function mergeTextModelMeta(meta, data) {
+    if (!meta || !data) return meta;
+    if (data.textModelUsed) meta.textModelUsed = String(data.textModelUsed);
+    if (data.textModelFallbackReason) meta.textModelFallbackReason = String(data.textModelFallbackReason);
+    return meta;
+  }
+
+  function attachTextModelMeta(answerStructure, meta) {
+    if (!answerStructure || !meta) return answerStructure;
+    return {
+      ...answerStructure,
+      textModelUsed: meta.textModelUsed || answerStructure.textModelUsed || "",
+      textModelFallbackReason: meta.textModelFallbackReason || answerStructure.textModelFallbackReason || ""
+    };
+  }
+
+  function buildFallbackAnswerStructure(structureModel, question, warnings) {
+    const rawAnswer = buildFallbackRawAnswer(question);
+    const visualSpec = structureModel.buildMockSpec(question, rawAnswer);
+    const normalized = { rawAnswer, visualSpec };
+    return structureModel.attachQualityWarnings
+      ? structureModel.attachQualityWarnings(normalized, Array.from(new Set(warnings || [])))
+      : normalized;
+  }
+
+  function buildFallbackRawAnswer(question) {
+    const source = String(question || "").trim();
+    if (/地图|地理|景区|导览|路线|游玩|山|湖|海岸|栈道/.test(source)) {
+      const subject = source
+        .replace(/生成|请|画成|一张|手绘|导览地图|地理风貌图|地理风貌|不要流程图|点击.*$/g, "")
+        .replace(/[，。！？,.!?]/g, "")
+        .trim() || "目标景区";
+      return `${subject}适合做成一张手绘导览地图：画面应把核心景区、主要游览路线、交通入口、住宿或补给点、自然地貌和观景关系放在同一张图中。用户点击不同地理区域时，应能看到该区域的位置、典型风貌、游玩价值、时间安排和注意事项。地图不应做成流程图，而应通过路线、地标、图例、房屋或索道图标等可见元素来表达可交互区域。`;
+    }
+    return `围绕“${source}”，需要先给出直接回答，再拆成若干可视化模块。每个模块应对应一个真实概念、对象、步骤或区域，并在详情中说明机制、影响、例子和注意事项。`;
+  }
+
+  function auditHotspotHitTest(hotspots) {
+    const results = (hotspots || []).map((hotspot) => {
+      const center = {
+        x: Number(hotspot.x) + Number(hotspot.width) / 2,
+        y: Number(hotspot.y) + Number(hotspot.height) / 2
+      };
+      const samples = buildHotspotSamplePoints(hotspot);
+      const clickable = samples
+        .map((point) => ({ point, top: getTopHotspotAtPoint(point, hotspots) }))
+        .find((item) => item.top && item.top.id === hotspot.id);
+      const centerTop = getTopHotspotAtPoint(center, hotspots);
+      return {
+        moduleId: hotspot.id,
+        ok: Boolean(clickable),
+        topModuleId: clickable && clickable.top ? clickable.top.id : centerTop ? centerTop.id : "",
+        center,
+        clickablePoint: clickable ? clickable.point : null
+      };
+    });
+    return {
+      ok: results.every((item) => item.ok),
+      modules: results
+    };
+  }
+
+  function repairHotspotHitTargets(hotspots) {
+    const list = Array.isArray(hotspots) ? hotspots : [];
+    const adjustments = [];
+    let hitTest = auditHotspotHitTest(list);
+    const maxPasses = Math.max(1, list.length * 2);
+    for (let pass = 0; pass < maxPasses && !hitTest.ok; pass += 1) {
+      let changed = false;
+      const byId = new Map(list.map((hotspot) => [hotspot.id, hotspot]));
+      for (const item of hitTest.modules || []) {
+        if (item.ok || !item.topModuleId || item.topModuleId === item.moduleId) continue;
+        const target = byId.get(item.moduleId);
+        const blocker = byId.get(item.topModuleId);
+        if (!target || !blocker) continue;
+        const targetArea = hotspotArea(target);
+        const blockerArea = hotspotArea(blocker);
+        if (!targetArea || !blockerArea || targetArea > blockerArea * 0.92) continue;
+        const oldZ = Number(target.zIndex || 0);
+        const nextZ = Math.max(oldZ + 1, Number(blocker.zIndex || 0) + 1);
+        target.zIndex = nextZ;
+        target.clickDiagnostics = [
+          ...(Array.isArray(target.clickDiagnostics) ? target.clickDiagnostics : []),
+          `raised above ${blocker.id} after hit-test overlap`
+        ];
+        adjustments.push({
+          moduleId: target.id,
+          from: oldZ,
+          to: nextZ,
+          blockerId: blocker.id,
+          reason: "smaller hotspot covered by larger hotspot"
+        });
+        changed = true;
+      }
+      if (!changed) break;
+      hitTest = auditHotspotHitTest(list);
+    }
+    return { hitTest, adjustments };
+  }
+
+  function hotspotArea(hotspot) {
+    return Math.max(0, Number(hotspot && hotspot.width) || 0) * Math.max(0, Number(hotspot && hotspot.height) || 0);
+  }
+
+  function buildHotspotSamplePoints(hotspot) {
+    const x = Number(hotspot.x);
+    const y = Number(hotspot.y);
+    const width = Number(hotspot.width);
+    const height = Number(hotspot.height);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height)) return [];
+    const ratios = [
+      [0.5, 0.5],
+      [0.18, 0.18],
+      [0.82, 0.18],
+      [0.18, 0.82],
+      [0.82, 0.82],
+      [0.5, 0.18],
+      [0.5, 0.82],
+      [0.18, 0.5],
+      [0.82, 0.5]
+    ];
+    return ratios.map(([rx, ry]) => ({
+      x: x + width * rx,
+      y: y + height * ry
+    }));
+  }
+
+  function getTopHotspotAtPoint(point, hotspots) {
+    const covering = (hotspots || [])
+      .map((candidate, index) => ({ candidate, index }))
+      .filter((item) => pointInHotspotBounds(point, item.candidate))
+      .sort((a, b) => {
+        const zDiff = Number(b.candidate.zIndex || 0) - Number(a.candidate.zIndex || 0);
+        return zDiff || b.index - a.index;
+      });
+    return covering[0] ? covering[0].candidate : null;
+  }
+
+  function pointInHotspotBounds(point, hotspot) {
+    return (
+      point.x >= Number(hotspot.x) &&
+      point.x <= Number(hotspot.x) + Number(hotspot.width) &&
+      point.y >= Number(hotspot.y) &&
+      point.y <= Number(hotspot.y) + Number(hotspot.height)
+    );
+  }
+
+  function syncLayoutBoundsToHotspots(layout, hotspots) {
+    if (!layout || !Array.isArray(layout.regions) || !Array.isArray(hotspots)) return layout;
+    const byId = new Map(hotspots.map((hotspot) => [hotspot.id, hotspot]));
+    return {
+      ...layout,
+      clickBoundsSource: "hotspot-derived",
+      regions: layout.regions.map((region) => {
+        if (!region || !region.hotspotId || !byId.has(region.hotspotId)) return region;
+        const hotspot = byId.get(region.hotspotId);
+        return {
+          ...region,
+          bounds: {
+            x: Number(hotspot.x),
+            y: Number(hotspot.y),
+            width: Number(hotspot.width),
+            height: Number(hotspot.height)
+          },
+          clickBoundsSource: "hotspot-derived"
+        };
+      })
+    };
+  }
+
+  function buildLimitedVisualQualityAudit({ question, visualSpec, hotspots, hitTest }) {
+    const warnings = [];
+    const title = String((visualSpec && visualSpec.title) || "");
+    const rawQuestion = String(question || "");
+    if (looksLikeQuestionLeak(title, rawQuestion)) warnings.push("title_may_be_raw_question");
+    const modules = Array.isArray(visualSpec && visualSpec.modules) ? visualSpec.modules : [];
+    const auxiliaryModules = Array.isArray(visualSpec && visualSpec.auxiliaryModules) ? visualSpec.auxiliaryModules : [];
+    const expectedHotspots = modules.length + auxiliaryModules.length;
+    if ((hotspots || []).length < expectedHotspots) warnings.push("hotspot_count_below_module_count");
+    if (hitTest && hitTest.ok === false) warnings.push("hotspot_center_hit_test_failed");
+    const visualMode = String((visualSpec && visualSpec.visualMode) || "").toLowerCase();
+    const semanticVisual = ["map", "scene", "poster"].includes(visualMode);
+    const maskCoverage =
+      (hotspots || []).filter((hotspot) => hotspot.mask && Array.isArray(hotspot.mask.polygon) && hotspot.mask.polygon.length >= 3)
+        .length / Math.max(1, (hotspots || []).length);
+    if (semanticVisual && maskCoverage < 0.5) warnings.push("semantic_mask_coverage_low");
+    return {
+      provider: "limited-local",
+      ok: warnings.length === 0,
+      title,
+      moduleCount: expectedHotspots,
+      hotspotCount: (hotspots || []).length,
+      maskCoverage: Number(maskCoverage.toFixed(3)),
+      hitTestOk: Boolean(hitTest && hitTest.ok),
+      warnings
+    };
+  }
+
+  function looksLikeQuestionLeak(title, question) {
+    const source = String(title || "").trim();
+    const raw = String(question || "").trim();
+    if (!source || !raw) return false;
+    if (/^(请|帮我|给我|为|生成|画|画一张|设计|解释|说明|分析|对比|介绍|draw|generate|create|make|design|explain)/i.test(source)) {
+      return true;
+    }
+    const compactTitle = source.replace(/\s+/g, "").replace(/[，。！？、；：,.!?;:]/g, "").toLowerCase();
+    const compactQuestion = raw.replace(/\s+/g, "").replace(/[，。！？、；：,.!?;:]/g, "").toLowerCase();
+    return compactQuestion.length >= 8 && compactTitle.includes(compactQuestion.slice(0, Math.min(16, compactQuestion.length)));
+  }
+
   function createLayoutPlanner({ layoutModel, uid }) {
     return {
       create(spec) {
@@ -142,15 +392,20 @@
     };
   }
 
-  function createImageProvider({ shouldUseApi, apiPost, providerConfig, layoutModel, mockSvg, sleep }) {
+  function createImageProvider({ shouldUseApi, apiPost, getRuntimeConfig, providerConfig, layoutModel, mockSvg, sleep }) {
     return {
       async generate(spec, layout) {
         if (await shouldUseApi()) {
-          const prompt = layoutModel.buildStyleImagePrompt(spec, layout);
+          const runtimeConfig = getRuntimeConfig ? await getRuntimeConfig() : null;
+          const prompt =
+            typeof layoutModel.buildApiImagePrompt === "function"
+              ? layoutModel.buildApiImagePrompt(spec, layout)
+              : layoutModel.buildStyleImagePrompt(spec, layout);
+          const apiSize = (runtimeConfig && runtimeConfig.imageApiSize) || `${layout.canvas.width}x${layout.canvas.height}`;
           try {
             const image = await apiPost(providerConfig.endpoints.imageGeneration, {
               prompt,
-              size: `${layout.canvas.width}x${layout.canvas.height}`,
+              size: apiSize,
               model: null
             });
             return { ...image, prompt, usedApi: true };
@@ -210,13 +465,23 @@
           imageUrl: image.imageUrl,
           imageWidth: imageDimensions.width,
           imageHeight: imageDimensions.height,
+          visualMode: spec.visualMode || "infographic",
           modules: getAlignableModules(spec, alignmentModel).map((module, index) => ({
             moduleId: module.id,
             label: module.title,
             order: index + 1,
+            visualMode: spec.visualMode || "infographic",
             text: module.imageText,
             regionKind: module.regionKind || "card",
-            regionPrompt: module.regionPrompt || module.title
+            regionPrompt: module.regionPrompt || module.title,
+            visualEvidence: module.visualEvidence || [],
+            maskPolicy: module.maskPolicy || "",
+            spatialHint: module.spatialHint || "",
+            locatorQueries: module.locatorQueries || [],
+            componentHints: module.componentHints || [],
+            components: module.components || [],
+            detail: module.detail || "",
+            sourceExcerpt: module.sourceExcerpt || ""
           })),
           content: prompt
         });
@@ -315,13 +580,23 @@
           imageUrl: image.imageUrl,
           imageWidth: imageDimensions.width,
           imageHeight: imageDimensions.height,
+          visualMode: spec.visualMode || "infographic",
           modules: getAlignableModules(spec, alignmentModel).map((module, index) => ({
             moduleId: module.id,
             label: module.title,
             order: index + 1,
+            visualMode: spec.visualMode || "infographic",
             text: module.imageText,
             regionKind: module.regionKind || "card",
             regionPrompt: module.regionPrompt || module.title,
+            visualEvidence: module.visualEvidence || [],
+            maskPolicy: module.maskPolicy || "",
+            spatialHint: module.spatialHint || "",
+            locatorQueries: module.locatorQueries || [],
+            componentHints: module.componentHints || [],
+            components: module.components || [],
+            detail: module.detail || "",
+            sourceExcerpt: module.sourceExcerpt || "",
             plannedBounds: findPlannedBounds(layout, module.id)
           })),
           content: prompt
@@ -361,9 +636,12 @@
             effectiveProvider: (rawParsed && rawParsed.effectiveProvider) || "",
             sourceCounts: (rawParsed && rawParsed.sourceCounts) || {},
             locateAnythingRaw: rawParsed && rawParsed.locateAnythingRaw ? rawParsed.locateAnythingRaw : null,
+            sam3Raw: rawParsed && rawParsed.sam3Raw ? rawParsed.sam3Raw : null,
             fallbackModules: (rawParsed && rawParsed.fallbackModules) || [],
             acceptedLocateAnythingModules: (rawParsed && rawParsed.acceptedLocateAnythingModules) || [],
             acceptedLocalOcrModules: (rawParsed && rawParsed.acceptedLocalOcrModules) || [],
+            acceptedSam3Modules: (rawParsed && rawParsed.acceptedSam3Modules) || [],
+            rejectedSam3Modules: (rawParsed && rawParsed.rejectedSam3Modules) || [],
             warnings: (rawParsed && rawParsed.warnings) || [],
             layoutError: error.message || String(error),
             layoutAlignment: error.alignment || null
@@ -385,9 +663,12 @@
             effectiveProvider: (rawParsed && rawParsed.effectiveProvider) || "",
             sourceCounts: (rawParsed && rawParsed.sourceCounts) || {},
             locateAnythingRaw: rawParsed && rawParsed.locateAnythingRaw ? rawParsed.locateAnythingRaw : null,
+            sam3Raw: rawParsed && rawParsed.sam3Raw ? rawParsed.sam3Raw : null,
             fallbackModules: (rawParsed && rawParsed.fallbackModules) || [],
             acceptedLocateAnythingModules: (rawParsed && rawParsed.acceptedLocateAnythingModules) || [],
             acceptedLocalOcrModules: (rawParsed && rawParsed.acceptedLocalOcrModules) || [],
+            acceptedSam3Modules: (rawParsed && rawParsed.acceptedSam3Modules) || [],
+            rejectedSam3Modules: (rawParsed && rawParsed.rejectedSam3Modules) || [],
             warnings: (rawParsed && rawParsed.warnings) || [],
             layoutProvider: alignedLayout.alignment && alignedLayout.alignment.provider,
             acceptedModules: (alignedLayout.alignment && alignedLayout.alignment.acceptedModules) || [],
@@ -426,9 +707,37 @@
         .map((region) => ({
           hotspotId: region.hotspotId,
           alignedBy: region.alignedBy || "planned",
-          bounds: region.bounds
+          bounds: region.bounds,
+          mask: summarizeMask(region.mask)
         }))
     };
+  }
+
+  function summarizeMask(mask) {
+    if (!mask || typeof mask !== "object") return null;
+    return {
+      provider: mask.provider || "",
+      score: mask.score,
+      bounds: mask.bounds || null,
+      inputBounds: mask.inputBounds || null,
+      maskPixels: mask.maskPixels,
+      polygon: Array.isArray(mask.polygon) ? mask.polygon : [],
+      strategy: mask.strategy || "",
+      hasImage: Boolean(mask.image),
+      hasCutoutImage: Boolean(mask.cutoutImage)
+    };
+  }
+
+  function stripLargeDataUrls(value) {
+    if (typeof value === "string") {
+      if (/^data:image\/[a-z0-9.+-]+;base64,/i.test(value) && value.length > 160) {
+        return `[data-url omitted:${value.length}]`;
+      }
+      return value;
+    }
+    if (Array.isArray(value)) return value.map(stripLargeDataUrls);
+    if (!value || typeof value !== "object") return value;
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, stripLargeDataUrls(item)]));
   }
 
   function createFollowupProvider({ shouldUseApi, apiPost, providerConfig, sleep }) {
@@ -639,7 +948,7 @@
       }
     }
     if (buffer) chunks.push(buffer);
-    while (chunks.length < 3) chunks.push(source || "杩介棶鍥炵瓟");
+    while (chunks.length < 3) chunks.push(source || "追问回答");
     return chunks.slice(0, 5);
   }
 
@@ -713,6 +1022,8 @@
           const combined = await answerStructureProvider.create(question);
           rawAnswer = combined.rawAnswer;
           spec = combined.visualSpec;
+          spec.textModelUsed = combined.textModelUsed || spec.textModelUsed || "";
+          spec.textModelFallbackReason = combined.textModelFallbackReason || spec.textModelFallbackReason || "";
         } else {
           rawAnswer = await llmProvider.answer(question);
           onStatus("structuring");
@@ -758,11 +1069,27 @@
             : visualSpec.modules,
           finalLayout
         );
+        const hitRepair = repairHotspotHitTargets(hotspots);
+        const clickLayout = syncLayoutBoundsToHotspots(finalLayout, hotspots);
+        const hitTest = hitRepair.hitTest;
+        const visualQualityRaw = buildLimitedVisualQualityAudit({
+          question,
+          visualSpec,
+          hotspots,
+          hitTest
+        });
+        const visualQualityWarnings = visualQualityRaw.warnings || [];
         const qualityWarnings = Array.isArray(visualSpec.qualityWarnings) ? visualSpec.qualityWarnings : [];
-        const alignmentRaw = {
+        const alignmentRaw = stripLargeDataUrls({
           ...(alignment.alignmentRaw || {}),
+          hitTest,
+          visualQa: visualQualityRaw,
+          zIndexAdjustments: hotspots
+            .filter((hotspot) => Array.isArray(hotspot.clickDiagnostics) && hotspot.clickDiagnostics.length)
+            .map((hotspot) => ({ moduleId: hotspot.id, diagnostics: hotspot.clickDiagnostics, zIndex: hotspot.zIndex })),
+          zIndexRepair: hitRepair.adjustments,
           qualityWarnings
-        };
+        });
 
         const result = {
           id: uid("ci"),
@@ -772,7 +1099,7 @@
           structuredSpec: visualSpec,
           title: visualSpec.title,
           summary: visualSpec.summary,
-          layout: finalLayout,
+          layout: clickLayout,
           hotspots,
           threads: [],
           imageUrl: image.imageUrl,
@@ -781,8 +1108,12 @@
           createdAt: new Date().toISOString(),
           providerRaw: image.providerRaw,
           alignmentRaw,
+          visualQualityRaw,
+          visualQualityWarnings,
           imagePrompt
         };
+        if (visualSpec.textModelUsed) result.textModelUsed = visualSpec.textModelUsed;
+        if (visualSpec.textModelFallbackReason) result.textModelFallbackReason = visualSpec.textModelFallbackReason;
         await persistence.saveResult(result);
         return result;
       },
@@ -864,6 +1195,7 @@
     const imageProvider = createImageProvider({
       shouldUseApi: deps.shouldUseApi,
       apiPost: deps.apiPost,
+      getRuntimeConfig: deps.getRuntimeConfig,
       providerConfig: deps.providerConfig,
       layoutModel: deps.layoutModel,
       mockSvg: deps.mockSvg,

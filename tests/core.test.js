@@ -71,6 +71,24 @@ function main() {
   assert.match(invalid.errors.join("\n"), /minimum click area/);
   assert.match(invalid.errors.join("\n"), /overlaps/);
 
+  const freeformOverlap = validateLayoutRegions([
+    {
+      id: "route",
+      role: "module",
+      hotspotId: "module_route",
+      shape: "freeform",
+      bounds: { x: 0.12, y: 0.18, width: 0.5, height: 0.12 }
+    },
+    {
+      id: "mountain",
+      role: "module",
+      hotspotId: "module_mountain",
+      shape: "freeform",
+      bounds: { x: 0.36, y: 0.2, width: 0.26, height: 0.24 }
+    }
+  ]);
+  assert.strictEqual(freeformOverlap.valid, true);
+
   console.log("core.test.js passed");
 }
 
