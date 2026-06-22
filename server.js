@@ -14,6 +14,7 @@ const {
   runLocateAnythingHealth,
   runLocateAnythingPreload
 } = require("./server/locateanything");
+const { refineAlignmentWithSam3, runSam3Health, runSam3Preload } = require("./server/sam3");
 const {
   loadEnvFile,
   assertSameOriginRequest,
@@ -25,6 +26,7 @@ const {
 const {
   callImageApi,
   callTextApi,
+  callTextApiDetailed,
   callVisionApi,
   extractImageUrl,
   extractTaskId,
@@ -41,6 +43,7 @@ loadEnvFile(path.join(rootDir, ".env"), { preserveKeys: initialEnvKeys });
 loadEnvFile(path.join(rootDir, ".env.local"), { overwrite: true, preserveKeys: initialEnvKeys });
 const WUYIN_TEXT_ENDPOINT = "https://api.wuyinkeji.com/api/chat/index";
 const MIMO_TEXT_ENDPOINT = "https://api.xiaomimimo.com/v1/chat/completions";
+const MIMO_BASE_URL = "https://api.xiaomimimo.com/v1";
 const DEFAULT_TEXT_SYSTEM_PROMPT =
   "你是 ChatImage 的文本与结构化生成引擎。直接输出最终结果，不要展示推理过程、分析草稿或思考步骤；当用户要求 JSON 时，只输出可解析 JSON。";
 const WUYIN_IMAGE_ENDPOINT = "https://api.wuyinkeji.com/api/async/image_gpt";
@@ -50,30 +53,47 @@ const config = createConfig();
 
 function createConfig(overrides = {}) {
   const textBaseUrl = process.env.CHATIMAGE_TEXT_BASE_URL || "";
+  const visionMode = process.env.CHATIMAGE_VISION_MODE || "local-ocr";
+  const visionFallbackMode = process.env.CHATIMAGE_VISION_FALLBACK_MODE || "";
+  const visionUsesMimo = visionMode === "mimo-vision" || visionFallbackMode === "mimo-vision";
+  const visionBaseUrl = process.env.CHATIMAGE_VISION_BASE_URL || textBaseUrl || MIMO_BASE_URL;
   const defaultLocateAnythingPython = process.env.USERPROFILE
     ? path.join(process.env.USERPROFILE, "miniconda3", "envs", "chatimage", "python.exe")
     : "python";
+  const defaultSam3Python = process.env.USERPROFILE
+    ? path.join(process.env.USERPROFILE, "miniconda3", "envs", "sam3", "python.exe")
+    : "python";
+  const defaultSam3Checkpoint = process.env.USERPROFILE
+    ? path.join(process.env.USERPROFILE, ".cache", "modelscope", "hub", "models", "facebook", "sam3", "sam3.pt")
+    : "";
   return {
     port: Number(process.env.CHATIMAGE_PORT || process.env.PORT || 5178),
     apiKey: process.env.CHATIMAGE_API_KEY || process.env.WUYIN_API_KEY || "",
     textApiKey: process.env.CHATIMAGE_TEXT_API_KEY || process.env.CHATIMAGE_API_KEY || process.env.WUYIN_API_KEY || "",
     textModel: process.env.CHATIMAGE_TEXT_MODEL || "mimo-v2.5-pro",
+    textFallbackModel: process.env.CHATIMAGE_TEXT_FALLBACK_MODEL || "mimo-v2.5",
+    textFallbackOn5xx: parseEnvBoolean(process.env.CHATIMAGE_TEXT_FALLBACK_ON_5XX, true),
     textEndpoint: process.env.CHATIMAGE_TEXT_ENDPOINT || buildOpenAiChatEndpoint(textBaseUrl) || MIMO_TEXT_ENDPOINT,
     textRequestFormat:
       process.env.CHATIMAGE_TEXT_REQUEST_FORMAT ||
       resolveDefaultTextRequestFormat(process.env.CHATIMAGE_TEXT_ENDPOINT || textBaseUrl || MIMO_TEXT_ENDPOINT),
     textSystemPrompt: process.env.CHATIMAGE_TEXT_SYSTEM_PROMPT || DEFAULT_TEXT_SYSTEM_PROMPT,
-    textMaxCompletionTokens: Number(process.env.CHATIMAGE_TEXT_MAX_COMPLETION_TOKENS || 4096),
+    textMaxCompletionTokens: parseOptionalPositiveInteger(process.env.CHATIMAGE_TEXT_MAX_COMPLETION_TOKENS),
     textTemperature: Number(process.env.CHATIMAGE_TEXT_TEMPERATURE || 1.0),
     textTopP: Number(process.env.CHATIMAGE_TEXT_TOP_P || 0.95),
     textJsonResponseFormat: process.env.CHATIMAGE_TEXT_JSON_RESPONSE_FORMAT || "prompt",
     textThinkingType: process.env.CHATIMAGE_TEXT_THINKING_TYPE || "disabled",
+    visualQaMode: process.env.CHATIMAGE_VISUAL_QA_MODE || "limited",
+    visualQaMaxRetries: Number(process.env.CHATIMAGE_VISUAL_QA_MAX_RETRIES || 1),
     imageModel: process.env.CHATIMAGE_IMAGE_MODEL || "GPT-Image-2",
-    visionModel: process.env.CHATIMAGE_VISION_MODEL || "",
-    visionEndpoint: process.env.CHATIMAGE_VISION_ENDPOINT || WUYIN_TEXT_ENDPOINT,
+    visionModel: process.env.CHATIMAGE_VISION_MODEL || (visionUsesMimo ? "mimo-v2.5" : ""),
+    visionEndpoint:
+      process.env.CHATIMAGE_VISION_ENDPOINT ||
+      (visionUsesMimo ? buildOpenAiChatEndpoint(visionBaseUrl) : WUYIN_TEXT_ENDPOINT),
     visionApiKey: process.env.CHATIMAGE_VISION_API_KEY || "",
     visionAuthMode: process.env.CHATIMAGE_VISION_AUTH_MODE || "bearer",
-    visionMode: process.env.CHATIMAGE_VISION_MODE || "local-ocr",
+    visionMode,
+    visionFallbackMode,
     visionRequestFormat: process.env.CHATIMAGE_VISION_REQUEST_FORMAT || "openai-chat",
     localOcrPython: process.env.CHATIMAGE_LOCAL_OCR_PYTHON || "python",
     localOcrWorkerPath: process.env.CHATIMAGE_LOCAL_OCR_WORKER || path.join(rootDir, "scripts", "local_ocr_worker.py"),
@@ -89,17 +109,28 @@ function createConfig(overrides = {}) {
     locateAnythingMaxImageSide: Number(process.env.CHATIMAGE_LOCATEANYTHING_MAX_IMAGE_SIDE || 960),
     locateAnythingGenerationMode: process.env.CHATIMAGE_LOCATEANYTHING_GENERATION_MODE || "hybrid",
     locateAnythingLicenseAck: process.env.CHATIMAGE_LOCATEANYTHING_LICENSE_ACK || "",
+    sam3Enabled: process.env.CHATIMAGE_SAM3_ENABLED || "",
+    sam3Python: process.env.CHATIMAGE_SAM3_PYTHON || defaultSam3Python,
+    sam3WorkerPath: process.env.CHATIMAGE_SAM3_WORKER || path.join(rootDir, "scripts", "sam3_worker.py"),
+    sam3Checkpoint: process.env.CHATIMAGE_SAM3_CHECKPOINT || defaultSam3Checkpoint,
+    sam3Device: process.env.CHATIMAGE_SAM3_DEVICE || "cuda",
+    sam3TimeoutMs: Number(process.env.CHATIMAGE_SAM3_TIMEOUT_MS || 120_000),
+    sam3LicenseAck: process.env.CHATIMAGE_SAM3_LICENSE_ACK || "",
     databasePath: process.env.CHATIMAGE_DATABASE_PATH || path.join(rootDir, "tmp", "chatimage.sqlite"),
     staticDir: process.env.CHATIMAGE_STATIC_DIR || rootDir,
     apiRequestTimeoutMs: Number(process.env.CHATIMAGE_API_REQUEST_TIMEOUT_MS || 120_000),
     apiFetchRetryAttempts: Number(process.env.CHATIMAGE_API_FETCH_RETRY_ATTEMPTS || 2),
     apiFetchRetryDelayMs: Number(process.env.CHATIMAGE_API_FETCH_RETRY_DELAY_MS || 800),
-    imagePollAttempts: Number(process.env.CHATIMAGE_IMAGE_POLL_ATTEMPTS || 90),
+    imagePollAttempts: Number(process.env.CHATIMAGE_IMAGE_POLL_ATTEMPTS || 180),
     imagePollInitialDelayMs: Number(process.env.CHATIMAGE_IMAGE_POLL_INITIAL_DELAY_MS || 1200),
     imagePollDelayMs: Number(process.env.CHATIMAGE_IMAGE_POLL_DELAY_MS || 2000),
+    imageApiSize: process.env.CHATIMAGE_IMAGE_API_SIZE || "1024x1024",
     maxUpstreamRequests: Number(process.env.CHATIMAGE_MAX_UPSTREAM_REQUESTS || 4),
     imageEndpoint: WUYIN_IMAGE_ENDPOINT,
     imageDetailEndpoint: WUYIN_IMAGE_DETAIL_ENDPOINT,
+    // By default the API key is sent only via the Authorization header.
+    // Set CHATIMAGE_IMAGE_KEY_IN_QUERY=1 only if the upstream image API rejects header auth.
+    imageKeyInQuery: parseEnvBoolean(process.env.CHATIMAGE_IMAGE_KEY_IN_QUERY, false),
     ...overrides
   };
 }
@@ -108,6 +139,11 @@ function parseOptionalPositiveInteger(value) {
   if (value === undefined || value === null || String(value).trim() === "") return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function parseEnvBoolean(value, fallback) {
+  if (value === undefined || value === null || String(value).trim() === "") return fallback;
+  return ["1", "true", "yes", "on"].includes(String(value).trim().toLowerCase());
 }
 
 function buildOpenAiChatEndpoint(baseUrl) {
@@ -129,12 +165,18 @@ function createServer(serverConfig = config) {
   const helpers = {
     callImageApi: (...args) => upstreamGate.run(() => callImageApi(...args)),
     callTextApi: (...args) => upstreamGate.run(() => callTextApi(...args)),
+    callTextApiDetailed: (...args) => upstreamGate.run(() => callTextApiDetailed(...args)),
     callVisionApi: (...args) => upstreamGate.run(() => callVisionApi(...args)),
     runLocalOcrAlignment,
     runLocalOcrHealth,
-    runLocateAnythingAlignment: (...args) => runLocateAnythingAlignmentWithFallback(...args, helpers),
+    runLocateAnythingAlignment: (...args) =>
+      runLocateAnythingAlignmentWithFallback(...args, helpers).then((alignment) =>
+        refineAlignmentWithSam3(serverConfig, alignment, args[1] || args[0] || {})
+      ),
     runLocateAnythingHealth,
     runLocateAnythingPreload,
+    runSam3Health,
+    runSam3Preload,
     readJson,
     requireApiKey,
     sendJson
@@ -162,12 +204,14 @@ function createServer(serverConfig = config) {
 }
 
 if (require.main === module) {
+  setupGlobalErrorLogging();
   const server = createServer(config);
   setupGracefulShutdown(server);
   server.listen(config.port, "127.0.0.1", () => {
     console.log(`ChatImage server running at http://127.0.0.1:${config.port}`);
     console.log(`API mode: ${config.apiKey ? "enabled" : "mock fallback (missing CHATIMAGE_API_KEY)"}`);
     preloadLocateAnythingOnStartup(config);
+    preloadSam3OnStartup(config);
   });
 }
 
@@ -189,7 +233,13 @@ function setupGracefulShutdown(server) {
     if (shuttingDown) return;
     shuttingDown = true;
     console.log(`Received ${signal}; shutting down ChatImage server...`);
+    const forceCloseTimer = setTimeout(() => {
+      server.closeAllConnections?.();
+    }, 1000);
+    forceCloseTimer.unref?.();
+    server.closeIdleConnections?.();
     server.close((error) => {
+      clearTimeout(forceCloseTimer);
       if (error) {
         console.error(`HTTP server shutdown failed: ${error.stack || error.message || error}`);
         process.exitCode = 1;
@@ -213,6 +263,25 @@ function setupGracefulShutdown(server) {
   process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
+function setupGlobalErrorLogging() {
+  if (setupGlobalErrorLogging.installed) return;
+  setupGlobalErrorLogging.installed = true;
+  process.on("unhandledRejection", (reason) => {
+    console.error(`[${new Date().toISOString()}] Unhandled promise rejection\n${formatProcessError(reason)}`);
+  });
+  process.on("uncaughtException", (error) => {
+    console.error(`[${new Date().toISOString()}] Uncaught exception\n${formatProcessError(error)}`);
+    process.exitCode = 1;
+    setTimeout(() => process.exit(1), 10).unref();
+  });
+}
+
+function formatProcessError(error) {
+  if (error && error.stack) return error.stack;
+  if (error && error.message) return error.message;
+  return String(error);
+}
+
 function preloadLocateAnythingOnStartup(serverConfig) {
   if (String(serverConfig.visionMode || "").toLowerCase() !== "locateanything") return;
   runLocateAnythingPreload(serverConfig)
@@ -226,10 +295,22 @@ function preloadLocateAnythingOnStartup(serverConfig) {
     });
 }
 
+function preloadSam3OnStartup(serverConfig) {
+  if (!["1", "true", "yes", "sam3"].includes(String(serverConfig.sam3Enabled || "").toLowerCase())) return;
+  runSam3Preload(serverConfig)
+    .then((result) => {
+      console.log(`SAM3 resident model loaded: ${result.checkpoint || serverConfig.sam3Checkpoint} (${result.loadSeconds || 0}s)`);
+    })
+    .catch((error) => {
+      console.warn(`SAM3 preload failed: ${error.message || error}`);
+    });
+}
+
 module.exports = {
   buildOpenAiChatEndpoint,
   callImageApi,
   callTextApi,
+  callTextApiDetailed,
   callVisionApi,
   createConcurrencyGate,
   resolveDefaultTextRequestFormat,
@@ -245,5 +326,7 @@ module.exports = {
   MIMO_TEXT_ENDPOINT,
   parseImageBufferDimensions,
   preloadLocateAnythingOnStartup,
+  preloadSam3OnStartup,
+  setupGlobalErrorLogging,
   setupGracefulShutdown
 };

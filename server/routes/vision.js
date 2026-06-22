@@ -2,6 +2,7 @@
 
 const { validateExternalImageUrl, validateVisionImageDimensions } = require("../validation");
 const { createLocateAnythingConfig } = require("../locateanything");
+const { createSam3Config } = require("../sam3");
 
 async function handleVisionRoute({ url, req, res, serverConfig, helpers }) {
   if (url.pathname === "/api/vision/health") {
@@ -35,6 +36,10 @@ async function handleVisionRoute({ url, req, res, serverConfig, helpers }) {
       }
       if (serverConfig.visionMode === "locateanything") {
         const parsed = await helpers.runLocateAnythingHealth(serverConfig);
+        const sam3 = createSam3Config(serverConfig);
+        if (sam3.sam3Enabled && helpers.runSam3Health) {
+          parsed.sam3 = await helpers.runSam3Health(serverConfig);
+        }
         helpers.sendJson(res, parsed.ok ? 200 : 503, {
           ...createVisionHealthConfig(serverConfig),
           ok: parsed.ok,
@@ -79,6 +84,7 @@ async function handleVisionRoute({ url, req, res, serverConfig, helpers }) {
       imageUrl: body.imageUrl || "",
       imageWidth: body.imageWidth,
       imageHeight: body.imageHeight,
+      visualMode: body.visualMode || "",
       modules: body.modules,
       purpose: body.purpose || "vision_align"
     });
@@ -90,6 +96,7 @@ async function handleVisionRoute({ url, req, res, serverConfig, helpers }) {
       imageUrl: body.imageUrl || "",
       imageWidth: body.imageWidth,
       imageHeight: body.imageHeight,
+      visualMode: body.visualMode || "",
       modules: body.modules,
       purpose: body.purpose || "vision_align"
     });
@@ -111,18 +118,32 @@ function createVisionHealthConfig(serverConfig) {
   const localMode = serverConfig.visionMode === "local-ocr";
   const locateMode = serverConfig.visionMode === "locateanything";
   const locateAnything = createLocateAnythingConfig(serverConfig);
+  const sam3 = createSam3Config(serverConfig);
   return {
     configured: locateMode
       ? locateAnything.locateAnythingConfigured
       : localMode
       ? Boolean(serverConfig.localOcrPython && serverConfig.localOcrWorkerPath)
-      : Boolean(serverConfig.visionEndpoint && (serverConfig.visionApiKey || serverConfig.apiKey)),
+      : Boolean(
+          serverConfig.visionEndpoint &&
+            (serverConfig.visionApiKey ||
+              (serverConfig.visionMode === "mimo-vision" ? serverConfig.textApiKey : "") ||
+              (serverConfig.visionFallbackMode === "mimo-vision" ? serverConfig.textApiKey : "") ||
+              serverConfig.apiKey)
+        ),
     endpointConfigured: Boolean(serverConfig.visionEndpoint),
-    keyConfigured: Boolean(serverConfig.visionApiKey || serverConfig.apiKey),
+    keyConfigured: Boolean(
+      serverConfig.visionApiKey ||
+        (serverConfig.visionMode === "mimo-vision" ? serverConfig.textApiKey : "") ||
+        (serverConfig.visionFallbackMode === "mimo-vision" ? serverConfig.textApiKey : "") ||
+        serverConfig.apiKey
+    ),
     visionMode: serverConfig.visionMode || "remote",
+    visionFallbackMode: serverConfig.visionFallbackMode || "",
     visionModel: serverConfig.visionModel || "",
     localOcrConfigured: Boolean(serverConfig.localOcrPython && serverConfig.localOcrWorkerPath),
-    ...locateAnything
+    ...locateAnything,
+    ...sam3
   };
 }
 

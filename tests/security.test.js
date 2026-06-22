@@ -151,6 +151,50 @@ async function testInvalidPersistencePayloads(baseUrl) {
   assert.strictEqual(tinyHotspotResponse.status, 400);
   assert.match(await tinyHotspotResponse.text(), /layout quality check failed.*minimum click area/);
 
+  const semanticOverlap = createValidPayload("ci_semantic_overlap");
+  semanticOverlap.structuredSpec = { visualMode: "map" };
+  semanticOverlap.layout.family = "compare";
+  semanticOverlap.layout.layoutVariant = "map";
+  semanticOverlap.layout.regions = [
+    {
+      id: "region_1",
+      hotspotId: "module_1",
+      role: "module",
+      bounds: { x: 0.1, y: 0.2, width: 0.32, height: 0.3 }
+    },
+    {
+      id: "region_2",
+      hotspotId: "module_2",
+      role: "module",
+      bounds: { x: 0.36, y: 0.2, width: 0.32, height: 0.3 }
+    }
+  ];
+  semanticOverlap.hotspots = [
+    {
+      ...semanticOverlap.hotspots[0],
+      id: "module_1",
+      x: 0.1,
+      y: 0.2,
+      width: 0.32,
+      height: 0.3
+    },
+    {
+      ...semanticOverlap.hotspots[0],
+      id: "module_2",
+      label: "Route 2",
+      x: 0.36,
+      y: 0.2,
+      width: 0.32,
+      height: 0.3
+    }
+  ];
+  const semanticOverlapResponse = await fetch(`${baseUrl}/api/chatimages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(semanticOverlap)
+  });
+  assert.strictEqual(semanticOverlapResponse.status, 200);
+
   const maliciousImageUrl = await fetch(`${baseUrl}/api/chatimages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

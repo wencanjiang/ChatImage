@@ -56,6 +56,22 @@ function main() {
   assert.strictEqual(badPromptReport.status, "warn");
   assert.strictEqual(badPromptReport.checks.find((check) => check.id === "image_prompt").status, "warn");
 
+  const semanticScene = createResult();
+  semanticScene.structuredSpec = { visualMode: "scene" };
+  semanticScene.layout.visualMode = "scene";
+  semanticScene.layout.layoutVariant = "scene";
+  semanticScene.alignmentRaw = { provider: "locateanything", layoutProvider: "vision", sourceCounts: { "mimo-vision": 3 } };
+  semanticScene.imagePrompt = "Target semantic regions visualEvidence maskPolicy locatorQueries easy to segment later";
+  semanticScene.layout.regions[1].bounds = { x: 0.18, y: 0.24, width: 0.36, height: 0.34 };
+  semanticScene.hotspots[1].x = 0.18;
+  semanticScene.hotspots[1].y = 0.24;
+  semanticScene.hotspots[1].width = 0.36;
+  semanticScene.hotspots[1].height = 0.34;
+  const semanticSceneReport = buildQualityReport(semanticScene);
+  assert.strictEqual(semanticSceneReport.status, "ok");
+  assert.strictEqual(semanticSceneReport.checks.find((check) => check.id === "layout_validation").status, "ok");
+  assert.strictEqual(semanticSceneReport.checks.find((check) => check.id === "image_prompt").status, "ok");
+
   const badLayout = createResult();
   badLayout.layout.regions[0].bounds.width = 0.02;
   const badLayoutReport = buildQualityReport(badLayout);

@@ -20,7 +20,7 @@ function validateChatImagePayload(result) {
   assertPlainObject(result.layout, "layout");
   validateHotspots(result.hotspots);
   validateLayoutRegions(result.layout.regions);
-  validateLayoutQuality(result.layout.regions);
+  validateLayoutQuality(result.layout.regions, result);
   validateHotspotRegionBindings(result.hotspots, result.layout.regions);
   optionalString(result.imagePrompt, "imagePrompt");
   optionalPlainObject(result.alignmentRaw, "alignmentRaw");
@@ -29,11 +29,31 @@ function validateChatImagePayload(result) {
   return result;
 }
 
-function validateLayoutQuality(regions) {
+function validateLayoutQuality(regions, result) {
   const validation = core.validateLayoutRegions(regions);
-  if (!validation.valid) {
-    badRequest(`layout quality check failed: ${validation.errors.join("; ")}`);
+  if (validation.valid) return;
+  if (allowsSemanticOverlap(result)) {
+    const nonOverlapErrors = validation.errors.filter((error) => !/\boverlaps\b/.test(String(error)));
+    if (!nonOverlapErrors.length) return;
+    badRequest(`layout quality check failed: ${nonOverlapErrors.join("; ")}`);
   }
+  badRequest(`layout quality check failed: ${validation.errors.join("; ")}`);
+}
+
+function allowsSemanticOverlap(result) {
+  const visualMode = String(result && result.structuredSpec && result.structuredSpec.visualMode ? result.structuredSpec.visualMode : "").toLowerCase();
+  const layoutVariant = String(result && result.layout && (result.layout.layoutVariant || result.layout.variant) ? result.layout.layoutVariant || result.layout.variant : "").toLowerCase();
+  const family = String(result && result.layout && result.layout.family ? result.layout.family : "").toLowerCase();
+  const clickBoundsSource = String(result && result.layout && result.layout.clickBoundsSource ? result.layout.clickBoundsSource : "").toLowerCase();
+  const alignmentProvider = String(result && result.alignmentRaw && result.alignmentRaw.provider ? result.alignmentRaw.provider : "").toLowerCase();
+  const hitTestOk = Boolean(result && result.alignmentRaw && result.alignmentRaw.hitTest && result.alignmentRaw.hitTest.ok);
+  return (
+    /^(map|scene|poster)$/.test(visualMode) ||
+    /^(map|scene|poster|organic-map|illustrated-scene)$/.test(layoutVariant) ||
+    /^(map|scene|poster)$/.test(family) ||
+    (clickBoundsSource === "hotspot-derived" && hitTestOk) ||
+    (clickBoundsSource === "manual-calibration" && alignmentProvider === "manual-calibration")
+  );
 }
 
 function validateThreadPayload(thread, chatImageId, hotspotId) {
@@ -84,6 +104,7 @@ function validateHotspots(hotspots) {
     requireString(hotspot.label, `hotspots[${index}].label`);
     requireString(hotspot.shortText, `hotspots[${index}].shortText`);
     requireString(hotspot.detail, `hotspots[${index}].detail`);
+    optionalString(hotspot.imageTitle, `hotspots[${index}].imageTitle`);
     optionalString(hotspot.sourceExcerpt, `hotspots[${index}].sourceExcerpt`);
     optionalString(hotspot.iconHint, `hotspots[${index}].iconHint`);
     if (hotspot.textBudget !== undefined) {
@@ -110,8 +131,8 @@ function validateTextBudget(textBudget, path) {
 }
 
 function validateHotspotTextWithinBudget(hotspot, path) {
-  if (textLength(hotspot.label) > hotspot.textBudget.titleMaxChars) {
-    badRequest(`${path}.label exceeds textBudget.titleMaxChars`);
+  if (hotspot.imageTitle !== undefined && textLength(hotspot.imageTitle) > hotspot.textBudget.titleMaxChars) {
+    badRequest(`${path}.imageTitle exceeds textBudget.titleMaxChars`);
   }
   if (textLength(hotspot.shortText) > hotspot.textBudget.imageTextMaxChars) {
     badRequest(`${path}.shortText exceeds textBudget.imageTextMaxChars`);
@@ -235,23 +256,87 @@ function isPrivateHost(hostname) {
   if (!host) return true;
   if (host === "localhost" || host.endsWith(".localhost")) return true;
   if (host.includes(":")) {
-    if (host === "::1" || host === "0:0:0:0:0:0:0:1") return true;
+    // IPv6
+    if (host === "::" || host === "::1" || host === "0:0:0:0:0:0:0:1") return true;
     if (/^(fc|fd)[0-9a-f]{0,2}:/i.test(host) || /^fe80:/i.test(host)) return true;
+    // IPv4-mapped IPv6 — both dotted form (::ffff:127.0.0.1) and the WHATWG-
+    // URL-normalized hex form (::ffff:7f00:1) must be reduced to IPv4 and
+    // re-checked, otherwise an attacker can wrap a private address in IPv6
+    // syntax to bypass the allowlist.
+    const dotted = host.match(/^::ffff:([0-9.]+)$/i);
+    if (dotted) return isPrivateHost(dotted[1]);
+    const hex = host.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+    if (hex) {
+      const high = parseInt(hex[1], 16);
+      const low = parseInt(hex[2], 16);
+      if (Number.isFinite(high) && Number.isFinite(low)) {
+        const ipv4 = `${(high >>> 8) & 0xff}.${high & 0xff}.${(low >>> 8) & 0xff}.${low & 0xff}`;
+        return isPrivateHost(ipv4);
+      }
+    }
     return false;
   }
-  const octets = host.split(".");
-  if (octets.length !== 4 || octets.some((item) => !/^\d+$/.test(item))) return false;
-  const numbers = octets.map(Number);
-  if (numbers.some((item) => !Number.isInteger(item) || item < 0 || item > 255)) return false;
-  const [a, b] = numbers;
-  return (
-    a === 0 ||
-    a === 10 ||
-    a === 127 ||
-    (a === 169 && b === 254) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168)
-  );
+  const numeric = parseNumericIPv4(host);
+  if (numeric) {
+    const [a, b] = numeric;
+    return (
+      a === 0 ||                                // 0.0.0.0/8
+      a === 10 ||                               // 10.0.0.0/8
+      a === 127 ||                              // 127.0.0.0/8 loopback
+      (a === 100 && b >= 64 && b <= 127) ||     // 100.64.0.0/10 CGNAT
+      (a === 169 && b === 254) ||               // 169.254.0.0/16 link-local
+      (a === 172 && b >= 16 && b <= 31) ||      // 172.16.0.0/12
+      (a === 192 && b === 0 && numeric[2] === 0) || // 192.0.0.0/24
+      (a === 192 && b === 0 && numeric[2] === 2) || // 192.0.2.0/24 TEST-NET-1
+      (a === 192 && b === 168) ||               // 192.168.0.0/16
+      (a === 198 && (b === 18 || b === 19)) ||  // 198.18.0.0/15 benchmark
+      (a === 198 && b === 51 && numeric[2] === 100) || // TEST-NET-2
+      (a === 203 && b === 0 && numeric[2] === 113) ||  // TEST-NET-3
+      a >= 224 ||                               // 224.0.0.0/4 multicast + reserved
+      false
+    );
+  }
+  // Non-numeric hostname: leave to higher-layer DNS resolution / fetch.
+  return false;
+}
+
+// Parse IPv4 in any of the forms accepted by getaddrinfo on most platforms:
+// "127.0.0.1", "0177.0.0.1" (octal), "0x7f.0.0.1" (hex), "2130706433" (decimal),
+// or 2- and 3-part shortened forms ("127.1", "127.0.1"). Returns 4 octets in
+// big-endian order, or null when the string is clearly not an IPv4 literal.
+function parseNumericIPv4(host) {
+  if (!host) return null;
+  const parts = host.split(".");
+  if (parts.length === 0 || parts.length > 4) return null;
+  const parsed = [];
+  for (const part of parts) {
+    if (part === "") return null;
+    let value;
+    if (/^0x[0-9a-f]+$/i.test(part)) value = parseInt(part, 16);
+    else if (/^0[0-7]+$/.test(part)) value = parseInt(part, 8);
+    else if (/^\d+$/.test(part)) value = parseInt(part, 10);
+    else return null;
+    if (!Number.isFinite(value) || value < 0) return null;
+    parsed.push(value);
+  }
+  // Expand short forms per inet_aton: last component fills remaining octets.
+  if (parsed.length === 1) {
+    const n = parsed[0];
+    if (n > 0xffffffff) return null;
+    return [(n >>> 24) & 0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff];
+  }
+  if (parsed.length === 2) {
+    if (parsed[0] > 255 || parsed[1] > 0xffffff) return null;
+    const n = parsed[1];
+    return [parsed[0], (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff];
+  }
+  if (parsed.length === 3) {
+    if (parsed[0] > 255 || parsed[1] > 255 || parsed[2] > 0xffff) return null;
+    const n = parsed[2];
+    return [parsed[0], parsed[1], (n >>> 8) & 0xff, n & 0xff];
+  }
+  if (parsed.some((value) => value > 255)) return null;
+  return parsed;
 }
 
 function assertPlainObject(value, label) {

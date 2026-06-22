@@ -66,6 +66,19 @@ async function testHttpHelpers() {
     await readJson(invalid);
   }, SyntaxError);
 
+  await assert.rejects(
+    async () => {
+      const oversized = Readable.from([Buffer.alloc(8 * 1024 * 1024 + 1, "x")]);
+      oversized.headers = {};
+      await readJson(oversized);
+    },
+    (error) => {
+      assert.strictEqual(error.statusCode, 413);
+      assert.match(error.message, /too large/i);
+      return true;
+    }
+  );
+
   assert.throws(() => requireApiKey({ apiKey: "" }), /CHATIMAGE_API_KEY/);
   assert.doesNotThrow(() => requireApiKey({ apiKey: "key" }));
 

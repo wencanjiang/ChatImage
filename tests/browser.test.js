@@ -65,6 +65,315 @@ async function main() {
     await cdp.send("Page.navigate", { url: `${baseUrl}/?provider=mock` });
     await cdp.waitFor("Page.loadEventFired", 10000);
 
+    const organicPreviewCss = await cdp.evaluate(`(() => {
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = '<div class="detail-preview-crop detail-preview-organic" style="--crop-x:0.2;--crop-y:0.2;--crop-w:0.3;--crop-h:0.3;aspect-ratio:1.5"><img class="detail-preview-organic-image" src="data:image/png;base64,iVBORw0KGgo=" alt="organic"></div>';
+      document.body.appendChild(wrapper);
+      const image = wrapper.querySelector(".detail-preview-organic-image");
+      const style = getComputedStyle(image);
+      const state = {
+        position: style.position,
+        maxWidth: style.maxWidth,
+        width: style.width,
+        height: style.height
+      };
+      wrapper.remove();
+      return state;
+    })()`);
+    assert.strictEqual(organicPreviewCss.position, "static");
+    assert.strictEqual(organicPreviewCss.maxWidth, "100%");
+
+    const organicPreviewAlpha = await cdp.evaluate(`(async () => {
+      const sourceCanvas = document.createElement("canvas");
+      sourceCanvas.width = 320;
+      sourceCanvas.height = 220;
+      const sourceCtx = sourceCanvas.getContext("2d");
+      sourceCtx.fillStyle = "#dbeaf1";
+      sourceCtx.fillRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+      sourceCtx.fillStyle = "#6aa36f";
+      sourceCtx.beginPath();
+      sourceCtx.moveTo(82, 64);
+      sourceCtx.bezierCurveTo(150, 28, 216, 50, 238, 104);
+      sourceCtx.bezierCurveTo(220, 162, 120, 168, 72, 126);
+      sourceCtx.closePath();
+      sourceCtx.fill();
+      sourceCtx.fillStyle = "#1f2937";
+      sourceCtx.font = "18px sans-serif";
+      sourceCtx.fillText("target label", 110, 104);
+      const sourceUrl = sourceCanvas.toDataURL("image/png");
+
+      const maskCanvas = document.createElement("canvas");
+      maskCanvas.width = 160;
+      maskCanvas.height = 110;
+      const maskCtx = maskCanvas.getContext("2d");
+      maskCtx.fillStyle = "#fff";
+      maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+      const fullRectangleMask = maskCanvas.toDataURL("image/png");
+
+      const bounds = { x: 0.2, y: 0.2, width: 0.56, height: 0.58 };
+      const polygon = [
+        { x: 0.43, y: 0.21 },
+        { x: 0.72, y: 0.34 },
+        { x: 0.67, y: 0.65 },
+        { x: 0.34, y: 0.76 },
+        { x: 0.22, y: 0.48 }
+      ];
+      const hotspot = {
+        id: "module_poly",
+        label: "organic polygon target",
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height,
+        shape: "mask",
+        mask: { bounds, polygon }
+      };
+      const result = {
+        id: "organic-alpha-test",
+        imageUrl: sourceUrl,
+        imageWidth: 320,
+        imageHeight: 220,
+        structuredSpec: {
+          visualMode: "map",
+          modules: [{ id: "module_poly", regionKind: "landmark", maskPolicy: "subject" }]
+        },
+        layout: {
+          regions: [
+            { hotspotId: "module_poly", mask: { bounds, polygon, image: fullRectangleMask } }
+          ]
+        },
+        hotspots: [hotspot]
+      };
+      const preview = await window.ChatImageTestHooks.createOrganicPreviewForTest(
+        result,
+        hotspot,
+        bounds,
+        fullRectangleMask
+      );
+      const image = new Image();
+      await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = reject;
+        image.src = preview.url;
+      });
+      const output = document.createElement("canvas");
+      output.width = image.naturalWidth;
+      output.height = image.naturalHeight;
+      const outputCtx = output.getContext("2d");
+      outputCtx.drawImage(image, 0, 0);
+      const pixels = outputCtx.getImageData(0, 0, output.width, output.height).data;
+      let nonZero = 0;
+      let opaque = 0;
+      let cornerMaxAlpha = 0;
+      const cornerSize = Math.max(4, Math.floor(Math.min(output.width, output.height) * 0.12));
+      for (let y = 0; y < output.height; y += 1) {
+        for (let x = 0; x < output.width; x += 1) {
+          const alpha = pixels[(y * output.width + x) * 4 + 3];
+          if (alpha > 8) nonZero += 1;
+          if (alpha > 240) opaque += 1;
+          const inCorner =
+            (x < cornerSize && y < cornerSize) ||
+            (x >= output.width - cornerSize && y < cornerSize) ||
+            (x < cornerSize && y >= output.height - cornerSize) ||
+            (x >= output.width - cornerSize && y >= output.height - cornerSize);
+          if (inCorner) cornerMaxAlpha = Math.max(cornerMaxAlpha, alpha);
+        }
+      }
+      const total = output.width * output.height;
+      return {
+        organic: preview.organic,
+        width: output.width,
+        height: output.height,
+        nonZeroRatio: nonZero / total,
+        opaqueRatio: opaque / total,
+        cornerMaxAlpha
+      };
+    })()`);
+    assert.strictEqual(organicPreviewAlpha.organic, true);
+    assert.ok(organicPreviewAlpha.width > 60);
+    assert.ok(organicPreviewAlpha.height > 50);
+    assert.ok(
+      organicPreviewAlpha.nonZeroRatio < 0.86,
+      `organic preview is still too rectangular: ${JSON.stringify(organicPreviewAlpha)}`
+    );
+    assert.ok(
+      organicPreviewAlpha.cornerMaxAlpha < 180,
+      `organic preview corners should stay mostly transparent: ${JSON.stringify(organicPreviewAlpha)}`
+    );
+
+    const infographicPreviewCrop = await cdp.evaluate(`(() => {
+      const imageUrl = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1600' height='900'%3E%3Crect width='1600' height='900' fill='white'/%3E%3C/svg%3E";
+      const hotspot = {
+        id: "module_3",
+        label: "Service 与 Ingress",
+        x: 0.557,
+        y: 0.035,
+        width: 0.408,
+        height: 0.336,
+        regionKind: "card",
+        maskPolicy: "full-region"
+      };
+      const result = {
+        id: "k8s-preview-regression",
+        imageUrl,
+        imageWidth: 1600,
+        imageHeight: 900,
+        structuredSpec: {
+          visualMode: "infographic",
+          modules: [{ id: "module_3", regionKind: "card", maskPolicy: "full-region" }]
+        },
+        layout: {
+          regions: [
+            {
+              hotspotId: "module_3",
+              bounds: { x: 0.557, y: 0.035, width: 0.408, height: 0.336 },
+              mask: {
+                bounds: { x: 0.357, y: 0.376, width: 0.237, height: 0.586 },
+                image: "data:image/png;base64,iVBORw0KGgo=",
+                cutoutImage: "data:image/png;base64,iVBORw0KGgo="
+              }
+            }
+          ]
+        },
+        hotspots: [hotspot]
+      };
+      const rejected = window.ChatImageTestHooks.buildHotspotPreviewForTest(result, hotspot);
+      result.layout.regions[0].mask.bounds = { x: 0.638, y: 0.037, width: 0.337, height: 0.275 };
+      const accepted = window.ChatImageTestHooks.buildHotspotPreviewForTest(result, hotspot);
+      const flowHotspot = {
+        id: "aux_1",
+        label: "Resource collaboration workflow",
+        shortText: "Deployment -> ReplicaSet -> Pod -> Service -> Ingress",
+        detail: "Complete end-to-end resource flow across all nodes.",
+        x: 0.06,
+        y: 0.22,
+        width: 0.25,
+        height: 0.12,
+        regionKind: "flow-strip",
+        maskPolicy: "full-region"
+      };
+      const flowResult = {
+        id: "flow-strip-preview-regression",
+        imageUrl,
+        imageWidth: 1600,
+        imageHeight: 900,
+        structuredSpec: {
+          visualMode: "infographic",
+          modules: [],
+          auxiliaryModules: [
+            {
+              id: "aux_1",
+              regionKind: "flow-strip",
+              maskPolicy: "full-region",
+              title: "Resource collaboration workflow"
+            }
+          ]
+        },
+        layout: {
+          regions: [
+            {
+              hotspotId: "aux_1",
+              bounds: { x: 0.06, y: 0.22, width: 0.25, height: 0.12 },
+              mask: {
+                bounds: { x: 0.065, y: 0.235, width: 0.24, height: 0.10 },
+                inputBounds: { x: 0.06, y: 0.22, width: 0.25, height: 0.12 }
+              }
+            }
+          ]
+        },
+        hotspots: [flowHotspot]
+      };
+      const flowPreview = window.ChatImageTestHooks.buildHotspotPreviewForTest(flowResult, flowHotspot);
+      const mapHotspot = {
+        id: "map_1",
+        label: "Willow shore",
+        x: 0.64,
+        y: 0.40,
+        width: 0.18,
+        height: 0.25,
+        regionKind: "landmark",
+        maskPolicy: "full-region"
+      };
+      const mapResult = {
+        id: "map-offset-preview-regression",
+        imageUrl,
+        imageWidth: 1600,
+        imageHeight: 900,
+        structuredSpec: {
+          visualMode: "map",
+          modules: [{ id: "map_1", regionKind: "landmark", maskPolicy: "full-region" }]
+        },
+        layout: {
+          regions: [
+            {
+              hotspotId: "map_1",
+              bounds: { x: 0.64, y: 0.40, width: 0.18, height: 0.25 },
+              mask: {
+                bounds: { x: 0.72, y: 0.47, width: 0.08, height: 0.12 },
+                inputBounds: { x: 0.62, y: 0.38, width: 0.22, height: 0.29 },
+                image: "data:image/png;base64,iVBORw0KGgo=",
+                polygon: [
+                  { x: 0.72, y: 0.47 },
+                  { x: 0.80, y: 0.47 },
+                  { x: 0.80, y: 0.59 },
+                  { x: 0.72, y: 0.59 }
+                ]
+              }
+            }
+          ]
+        },
+        hotspots: [mapHotspot]
+      };
+      const mapOffsetPreview = window.ChatImageTestHooks.buildHotspotPreviewForTest(mapResult, mapHotspot);
+      return {
+        rejected,
+        accepted,
+        flowPreview,
+        mapOffsetPreview,
+        rejectedCenterX: rejected.crop.x + rejected.crop.width / 2,
+        rejectedCenterY: rejected.crop.y + rejected.crop.height / 2,
+        acceptedCenterX: accepted.crop.x + accepted.crop.width / 2,
+        acceptedCenterY: accepted.crop.y + accepted.crop.height / 2
+      };
+    })()`);
+    assert.ok(
+      infographicPreviewCrop.rejectedCenterX > 0.72 && infographicPreviewCrop.rejectedCenterX < 0.8,
+      `rejected neighbor mask should keep preview centered on Service card: ${JSON.stringify(infographicPreviewCrop.rejected)}`
+    );
+    assert.ok(
+      infographicPreviewCrop.rejectedCenterY > 0.18 && infographicPreviewCrop.rejectedCenterY < 0.24,
+      `rejected neighbor mask should not center preview on Deployment: ${JSON.stringify(infographicPreviewCrop.rejected)}`
+    );
+    assert.ok(
+      infographicPreviewCrop.accepted.crop.width > 0.39,
+      `accepted inner card mask should expand to the full card width: ${JSON.stringify(infographicPreviewCrop.accepted)}`
+    );
+    assert.ok(
+      !infographicPreviewCrop.accepted.maskBounds,
+      `infographic card fallback must not show a hard mask before organic preview is ready`
+    );
+    assert.ok(
+      !infographicPreviewCrop.accepted.cutoutUrl,
+      `infographic card must ignore server cutout images: ${JSON.stringify(infographicPreviewCrop.accepted)}`
+    );
+    assert.ok(
+      infographicPreviewCrop.flowPreview.crop.width >= 0.78,
+      `flow-strip preview should include the full horizontal strip: ${JSON.stringify(infographicPreviewCrop.flowPreview)}`
+    );
+    assert.ok(
+      !infographicPreviewCrop.flowPreview.maskBounds,
+      `flow-strip preview should not expose a hard rectangle mask: ${JSON.stringify(infographicPreviewCrop.flowPreview)}`
+    );
+    assert.ok(
+      !infographicPreviewCrop.mapOffsetPreview.maskBounds,
+      `offset map preview should not expose the small shifted mask: ${JSON.stringify(infographicPreviewCrop.mapOffsetPreview)}`
+    );
+    assert.ok(
+      infographicPreviewCrop.mapOffsetPreview.crop.x < 0.64 &&
+        infographicPreviewCrop.mapOffsetPreview.crop.x + infographicPreviewCrop.mapOffsetPreview.crop.width > 0.82,
+      `offset map preview should cover hotspot + SAM input context: ${JSON.stringify(infographicPreviewCrop.mapOffsetPreview)}`
+    );
+
     const sidebarBefore = await cdp.evaluate(`({
       shellCollapsed: document.querySelector(".app-shell").classList.contains("is-sidebar-collapsed"),
       sidebarWidth: document.querySelector("#historyPanel").getBoundingClientRect().width,
@@ -340,12 +649,24 @@ async function main() {
         width: Number(style.getPropertyValue("--crop-w")),
         height: Number(style.getPropertyValue("--crop-h"))
       };
-      return { bounds, crop, aspectRatio: preview.getBoundingClientRect().width / preview.getBoundingClientRect().height };
+      return {
+        bounds,
+        crop,
+        className: preview.className,
+        aspectRatio: preview.getBoundingClientRect().width / preview.getBoundingClientRect().height
+      };
     })()`);
-    assert.ok(previewCrop.crop.x < previewCrop.bounds.x);
-    assert.ok(previewCrop.crop.y < previewCrop.bounds.y);
-    assert.ok(previewCrop.crop.width <= previewCrop.bounds.width + 0.05);
-    assert.ok(previewCrop.crop.height <= previewCrop.bounds.height + 0.05);
+    const staticPreviewPng = /\bdetail-preview-(organic|cutout)\b/.test(previewCrop.className || "");
+    if (staticPreviewPng) {
+      assert.deepStrictEqual(previewCrop.crop, { x: 0, y: 0, width: 1, height: 1 });
+    } else {
+      assert.ok(previewCrop.crop.x <= previewCrop.bounds.x + 0.01);
+      assert.ok(previewCrop.crop.y <= previewCrop.bounds.y + 0.01);
+      assert.ok(previewCrop.crop.x + previewCrop.crop.width >= previewCrop.bounds.x + previewCrop.bounds.width - 0.01);
+      assert.ok(previewCrop.crop.y + previewCrop.crop.height >= previewCrop.bounds.y + previewCrop.bounds.height - 0.01);
+      assert.ok(previewCrop.crop.width <= 0.92, `preview crop is too wide: ${JSON.stringify(previewCrop)}`);
+      assert.ok(previewCrop.crop.height <= 0.92, `preview crop is too tall: ${JSON.stringify(previewCrop)}`);
+    }
     const imageAspect = 1600 / 900;
     const hotspotPreviewAspect = (previewCrop.bounds.width * imageAspect) / previewCrop.bounds.height;
     assert.ok(
@@ -737,13 +1058,23 @@ function stopProcess(child) {
 }
 
 async function rmWithRetry(targetPath) {
-  for (let attempt = 0; attempt < 8; attempt += 1) {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
     try {
       fs.rmSync(targetPath, { recursive: true, force: true });
       return;
     } catch (error) {
-      if (attempt === 7) throw error;
-      await sleep(250);
+      // On Windows the Chrome subprocess can hold profile file handles briefly
+      // after kill(). Retry with backoff; if cleanup still fails, warn instead
+      // of crashing the whole test suite — leftover temp dirs are not a test
+      // failure and will be cleared by the OS.
+      if (attempt === 11) {
+        if (process.platform === "win32") {
+          console.warn(`rmWithRetry: could not remove ${targetPath} after 12 attempts (${error.code}); leaving for OS cleanup`);
+          return;
+        }
+        throw error;
+      }
+      await sleep(300 + attempt * 150);
     }
   }
 }

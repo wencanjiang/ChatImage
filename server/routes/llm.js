@@ -9,7 +9,7 @@ async function handleLlmRoute({ url, req, res, serverConfig, helpers }) {
     }
     if (req.method === "POST") {
       const body = await helpers.readJson(req);
-      const answer = await helpers.callTextApi(serverConfig, {
+      const answer = await callConfiguredTextApi(helpers, serverConfig, {
         content: body.content || createLlmHealthPrompt(),
         model: body.model || serverConfig.textModel,
         purpose: body.purpose || "llm_health",
@@ -18,7 +18,9 @@ async function handleLlmRoute({ url, req, res, serverConfig, helpers }) {
       helpers.sendJson(res, 200, {
         ...createLlmHealthConfig(serverConfig),
         ok: true,
-        content: answer
+        content: answer.content,
+        textModelUsed: answer.modelUsed,
+        textModelFallbackReason: answer.fallbackReason || ""
       });
       return true;
     }
@@ -28,13 +30,17 @@ async function handleLlmRoute({ url, req, res, serverConfig, helpers }) {
   if (url.pathname !== "/api/llm" || req.method !== "POST") return false;
   requireTextApiKey(serverConfig);
   const body = await helpers.readJson(req);
-  const answer = await helpers.callTextApi(serverConfig, {
+  const answer = await callConfiguredTextApi(helpers, serverConfig, {
     content: body.content || "",
     model: body.model || serverConfig.textModel,
     purpose: body.purpose || "answer",
     responseFormat: body.responseFormat || "text"
   });
-  helpers.sendJson(res, 200, { content: answer });
+  helpers.sendJson(res, 200, {
+    content: answer.content,
+    textModelUsed: answer.modelUsed,
+    textModelFallbackReason: answer.fallbackReason || ""
+  });
   return true;
 }
 
@@ -44,7 +50,22 @@ function createLlmHealthConfig(serverConfig) {
     endpointConfigured: Boolean(serverConfig.textEndpoint),
     keyConfigured: Boolean(serverConfig.textApiKey || serverConfig.apiKey),
     textModel: serverConfig.textModel || "",
+    textFallbackModel: serverConfig.textFallbackModel || "",
+    textFallbackEnabled: Boolean(serverConfig.textFallbackOn5xx && serverConfig.textFallbackModel),
+    visualQaMode: serverConfig.visualQaMode || "",
     textRequestFormat: serverConfig.textRequestFormat || ""
+  };
+}
+
+async function callConfiguredTextApi(helpers, serverConfig, args) {
+  if (helpers && typeof helpers.callTextApiDetailed === "function") {
+    return helpers.callTextApiDetailed(serverConfig, args);
+  }
+  const content = await helpers.callTextApi(serverConfig, args);
+  return {
+    content,
+    modelUsed: args.model || serverConfig.textModel || "",
+    fallbackReason: ""
   };
 }
 

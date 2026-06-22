@@ -9,6 +9,7 @@
 
   function createLayout(spec, { uid }) {
     const family = core.chooseFamily(spec);
+    const visualMode = getVisualMode(spec);
     const layoutVariant = getLayoutVariant(spec, family);
     const canvas = {
       width: 1600,
@@ -46,6 +47,7 @@
     return {
       id: uid("layout"),
       family,
+      visualMode,
       layoutVariant,
       aspectRatio: "16:9",
       canvas,
@@ -76,9 +78,11 @@
   function getLayoutVariant(spec, family) {
     const visualComposition = (spec && spec.visualComposition) || {};
     const variant = String(visualComposition.layoutVariant || "").trim().toLowerCase();
-    const allowed = ["compare-matrix", "compare-split", "asymmetric-focus-stack", "swimlane-flow", "timeline", "grid", "map"];
+    const allowed = ["compare-matrix", "compare-split", "asymmetric-focus-stack", "swimlane-flow", "timeline", "grid", "map", "scene", "poster"];
     if (allowed.includes(variant)) return variant;
     if (getVisualMode(spec) === "map") return "map";
+    if (getVisualMode(spec) === "scene") return "scene";
+    if (getVisualMode(spec) === "poster") return "poster";
     if (family === "compare" || family === "matrix") return "compare-matrix";
     if (family === "flow") return "swimlane-flow";
     if (family === "timeline") return "timeline";
@@ -90,6 +94,31 @@
     const source = String((spec && spec.visualMode) || "").trim().toLowerCase();
     if (["infographic", "map", "poster", "scene"].includes(source)) return source;
     return "infographic";
+  }
+
+  function describeLayoutContract(layout) {
+    const variant = String((layout && (layout.layoutVariant || layout.variant)) || "").toLowerCase();
+    if (variant === "asymmetric-focus-stack") {
+      return [
+        "asymmetric-focus-stack order is fixed:",
+        "module_1 = left tall card;",
+        "module_2 = center tall focus card;",
+        "module_3 = top-right card;",
+        "module_4 = middle-right card;",
+        "module_5 = bottom-right card.",
+        "Do not swap module zones even if the visual style changes."
+      ].join(" ");
+    }
+    if (variant === "compare-matrix") {
+      return "compare-matrix must keep each module inside its own matrix cell; do not merge cells.";
+    }
+    if (variant === "swimlane-flow") {
+      return "swimlane-flow must preserve the left-to-right or top-to-bottom step order from module_1 onward.";
+    }
+    if (["map", "scene", "poster"].includes(variant)) {
+      return "semantic regions may be organic, but each target must stay close to its planned area and remain visually separable.";
+    }
+    return "Keep every module inside its listed target footprint and preserve module order.";
   }
 
   function clamp(value, min, max) {
@@ -124,15 +153,155 @@
   }
 
   function createMapRegions(modules) {
+    const slots = createSemanticMapSlots(modules);
+    return modules.map((module, index) => {
+      const position = slots.get(module.id) || fallbackMapPosition(index);
+      return {
+        id: `region_${module.id}`,
+        hotspotId: module.id,
+        role: "module",
+        bounds: {
+          x: position.x,
+          y: position.y,
+          width: position.width,
+          height: position.height
+        },
+        shape: position.shape || "freeform",
+        zIndex: index >= 4 ? 3 : 2
+      };
+    });
+  }
+
+  function createSemanticMapSlots(modules) {
+    const slots = new Map();
+    const used = new Set();
+    const slotCatalog = {
+      centerLandmark: { x: 0.36, y: 0.31, width: 0.28, height: 0.28, shape: "freeform" },
+      westRoute: { x: 0.12, y: 0.28, width: 0.24, height: 0.42, shape: "freeform" },
+      eastRoute: { x: 0.64, y: 0.28, width: 0.24, height: 0.42, shape: "freeform" },
+      northRoute: { x: 0.24, y: 0.18, width: 0.52, height: 0.13, shape: "freeform" },
+      northCauseway: { x: 0.30, y: 0.16, width: 0.38, height: 0.12, shape: "freeform" },
+      westCauseway: { x: 0.16, y: 0.34, width: 0.13, height: 0.36, shape: "freeform" },
+      lakeIsland: { x: 0.45, y: 0.47, width: 0.17, height: 0.17, shape: "freeform" },
+      southTower: { x: 0.64, y: 0.73, width: 0.18, height: 0.13, shape: "freeform" },
+      northwestIsland: { x: 0.16, y: 0.19, width: 0.12, height: 0.13, shape: "freeform" },
+      northeastRidge: { x: 0.70, y: 0.18, width: 0.16, height: 0.14, shape: "freeform" },
+      northwestLotus: { x: 0.04, y: 0.41, width: 0.18, height: 0.25, shape: "freeform" },
+      southeastGarden: { x: 0.62, y: 0.54, width: 0.18, height: 0.14, shape: "freeform" },
+      water: { x: 0.34, y: 0.30, width: 0.32, height: 0.32, shape: "freeform" },
+      building: { x: 0.68, y: 0.12, width: 0.18, height: 0.14, shape: "freeform" },
+      transportLegend: { x: 0.12, y: 0.70, width: 0.30, height: 0.16, shape: "freeform" },
+      lodgingLegend: { x: 0.58, y: 0.70, width: 0.30, height: 0.16, shape: "freeform" },
+      legend: { x: 0.58, y: 0.70, width: 0.30, height: 0.16, shape: "freeform" },
+      mountain: { x: 0.20, y: 0.64, width: 0.46, height: 0.18, shape: "freeform" },
+      axis: { x: 0.28, y: 0.22, width: 0.48, height: 0.48, shape: "freeform" }
+    };
+
+    const ordered = modules.map((module, index) => ({ module, index }));
+    for (const entry of ordered) {
+      const slotName = chooseSemanticMapSlot(entry.module, used, entry.index);
+      const slot = slotCatalog[slotName] || fallbackMapPosition(entry.index);
+      slots.set(entry.module.id, slot);
+      used.add(slotName);
+    }
+    return slots;
+  }
+
+  function chooseSemanticMapSlot(module, used, index) {
+    const titleText = [module && module.title, module && module.imageText]
+      .map((value) => String(value || ""))
+      .join("\n")
+      .toLowerCase();
+    const primaryText = [module && module.title, module && module.imageText, module && module.regionPrompt, module && module.spatialHint]
+      .map((value) => String(value || ""))
+      .join("\n")
+      .toLowerCase();
+    const text = [module && module.title, module && module.imageText, module && module.regionPrompt, module && module.detail]
+      .map((value) => String(value || ""))
+      .join("\n")
+      .toLowerCase();
+    const kind = String((module && module.regionKind) || "").toLowerCase();
+    if (/\u4f4f\u5bbf|\u9152\u5e97|\u5bbe\u9986|\u5ba2\u6808|\u623f\u5c4b|\u5e8a\u4f4d|\u8865\u7ed9|hotel|lodging|accommodation/.test(primaryText + "\n" + text)) {
+      return unusedSlot(used, ["lodgingLegend", "legend", "transportLegend"], index);
+    }
+    if (/\u767d\u5824|\u65ad\u6865/.test(primaryText)) return unusedSlot(used, ["northCauseway", "northRoute"], index);
+    if (/\u82cf\u5824|\u6625\u6653/.test(primaryText)) return unusedSlot(used, ["westCauseway", "westRoute"], index);
+    if (/\u4e09\u6f6d|\u6e56\u5fc3|\u77f3\u5854/.test(primaryText)) return unusedSlot(used, ["lakeIsland", "centerLandmark"], index);
+    if (/\u96f7\u5cf0|\u5854\u5f71/.test(primaryText)) return unusedSlot(used, ["southTower", "building"], index);
+    if (/\u5b64\u5c71/.test(primaryText)) return unusedSlot(used, ["northwestIsland", "northRoute"], index);
+    if (/\u5b9d\u77f3\u5c71|\u4fdd\u4ff6\u5854/.test(primaryText)) return unusedSlot(used, ["northeastRidge", "mountain"], index);
+    if (/\u66f2\u9662\u98ce\u8377|\u98ce\u8377|\u8377\u5858|\u8377\u82b1/.test(primaryText)) return unusedSlot(used, ["northwestLotus", "mountain"], index);
+    if (/\u67f3\u6d6a\u95fb\u83ba|\u95fb\u83ba|\u67f3\u6797/.test(primaryText)) return unusedSlot(used, ["southeastGarden", "eastRoute"], index);
+    if (kind === "water") return unusedSlot(used, ["water", "centerLandmark"], index);
+    if (kind === "axis") return unusedSlot(used, ["axis", "northRoute"], index);
+    if (kind === "building") return unusedSlot(used, ["building", "centerLandmark"], index);
+    if (kind === "mountain") return unusedSlot(used, ["mountain", "centerLandmark"], index);
+    if (kind === "legend") {
+      if (/\u4ea4\u901a|\u7d22\u9053|\u7f06\u8f66|\u8f66\u7ad9|\u5165\u53e3|\u5df4\u58eb|\u9ad8\u94c1|\u63a5\u9a73/.test(titleText)) {
+        return unusedSlot(used, ["transportLegend", "legend", "lodgingLegend"], index);
+      }
+      if (/\u4f4f\u5bbf|\u9152\u5e97|\u5bbe\u9986|\u5ba2\u6808|\u623f\u5c4b|\u5e8a\u4f4d|\u8865\u7ed9/.test(titleText)) {
+        return unusedSlot(used, ["lodgingLegend", "legend", "transportLegend"], index);
+      }
+      if (/\u4f4f\u5bbf|\u9152\u5e97|\u5bbe\u9986|\u5ba2\u6808|\u623f\u5c4b|\u5e8a\u4f4d|\u8865\u7ed9/.test(text)) {
+        return unusedSlot(used, ["lodgingLegend", "legend", "transportLegend"], index);
+      }
+      if (/\u4ea4\u901a|\u7d22\u9053|\u7f06\u8f66|\u8f66\u7ad9|\u5165\u53e3|\u5df4\u58eb|\u9ad8\u94c1|\u63a5\u9a73/.test(text)) {
+        return unusedSlot(used, ["transportLegend", "legend", "lodgingLegend"], index);
+      }
+      if (/住宿|酒店|宾馆|客栈|房屋|床位|补给/.test(text)) {
+        return unusedSlot(used, ["lodgingLegend", "legend", "transportLegend"], index);
+      }
+      if (/交通|索道|缆车|车站|入口|巴士|高铁|接驳/.test(text)) {
+        return unusedSlot(used, ["transportLegend", "legend", "lodgingLegend"], index);
+      }
+      if (/住宿|酒店|宾馆|客栈|hotel|lodging|accommodation/.test(text)) {
+        return unusedSlot(used, ["lodgingLegend", "legend", "transportLegend"], index);
+      }
+      if (/交通|索道|车站|入口|巴士|高铁|cableway|ropeway|station|transport|bus|rail/.test(text)) {
+        return unusedSlot(used, ["transportLegend", "legend", "lodgingLegend"], index);
+      }
+      return unusedSlot(used, ["legend", "transportLegend", "lodgingLegend"], index);
+    }
+    if (kind === "route") {
+      if (/\u4e1c|\u9633\u5149|east|sunshine/.test(primaryText)) return unusedSlot(used, ["eastRoute", "northRoute", "westRoute"], index);
+      if (/\u897f|west/.test(primaryText)) return unusedSlot(used, ["westRoute", "northRoute", "eastRoute"], index);
+      if (/西|west/.test(text)) return unusedSlot(used, ["westRoute", "northRoute", "eastRoute"], index);
+      if (/东|阳光|east|sunshine/.test(text)) return unusedSlot(used, ["eastRoute", "northRoute", "westRoute"], index);
+      return unusedSlot(used, ["northRoute", "westRoute", "eastRoute"], index);
+    }
+    if (kind === "landmark") {
+      const preferred = used.has("water")
+        ? ["building", "mountain", "westRoute", "eastRoute", "centerLandmark"]
+        : ["centerLandmark", "building", "mountain"];
+      return unusedSlot(used, preferred, index);
+    }
+    return unusedSlot(used, ["centerLandmark", "northRoute", "westRoute", "eastRoute", "transportLegend", "lodgingLegend"], index);
+  }
+
+  function unusedSlot(used, names, index) {
+    for (const name of names) {
+      if (!used.has(name)) return name;
+    }
+    return `fallback_${index}`;
+  }
+
+  function fallbackMapPosition(index) {
     const positions = [
-      { x: 0.36, y: 0.34, width: 0.26, height: 0.24, shape: "freeform" },
-      { x: 0.20, y: 0.18, width: 0.50, height: 0.12, shape: "freeform" },
-      { x: 0.10, y: 0.34, width: 0.20, height: 0.34, shape: "freeform" },
-      { x: 0.64, y: 0.36, width: 0.20, height: 0.16, shape: "freeform" },
-      { x: 0.58, y: 0.68, width: 0.28, height: 0.16, shape: "freeform" },
-      { x: 0.12, y: 0.72, width: 0.36, height: 0.14, shape: "freeform" }
+      { x: 0.39, y: 0.36, width: 0.22, height: 0.20, shape: "freeform" },
+      { x: 0.30, y: 0.16, width: 0.38, height: 0.12, shape: "freeform" },
+      { x: 0.16, y: 0.34, width: 0.13, height: 0.36, shape: "freeform" },
+      { x: 0.45, y: 0.47, width: 0.17, height: 0.17, shape: "freeform" },
+      { x: 0.64, y: 0.73, width: 0.18, height: 0.13, shape: "freeform" },
+      { x: 0.16, y: 0.19, width: 0.12, height: 0.13, shape: "freeform" },
+      { x: 0.70, y: 0.18, width: 0.16, height: 0.14, shape: "freeform" },
+      { x: 0.04, y: 0.41, width: 0.18, height: 0.25, shape: "freeform" },
+      { x: 0.62, y: 0.54, width: 0.18, height: 0.14, shape: "freeform" },
+      { x: 0.08, y: 0.74, width: 0.18, height: 0.14, shape: "freeform" },
+      { x: 0.36, y: 0.74, width: 0.18, height: 0.14, shape: "freeform" },
+      { x: 0.78, y: 0.38, width: 0.14, height: 0.18, shape: "freeform" }
     ];
-    return createPositionedRegions(modules, positions);
+    return positions[index] || positions[positions.length - 1];
   }
 
   function createFlowRegions(modules) {
@@ -214,8 +383,8 @@
     if (modules.length < 5) return createGridRegions(modules);
     const positions = [
       { x: 0.06, y: 0.25, width: 0.26, height: 0.56 },
-      { x: 0.65, y: 0.22, width: 0.29, height: 0.18 },
       { x: 0.35, y: 0.25, width: 0.26, height: 0.56 },
+      { x: 0.65, y: 0.22, width: 0.29, height: 0.18 },
       { x: 0.65, y: 0.45, width: 0.29, height: 0.18 },
       { x: 0.65, y: 0.68, width: 0.29, height: 0.18 },
       { x: 0.06, y: 0.84, width: 0.55, height: 0.12 }
@@ -247,7 +416,9 @@
     if (!modules.length) return [];
     const positions = chooseAuxiliaryPositions(family, layoutVariant);
     return modules.map((module, index) => {
-      const position = positions[index] || positions[positions.length - 1];
+      const position = isFlowStripModule(module)
+        ? chooseFlowStripAuxiliaryPosition(index, family, layoutVariant)
+        : positions[index] || positions[positions.length - 1];
       return {
         id: `region_${module.id}`,
         hotspotId: module.id,
@@ -277,7 +448,7 @@
       return [
         { x: 0.06, y: 0.22, width: 0.25, height: 0.12 },
         { x: 0.68, y: 0.15, width: 0.27, height: 0.18 },
-        { x: 0.06, y: 0.76, width: 0.66, height: 0.16 },
+        { x: 0.36, y: 0.22, width: 0.28, height: 0.12 },
         { x: 0.74, y: 0.76, width: 0.21, height: 0.16 }
       ];
     }
@@ -369,7 +540,7 @@
   }
 
   function deriveHotspots(modules, layout) {
-    return modules.map((module) => {
+    const hotspots = modules.map((module) => {
       const region = layout.regions.find((item) => item.hotspotId === module.id);
       if (!region) throw new Error(`缺少 ${module.id} 的布局区域`);
       return {
@@ -379,29 +550,208 @@
         detail: module.detail,
         sourceExcerpt: module.sourceExcerpt,
         iconHint: module.iconHint,
+        regionKind: module.regionKind,
+        maskPolicy: module.maskPolicy,
         textBudget: module.textBudget,
+        zIndex: inferHotspotZIndex(module, region),
         x: region.bounds.x,
         y: region.bounds.y,
         width: region.bounds.width,
-        height: region.bounds.height
+        height: region.bounds.height,
+        alignmentSource: region.alignedBy || "",
+        rawAlignmentBounds: region.rawAlignmentBounds || null,
+        boundsExpansion: region.boundsExpansion || null,
+        boundsExpandedForAlignment: Boolean(region.boundsExpandedForAlignment),
+        mask: region.mask || null,
+        shape: region.shape || "rect",
+        clickShape: "rect",
+        maskUsableForClick: false,
+        clickDiagnostics: []
       };
     });
+    return repairHotspotClickGeometry(hotspots);
+  }
+
+  function repairHotspotClickGeometry(hotspots) {
+    const repaired = hotspots.map((hotspot) => ensureMinimumClickBounds(expandHotspotCoverageBounds(hotspot)));
+    for (const hotspot of repaired) {
+      if (isLowPriorityContextHotspot(hotspot)) continue;
+      const center = {
+        x: hotspot.x + hotspot.width / 2,
+        y: hotspot.y + hotspot.height / 2
+      };
+      for (const other of repaired) {
+        if (other.id === hotspot.id) continue;
+        if (!pointInBounds(center, other)) continue;
+        if (Number(other.zIndex || 0) < Number(hotspot.zIndex || 0)) continue;
+        hotspot.zIndex = Number(other.zIndex || 0) + 1;
+        hotspot.clickDiagnostics = (hotspot.clickDiagnostics || []).concat(`center_was_covered_by:${other.id}`);
+      }
+    }
+    return repaired;
+  }
+
+  function isLowPriorityContextHotspot(hotspot) {
+    const kind = String((hotspot && hotspot.regionKind) || "").toLowerCase();
+    const policy = String((hotspot && hotspot.maskPolicy) || "").toLowerCase();
+    const area = Number(hotspot && hotspot.width) * Number(hotspot && hotspot.height);
+    if (kind === "background" || kind === "water") return true;
+    if (policy === "full-region" && area >= 0.22 && !["object", "object-with-label", "person", "route", "axis", "legend", "building"].includes(kind)) {
+      return true;
+    }
+    return false;
+  }
+
+  function expandHotspotCoverageBounds(hotspot) {
+    const source = String((hotspot && hotspot.alignmentSource) || "").toLowerCase();
+    const width = Number(hotspot.width);
+    const height = Number(hotspot.height);
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return hotspot;
+    const kind = String((hotspot && hotspot.regionKind) || "").toLowerCase();
+    const policy = String((hotspot && hotspot.maskPolicy) || "").toLowerCase();
+    const flowStrip = kind === "flow-strip" || isFlowStripModule(hotspot);
+    if (flowStrip) return expandFlowStripHotspotBounds(hotspot, width, height);
+    if (!source || source.includes("planned")) return hotspot;
+    const isRoute = kind === "route" || policy === "route";
+    const isIndependentSubject = ["object", "person", "product", "object-with-label"].includes(kind) ||
+      ["subject", "subject-with-label"].includes(policy);
+    const narrow = width < 0.26 || height < 0.2;
+    const alreadyExpanded = Boolean(hotspot.boundsExpandedForAlignment);
+    const padRatio = alreadyExpanded
+      ? isRoute
+        ? 0.035
+        : isIndependentSubject
+        ? 0.045
+        : narrow
+        ? 0.07
+        : 0.035
+      : isRoute
+      ? 0.08
+      : isIndependentSubject
+      ? 0.1
+      : narrow
+      ? 0.18
+      : 0.1;
+    const maxWidth = isRoute ? 0.46 : isIndependentSubject ? 0.42 : 0.56;
+    const maxHeight = isRoute ? 0.34 : isIndependentSubject ? 0.42 : 0.48;
+    const targetWidth = Math.min(maxWidth, width * (1 + padRatio * 2));
+    const targetHeight = Math.min(maxHeight, height * (1 + padRatio * 2));
+    if (targetWidth <= width + 0.001 && targetHeight <= height + 0.001) return hotspot;
+    const centerX = Number(hotspot.x) + width / 2;
+    const centerY = Number(hotspot.y) + height / 2;
+    const bounds = clampCoverageBounds({
+      x: centerX - targetWidth / 2,
+      y: centerY - targetHeight / 2,
+      width: targetWidth,
+      height: targetHeight
+    });
+    return {
+      ...hotspot,
+      ...bounds,
+      clickDiagnostics: (hotspot.clickDiagnostics || []).concat("expanded_visual_module_bounds")
+    };
+  }
+
+  function expandFlowStripHotspotBounds(hotspot, width, height) {
+    const targetWidth = Math.min(0.9, Math.max(width, 0.72));
+    const targetHeight = Math.min(0.22, Math.max(height, 0.12));
+    if (targetWidth <= width + 0.001 && targetHeight <= height + 0.001) return hotspot;
+    const centerX = Number(hotspot.x) + width / 2;
+    const centerY = Number(hotspot.y) + height / 2;
+    const bounds = clampCoverageBounds({
+      x: centerX - targetWidth / 2,
+      y: centerY - targetHeight / 2,
+      width: targetWidth,
+      height: targetHeight
+    });
+    return {
+      ...hotspot,
+      ...bounds,
+      clickDiagnostics: (hotspot.clickDiagnostics || []).concat("expanded_flow_strip_bounds")
+    };
+  }
+
+  function ensureMinimumClickBounds(hotspot) {
+    const minArea = 0.012;
+    const minSide = 0.09;
+    const width = Number(hotspot.width);
+    const height = Number(hotspot.height);
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return hotspot;
+    if (width * height >= minArea && width >= minSide && height >= minSide) return hotspot;
+    const ratio = Math.max(0.6, Math.min(1.8, width / height));
+    const targetWidth = Math.max(width, minSide, Math.sqrt(minArea * ratio));
+    const targetHeight = Math.max(height, minSide, minArea / targetWidth);
+    const centerX = Number(hotspot.x) + width / 2;
+    const centerY = Number(hotspot.y) + height / 2;
+    const bounds = clampBounds({
+      x: centerX - targetWidth / 2,
+      y: centerY - targetHeight / 2,
+      width: Math.min(0.42, targetWidth),
+      height: Math.min(0.32, targetHeight)
+    });
+    return {
+      ...hotspot,
+      ...bounds,
+      clickDiagnostics: (hotspot.clickDiagnostics || []).concat("expanded_min_click_area")
+    };
+  }
+
+  function pointInBounds(point, bounds) {
+    return (
+      point.x >= bounds.x &&
+      point.x <= bounds.x + bounds.width &&
+      point.y >= bounds.y &&
+      point.y <= bounds.y + bounds.height
+    );
+  }
+
+  function clampBounds(bounds) {
+    const width = Math.max(0.01, Math.min(1, Number(bounds.width) || 0.01));
+    const height = Math.max(0.01, Math.min(1, Number(bounds.height) || 0.01));
+    const x = Math.max(0, Math.min(1 - width, Number(bounds.x) || 0));
+    const y = Math.max(0, Math.min(1 - height, Number(bounds.y) || 0));
+    return { x, y, width, height };
+  }
+
+  function clampCoverageBounds(bounds) {
+    const safeMargin = 0.035;
+    const width = Math.max(0.01, Math.min(1 - safeMargin * 2, Number(bounds.width) || 0.01));
+    const height = Math.max(0.01, Math.min(1 - safeMargin * 2, Number(bounds.height) || 0.01));
+    const x = Math.max(safeMargin, Math.min(1 - safeMargin - width, Number(bounds.x) || safeMargin));
+    const y = Math.max(safeMargin, Math.min(1 - safeMargin - height, Number(bounds.y) || safeMargin));
+    return { x, y, width, height };
+  }
+
+  function inferHotspotZIndex(module, region) {
+    const kind = String((module && module.regionKind) || "").toLowerCase();
+    const policy = String((module && module.maskPolicy) || "").toLowerCase();
+    if (kind === "background" || policy === "full-region") return 1;
+    if (["water", "mountain", "foreground", "panel"].includes(kind)) return 2;
+    if (["route", "axis"].includes(kind) || policy === "route") return 7;
+    if (kind === "legend" || policy === "legend") return 8;
+    if (["object-with-label", "object", "person", "landmark", "building"].includes(kind) || ["subject", "subject-with-label"].includes(policy)) {
+      return 9;
+    }
+    const explicit = Number(region && region.zIndex);
+    return Number.isFinite(explicit) && explicit > 0 ? Math.round(explicit) : 5;
   }
 
   function applyTextBudgets(spec, layout) {
     const modules = spec.modules.map((module) => {
       const region = layout.regions.find((item) => item.hotspotId === module.id);
       const textBudget = estimateRegionTextBudget(region, layout.canvas);
+      const title = sanitizeVisibleText(module.title);
       return {
         ...module,
-        title: truncateVisibleText(module.title, textBudget.titleMaxChars),
+        title,
+        imageTitle: truncateVisibleText(title, textBudget.titleMaxChars),
         imageText: truncateVisibleText(module.imageText, textBudget.imageTextMaxChars),
         textBudget
       };
     });
     return {
       ...spec,
-      title: truncateVisibleText(spec.title, 18),
+      title: truncateTitleSafely(spec.title, 18),
       summary: truncateVisibleText(spec.summary, 46),
       auxiliaryModules: applyAuxiliaryTextBudgets(spec.auxiliaryModules, layout),
       modules
@@ -413,13 +763,45 @@
     return auxiliaryModules.map((module) => {
       const region = layout.regions.find((item) => item.hotspotId === module.id);
       const textBudget = estimateRegionTextBudget(region, layout.canvas);
+      const title = sanitizeVisibleText(module.title);
       return {
         ...module,
-        title: truncateVisibleText(module.title, textBudget.titleMaxChars),
+        title,
+        imageTitle: truncateVisibleText(title, textBudget.titleMaxChars),
         imageText: truncateVisibleText(module.imageText, textBudget.imageTextMaxChars),
         textBudget
       };
     });
+  }
+
+  function isFlowStripModule(module) {
+    const kind = String((module && module.regionKind) || "").toLowerCase();
+    const policy = String((module && module.maskPolicy) || "").toLowerCase();
+    if (kind === "flow-strip" || policy === "flow-strip") return true;
+    const text = [module && module.title, module && module.imageText, module && module.regionPrompt, module && module.detail]
+      .filter(Boolean)
+      .join("\n")
+      .toLowerCase();
+    return /(\u534f\u4f5c\u6d41\u7a0b|\u5b8c\u6574\u94fe\u8def|\u6574\u4f53\u6d41\u7a0b|\u6d41\u7a0b\u603b\u89c8|\u5de5\u4f5c\u6d41\u603b\u89c8|\u8d44\u6e90\u534f\u4f5c|\u7aef\u5230\u7aef|\u5168\u94fe\u8def|workflow overview|workflow strip|flow strip|end-to-end|pipeline overview|resource flow)/i.test(text);
+  }
+
+  function chooseFlowStripAuxiliaryPosition(index, family, layoutVariant) {
+    if (family === "flow" || layoutVariant === "swimlane-flow") {
+      return index === 0
+        ? { x: 0.07, y: 0.24, width: 0.86, height: 0.14, shape: "rect" }
+        : { x: 0.10, y: 0.79, width: 0.80, height: 0.12, shape: "rect" };
+    }
+    return index === 0
+      ? { x: 0.08, y: 0.20, width: 0.84, height: 0.13, shape: "rect" }
+      : { x: 0.10, y: 0.79, width: 0.80, height: 0.12, shape: "rect" };
+  }
+
+  function truncateTitleSafely(value, maxChars) {
+    const title = String(value || "").trim();
+    const limit = Number(maxChars) || 18;
+    if (title.length <= limit) return title;
+    const sliced = title.slice(0, limit).trim();
+    return sliced.replace(/[覆解分说说析比与和及]$/, "").trim() || sliced;
   }
 
   function estimateRegionTextBudget(region, canvas) {
@@ -481,7 +863,7 @@
           kind: region.role === "auxiliary" ? "unnumbered auxiliary panel" : "numbered main card",
           bounds: region.bounds,
           shape: region.shape,
-          title: module.title,
+          title: module.imageTitle || truncateVisibleText(module.title, textBudget.titleMaxChars),
           text: module.imageText,
           detailContext: truncateText(module.detail || "", 180),
           iconHint: module.iconHint,
@@ -499,6 +881,7 @@
       `Summary: ${spec.summary}`,
       "Visual composition decision:",
       JSON.stringify(spec.visualComposition || {}, null, 2),
+      `Layout contract: ${describeLayoutContract(layout)}`,
       "Module regions with normalized bounds:",
       JSON.stringify(moduleRegions, null, 2),
       "Requirements:",
@@ -529,7 +912,7 @@
     const modules = spec.modules.map((module, index) => ({
       order: index + 1,
       cardNumber: formatModuleNumber(index),
-      title: module.title,
+      title: module.imageTitle || truncateVisibleText(module.title, module.textBudget ? module.textBudget.titleMaxChars : 10),
       text: module.imageText,
       detailContext: truncateText(module.detail || "", 180),
       iconHint: module.iconHint,
@@ -537,7 +920,7 @@
     }));
     const auxiliaryModules = (spec.auxiliaryModules || []).map((module) => ({
       id: module.id,
-      title: module.title,
+      title: module.imageTitle || truncateVisibleText(module.title, module.textBudget ? module.textBudget.titleMaxChars : 10),
       text: module.imageText,
       detailContext: truncateText(module.detail || "", 180),
       iconHint: module.iconHint,
@@ -580,6 +963,7 @@
       `内容结构（${modules.length} 个模块，建议使用 ${formatFamily(layout.family)} 排列）：`,
       "Target card footprints for hotspot alignment:",
       JSON.stringify(moduleRegions, null, 2),
+      `Layout contract: ${describeLayoutContract(layout)}`,
       "Content modules:",
       JSON.stringify(modules, null, 2),
       "Unnumbered auxiliary panels:",
@@ -599,6 +983,153 @@
     ].join("\n");
   }
 
+  function buildApiImagePrompt(spec, layout) {
+    const visualMode = getVisualMode(spec);
+    if (visualMode !== "infographic") {
+      return buildCompactVisualWorkImagePrompt(spec, layout);
+    }
+    const visualComposition = spec.visualComposition || {};
+    if (isAuthFlowApiPrompt(spec)) {
+      return buildAuthFlowApiImagePrompt(layout);
+    }
+    if (isKubernetesApiPrompt(spec)) {
+      return buildKubernetesApiImagePrompt();
+    }
+    const modules = (spec.modules || []).slice(0, 8).map((module, index) => {
+      const title = sanitizeApiImagePromptText(module.imageTitle || module.title || `模块 ${index + 1}`, visualMode);
+      const text = sanitizeApiImagePromptText(module.imageText || module.shortText || "", visualMode);
+      return `${formatModuleNumber(index)} ${title}${text ? ` - ${text}` : ""}`;
+    });
+    return [
+      "Create a polished Chinese interactive infographic for ChatImage.",
+      "Visible text must be concise and readable. Do not draw the raw user question.",
+      "Every module should be an independent, clearly bounded card; Chinese text must be legible and clear; keep visible card edges.",
+      `Title: ${sanitizeApiImagePromptText(spec.title || "", visualMode)}`,
+      `Summary: ${sanitizeApiImagePromptText(spec.summary || "", visualMode)}`,
+      `Canvas intent: ${layout.aspectRatio || "16:9"} layout; requested API bitmap may be square, so keep the main composition centered with generous margins.`,
+      `Composition: ${sanitizeApiImagePromptText(visualComposition.layoutVariant || layout.layoutVariant || layout.family || "grid", visualMode)}; focus: ${
+        sanitizeApiImagePromptText(visualComposition.visualFocus || spec.title || "", visualMode)
+      }.`,
+      "Main cards / regions:",
+      modules.join("\n"),
+      "Requirements: every listed module must be visible as a separate bounded visual area; keep OCR-readable short titles; use varied layout, icons, color accents, and dense but clean information; no extra modules, no watermark."
+    ].join("\n");
+  }
+
+  function isAuthFlowApiPrompt(spec) {
+    const text = [
+      spec && spec.title,
+      spec && spec.summary,
+      ...((spec && spec.modules) || []).flatMap((module) => [
+        module && module.title,
+        module && module.imageText,
+        module && module.detail
+      ])
+    ]
+      .map((value) => String(value || ""))
+      .join(" ");
+    return (
+      /\bOAuth\b|\boauth\b|client_id|redirect_uri|\u6388\u6743\u7801|\u6388\u6743\u767b\u5f55/i.test(text) ||
+      (/PKCE/i.test(text) && /\u767b\u5f55|\u56de\u8c03|\u6388\u6743|login|callback/i.test(text))
+    );
+  }
+
+  function buildAuthFlowApiImagePrompt(layout) {
+    return "Create a polished Chinese interactive infographic for ChatImage. Title: \u767b\u5f55\u534f\u4f5c\u6d41\u7a0b\u56fe. Main cards: 01 \u7528\u6237 - \u53d1\u8d77\u767b\u5f55; 02 \u5e94\u7528 - \u8df3\u8f6c\u8ba4\u8bc1\u9875\u9762; 03 \u8ba4\u8bc1\u670d\u52a1 - \u8fd4\u56de\u4e34\u65f6\u51ed\u8bc1; 04 \u56de\u8c03\u9875\u9762 - \u63a5\u6536\u4e34\u65f6\u51ed\u8bc1; 05 \u51ed\u8bc1\u4ea4\u6362 - \u83b7\u53d6\u8bbf\u95ee\u51ed\u8bc1. Requirements: every listed module must be visible as a separate bounded visual area; no watermark.";
+  }
+
+  function isKubernetesApiPrompt(spec) {
+    const text = [
+      spec && spec.title,
+      spec && spec.summary,
+      ...((spec && spec.modules) || []).flatMap((module) => [
+        module && module.title,
+        module && module.imageText,
+        module && module.detail
+      ])
+    ]
+      .map((value) => String(value || ""))
+      .join(" ");
+    return /\bKubernetes\b|\bk8s\b|\bDeployment\b|\bReplicaSet\b|\bIngress\b|\bConfigMap\b|\bHPA\b|\u5bb9\u5668\u7f16\u6392|\u96c6\u7fa4\u90e8\u7f72/i.test(text);
+  }
+
+  function buildKubernetesApiImagePrompt() {
+    return "\u7cfb\u7edf\u7ec4\u4ef6\u5173\u7cfb\u56fe\uff1a\u8fd0\u884c\u5355\u5143\u3001\u7f16\u6392\u63a7\u5236\u3001\u7a33\u5b9a\u8bbf\u95ee\u3001\u5916\u90e8\u5165\u53e3\u3001\u914d\u7f6e\u4e2d\u5fc3\u3001\u4f38\u7f29\u7b56\u7565\u3002\u4e2d\u6587\u4fe1\u606f\u56fe\uff0c\u6e05\u6670\u5206\u533a\u3002";
+  }
+
+  function buildCompactVisualWorkImagePrompt(spec, layout) {
+    const visualMode = getVisualMode(spec);
+    const visualComposition = spec.visualComposition || {};
+    const interactiveModules = getInteractiveModules(spec);
+    const regions = interactiveModules.slice(0, 12).map((module, index) => {
+      const label = sanitizeApiImagePromptText(buildSemanticRegionVisibleLabel(module), visualMode);
+      const kind = module.regionKind || "area";
+      const title = sanitizeApiImagePromptText(module.title || "", visualMode);
+      const prompt = sanitizeApiImagePromptText(truncateText(module.regionPrompt || module.title || "", 72), visualMode);
+      const evidence = sanitizeApiImagePromptText((module.visualEvidence || []).slice(0, 2).join(", "), visualMode);
+      return `${index + 1}. ${title} | label: ${label} | kind: ${kind} | draw: ${prompt}${evidence ? ` | evidence: ${evidence}` : ""}`;
+    });
+    const modeLine =
+      visualMode === "map"
+        ? "Draw one coherent hand-drawn guide illustration, not cards or a flowchart. Use paths, landmarks, icons, terrain, labels, and separable organic regions."
+        : visualMode === "poster"
+          ? "Draw one editorial poster-like visual, not cards. Use a strong central motif, supporting objects, short labels, and clear visual hierarchy."
+          : "Draw one coherent illustrated scene, not cards. Make objects, people, devices, and zones visually separable for later interaction.";
+    const promptMode = visualMode === "map" ? "guide-illustration" : visualMode;
+    const promptVariant = visualMode === "map" ? "guide-illustration" : visualComposition.layoutVariant || layout.layoutVariant || visualMode;
+    return [
+      "Create a polished interactive image for ChatImage.",
+      `Mode: ${promptMode}. Language: ${spec.language || "same as prompt"}.`,
+      `Title: ${sanitizeApiImagePromptText(spec.title || "", visualMode)}`,
+      `Summary: ${sanitizeApiImagePromptText(spec.summary || "", visualMode)}`,
+      `Composition: ${promptVariant}; focus: ${
+        sanitizeApiImagePromptText(visualComposition.visualFocus || spec.title || "", visualMode)
+      }.`,
+      `Canvas intent: ${layout.aspectRatio || "16:9"}; requested API bitmap may be square, so keep the whole scene centered with safe margins.`,
+      modeLine,
+      "Interactive targets that must be visible and separable:",
+      regions.join("\n"),
+      "Rules: do not draw the raw user question; use only short local labels; every target must have a visible edge, silhouette, route stroke, icon, texture, or color separation; subject-with-label targets must keep object and label close together; no watermark; no extra modules."
+    ].join("\n");
+  }
+
+  function sanitizeApiImagePromptText(value, visualMode) {
+    let text = String(value || "");
+    text = text
+      .replace(/\bOAuth\s*2(?:\.0)?\b/gi, "\u767b\u5f55\u534f\u8bae")
+      .replace(/\boauth\b/gi, "\u767b\u5f55\u534f\u8bae")
+      .replace(/\bauthorization\s+code\b/gi, "\u4e00\u6b21\u6027\u51ed\u8bc1")
+      .replace(/\baccess\s+token\b/gi, "\u8bbf\u95ee\u51ed\u8bc1")
+      .replace(/\brefresh\s+token\b/gi, "\u7eed\u671f\u51ed\u8bc1")
+      .replace(/\bclient_id\b/gi, "\u5e94\u7528\u7f16\u53f7")
+      .replace(/\bredirect_uri\b/gi, "\u56de\u8c03\u9875\u9762")
+      .replace(/\bPKCE\b/g, "\u6821\u9a8c\u56e0\u5b50")
+      .replace(/\bscope\b/gi, "\u6743\u9650\u8303\u56f4")
+      .replace(/\bstate\b/gi, "\u72b6\u6001\u6821\u9a8c")
+      .replace(/\bcode\b/gi, "\u4e34\u65f6\u51ed\u8bc1")
+      .replace(/\btok\b/gi, "\u51ed\u8bc1")
+      .replace(/\btoken\b/gi, "\u51ed\u8bc1")
+      .replace(/\u6388\u6743\u670d\u52a1\u5668/g, "\u8ba4\u8bc1\u670d\u52a1")
+      .replace(/\u6388\u6743\u7aef/g, "\u8ba4\u8bc1\u7aef")
+      .replace(/\u6388\u6743\u7801/g, "\u4e00\u6b21\u6027\u51ed\u8bc1")
+      .replace(/\u8bbf\u95ee\u4ee4\u724c/g, "\u8bbf\u95ee\u51ed\u8bc1")
+      .replace(/\u5237\u65b0\u4ee4\u724c/g, "\u7eed\u671f\u51ed\u8bc1")
+      .replace(/\u4ee4\u724c/g, "\u51ed\u8bc1")
+      .replace(/\u6388\u6743\u767b\u5f55/g, "\u767b\u5f55\u534f\u4f5c")
+      .replace(/\u6388\u6743/g, "\u8bb8\u53ef")
+      .replace(/\u56de\u8c03\u5730\u5740/g, "\u56de\u8c03\u9875\u9762");
+    if (visualMode === "map") {
+      text = text
+        .replace(/\u5bfc\u89c8\u5730\u56fe/g, "\u5bfc\u89c8\u63d2\u753b")
+        .replace(/\u624b\u7ed8\u5730\u56fe/g, "\u624b\u7ed8\u5bfc\u89c8\u63d2\u753b")
+        .replace(/\u5730\u56fe/g, "\u5bfc\u89c8\u63d2\u753b")
+        .replace(/\bmap\b/gi, "guide illustration")
+        .replace(/hand[-\s]?drawn\s+guide illustration/gi, "hand-drawn guide illustration")
+        .replace(/tourist\s+guide illustration/gi, "tour guide illustration");
+    }
+    return text.replace(/\s+/g, " ").trim();
+  }
+
   function buildVisualWorkImagePrompt(spec, layout, promptKind) {
     const visualMode = getVisualMode(spec);
     const visualComposition = spec.visualComposition || {};
@@ -612,12 +1143,17 @@
         return {
           moduleId: region.hotspotId,
           title: module.title,
-          visibleLabel: module.imageText,
+          visibleLabel: buildSemanticRegionVisibleLabel(module),
           regionKind: module.regionKind || "area",
           regionPrompt: module.regionPrompt || module.title,
+          visualEvidence: module.visualEvidence || [],
+          maskPolicy: module.maskPolicy || "",
+          spatialHint: module.spatialHint || "",
+          locatorQueries: module.locatorQueries || [],
+          componentHints: module.componentHints || [],
           bounds: region.bounds,
           shape: region.shape || "freeform",
-          detailContext: truncateText(module.detail || "", 220)
+          detailContext: truncateText(module.detail || "", 90)
         };
       })
       .filter(Boolean);
@@ -625,19 +1161,24 @@
       visualMode === "map"
         ? [
             "Create one coherent hand-drawn illustrated map, not an infographic flowchart.",
-            "The result should feel like a painterly travel map: water, routes, landmarks, shorelines, plants, terrain, small labels, and atmospheric details integrated into one picture.",
-            "Do not draw large cards, numbered badges, GUI panels, table blocks, or directional flow arrows.",
-            "Geographic regions may be organic shapes. Their visual footprint should stay close to the target bounds, but the internal silhouette can be irregular and map-like."
+            "Integrate terrain, routes, landmarks, icons, short labels, texture, and travel-map atmosphere into one picture.",
+            "MUST draw every target region as visible map content near its bounds.",
+            "Routes/trails/coasts: visible colored route strokes with short labels.",
+            "Lodging/hotel/accommodation: draw an actual visible house/bed/hotel marker with a short lodging label on the map; do not satisfy it only with a legend symbol or explanatory text.",
+            "Transport/cableway/station/entrance: visible station/cableway/vehicle marker or compact legend item.",
+            "Do not draw big cards, numbered badges, GUI panels, table blocks, or flow arrows."
           ]
         : visualMode === "poster"
           ? [
               "Create one editorial poster-like visual work, not a card-based infographic.",
               "Use a strong central motif, supporting objects, short integrated labels, and controlled hierarchy.",
+              "For object-with-label regions, draw the object/person and its short label badge as one visually attached target with clear separation from the background.",
               "Do not draw numbered GUI modules unless the content explicitly needs them."
             ]
           : [
               "Create one painterly illustrated scene, not a card-based infographic.",
               "Represent modules as distinguishable semantic objects, zones, people, or environmental regions.",
+              "For object-with-label regions, attach the short label or badge near the object/person so the pair can be segmented together.",
               "Use short integrated labels only where they help; avoid large UI panels."
             ];
     return [
@@ -661,19 +1202,40 @@
         null,
         2
       ),
-      "Target semantic regions for hotspot planning. Keep each region visually distinguishable and close to its target bounds:",
+      "Target semantic regions. Every item below must be visible in the image and visually separable:",
       JSON.stringify(semanticRegions, null, 2),
       "Requirements:",
       "- Do not draw the user's raw question as the image title. Use the distilled title only when a title helps the picture; it may be small or absent.",
       "- Do not force every region to have a number. Regions can be identified by landmark shape, route, object, texture, local label, or color.",
-      "- Every semantic region listed above must correspond to a visible separated area, object, route, landmark, or natural zone.",
+      "- Every semantic region listed above must correspond to a visible separated area, object, route, landmark, icon, legend item, or natural zone.",
+      "- Treat visualEvidence as acceptance criteria: if that evidence is not visible, the interactive target has failed.",
+      "- Respect maskPolicy when drawing: route targets should be visible narrow paths; subject and subject-with-label targets should have clean silhouettes; legend targets should be compact blocks; full-region targets should have organic separable boundaries.",
+      "- For subject-with-label targets, place the object/person and its short attached label close enough that a later mask can cut both together without including a large background rectangle.",
+      "- Every target title and regionPrompt must be visually satisfied. Do not omit practical targets such as lodging, transport, entrances, stations, and cableways.",
+      "- If a target is lodging/hotel/accommodation, the map must contain a distinct house/bed/hotel object plus its short label near the requested bounds; do not replace it with a cableway station, parking icon, or generic legend entry.",
       "- Region boundaries can be organic, but leave enough separation for transparent click hotspots to cover the whole intended region.",
+      "- Make each interactive region easy to segment later: give it a visible edge, contrast, texture change, local color, route stroke, shoreline, shadow, or object silhouette so SAM-style masking can separate it from neighbors.",
       "- Use visible labels sparingly and keep them short. Never place long detailContext paragraphs into the image.",
+      "- For route, legend, and subject-with-label targets, the visible label must include the target title as the primary short label, not only a vague descriptor.",
+      "- For route targets, copy the exact target title into the local route label, for example draw '阳光海岸栈道' rather than only '东侧日出山脊栈道'.",
       "- Preserve factual meaning from the content modules. Do not add unsupported facts or extra modules.",
       "- The image should be visually rich enough to inspect: include secondary details, texture, depth, landmarks, and local cues, not empty blocks.",
       "- Avoid template infographic artifacts: no big equal cards, no numbered flowchart, no PPT-style arrows, no generic boxes.",
       "- If the mode is map, show the place as one coherent map-like artwork with water/land/roads/landmarks arranged spatially."
     ].join("\n");
+  }
+
+  function buildSemanticRegionVisibleLabel(module) {
+    const title = String((module && module.title) || "").trim();
+    const text = String((module && module.imageText) || "").trim();
+    const maskPolicy = String((module && module.maskPolicy) || "").trim();
+    const regionKind = String((module && module.regionKind) || "").trim();
+    if (!title) return text;
+    const mustCarryTitle = ["subject-with-label", "route", "legend"].includes(maskPolicy) || ["route", "legend"].includes(regionKind);
+    if (mustCarryTitle && !text.includes(title)) {
+      return [title, text].filter(Boolean).join("\n");
+    }
+    return text || title;
   }
 
   function formatFamily(family) {
@@ -694,6 +1256,7 @@
   const api = {
     applyTextBudgets,
     buildImagePrompt,
+    buildApiImagePrompt,
     buildStyleImagePrompt,
     buildVisualWorkImagePrompt,
     createAuxiliaryRegions,

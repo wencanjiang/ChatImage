@@ -1,6 +1,8 @@
 (function initRender(global) {
   "use strict";
 
+  const HISTORY_RECENT_LIMIT = 200;
+
   const qualityModel =
     global.ChatImageQuality ||
     (typeof require !== "undefined" && typeof module !== "undefined" && module.exports
@@ -28,6 +30,7 @@
 
   function renderResult(result, options = {}) {
     return `
+      ${renderSubmittedQuestion(result.question)}
       <div class="result-header">
         <div>
           <h2>${escapeHtml(result.title)}</h2>
@@ -61,23 +64,7 @@
     const selectedHotspotId = options.selectedHotspotId || "";
     const sourceByHotspotId = buildAlignmentSourceByHotspotId(result);
     const hotspots = (result.hotspots || [])
-      .map(
-        (hotspot) => {
-          const sourceLabel = formatAlignmentSource(sourceByHotspotId.get(hotspot.id));
-          return `
-          <button
-            class="hotspot${hotspot.id === selectedHotspotId ? " is-selected" : ""}"
-            type="button"
-            data-hotspot-id="${escapeHtml(hotspot.id)}"
-            data-alignment-source="${escapeHtml(sourceLabel)}"
-            data-calibration-label="${escapeHtml(`${hotspot.label} / ${sourceLabel}`)}"
-            aria-label="${escapeHtml(hotspot.label)}"
-            aria-pressed="${hotspot.id === selectedHotspotId ? "true" : "false"}"
-            style="left:${hotspot.x * 100}%;top:${hotspot.y * 100}%;width:${hotspot.width * 100}%;height:${hotspot.height * 100}%"
-          ></button>
-        `;
-        }
-      )
+      .map((hotspot) => renderHotspotLayer(hotspot, hotspot.id === selectedHotspotId, formatAlignmentSource(sourceByHotspotId.get(hotspot.id))))
       .join("");
     return `
       <div class="image-frame">
@@ -87,6 +74,119 @@
         </div>
       </div>
     `;
+  }
+
+  function renderHotspotLayer(hotspot, selected, sourceLabel) {
+    const renderBounds = getHotspotRenderBounds(hotspot);
+    const style = [
+      `left:${renderBounds.x * 100}%`,
+      `top:${renderBounds.y * 100}%`,
+      `width:${renderBounds.width * 100}%`,
+      `height:${renderBounds.height * 100}%`,
+      `z-index:${getHotspotRenderZIndex(hotspot)}`
+    ].join(";");
+    const commonAttrs = [
+      `data-hotspot-id="${escapeHtml(hotspot.id)}"`,
+      `data-alignment-source="${escapeHtml(sourceLabel)}"`,
+      `data-calibration-label="${escapeHtml(`${hotspot.label} / ${sourceLabel}`)}"`,
+      `aria-label="${escapeHtml(hotspot.label)}"`,
+      `aria-pressed="${selected ? "true" : "false"}"`,
+      `style="${style}"`
+    ].join(" ");
+    const polygon = shouldRenderHotspotMask(hotspot) ? buildHotspotPolygonPoints(hotspot, renderBounds) : "";
+    if (polygon) {
+      return `
+        <svg
+          class="hotspot hotspot-mask${selected ? " is-selected" : ""}"
+          role="button"
+          tabindex="0"
+          viewBox="0 0 1000 1000"
+          preserveAspectRatio="none"
+          ${commonAttrs}
+        >
+          <polygon class="hotspot-shape" points="${escapeHtml(polygon)}"></polygon>
+        </svg>
+      `;
+    }
+    return `
+      <button
+        class="hotspot${selected ? " is-selected" : ""}"
+        type="button"
+        ${commonAttrs}
+      ></button>
+    `;
+  }
+
+  function getHotspotRenderZIndex(hotspot) {
+    const explicit = Number(hotspot && hotspot.zIndex);
+    if (Number.isFinite(explicit) && explicit > 0) return Math.max(1, Math.round(explicit));
+    const kind = String((hotspot && hotspot.regionKind) || "").toLowerCase();
+    const policy = String((hotspot && hotspot.maskPolicy) || "").toLowerCase();
+    let semantic = 5;
+    if (kind === "background" || policy === "full-region") semantic = 1;
+    else if (["water", "mountain", "foreground", "panel"].includes(kind)) semantic = 2;
+    else if (["route", "axis"].includes(kind) || policy === "route") semantic = 7;
+    else if (["legend"].includes(kind) || policy === "legend") semantic = 8;
+    else if (["object-with-label", "object", "person", "landmark", "building"].includes(kind) || ["subject", "subject-with-label"].includes(policy)) semantic = 9;
+    return Math.max(1, Math.round(semantic));
+  }
+
+  function getHotspotRenderBounds(hotspot) {
+    return normalizeRenderBounds(hotspot, { x: 0, y: 0, width: 1, height: 1 });
+  }
+
+  function shouldRenderHotspotMask(hotspot) {
+    if (!hotspot || hotspot.clickShape !== "mask" || hotspot.maskUsableForClick === false) return false;
+    const polygon = hotspot.mask && hotspot.mask.polygon;
+    return Array.isArray(polygon) && polygon.length >= 3;
+  }
+
+  function normalizeRenderBounds(bounds, fallback) {
+    const value = {
+      x: Number(bounds && bounds.x),
+      y: Number(bounds && bounds.y),
+      width: Number(bounds && bounds.width),
+      height: Number(bounds && bounds.height)
+    };
+    if (
+      Number.isFinite(value.x) &&
+      Number.isFinite(value.y) &&
+      Number.isFinite(value.width) &&
+      Number.isFinite(value.height) &&
+      value.width > 0 &&
+      value.height > 0 &&
+      value.x >= 0 &&
+      value.y >= 0 &&
+      value.x + value.width <= 1 &&
+      value.y + value.height <= 1
+    ) {
+      return value;
+    }
+    return {
+      x: Number(fallback && fallback.x) || 0,
+      y: Number(fallback && fallback.y) || 0,
+      width: Number(fallback && fallback.width) || 1,
+      height: Number(fallback && fallback.height) || 1
+    };
+  }
+
+  function buildHotspotPolygonPoints(hotspot, bounds) {
+    const polygon = hotspot && hotspot.mask && Array.isArray(hotspot.mask.polygon) ? hotspot.mask.polygon : [];
+    if (polygon.length < 3 || !bounds || bounds.width <= 0 || bounds.height <= 0) return "";
+    const points = polygon
+      .map((point) => {
+        const x = clamp01((Number(point.x) - bounds.x) / bounds.width);
+        const y = clamp01((Number(point.y) - bounds.y) / bounds.height);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return "";
+        return `${Math.round(x * 1000)},${Math.round(y * 1000)}`;
+      })
+      .filter(Boolean);
+    return points.length >= 3 ? points.join(" ") : "";
+  }
+
+  function clamp01(value) {
+    if (!Number.isFinite(value)) return NaN;
+    return Math.max(0, Math.min(1, value));
   }
 
   function renderAlignmentNotice(result) {
@@ -264,8 +364,9 @@
   }
 
   function renderHotspotPreview(preview) {
-    if (!preview || !preview.imageUrl || !preview.crop) return "";
+    if (!preview || (!preview.imageUrl && !preview.cutoutUrl && !preview.organicUrl) || !preview.crop) return "";
     const crop = preview.crop;
+    const mask = preview.maskBounds || null;
     const aspectRatio = Number(preview.aspectRatio || 1.5);
     const style = [
       `--crop-x:${Number(crop.x || 0).toFixed(5)}`,
@@ -274,14 +375,55 @@
       `--crop-h:${Number(crop.height || 1).toFixed(5)}`,
       `aspect-ratio:${aspectRatio.toFixed(4)}`
     ].join(";");
+    if (preview.cutoutUrl) {
+      return `
+        <figure class="detail-preview" aria-label="当前热点主体抠图">
+          <div class="detail-preview-crop detail-preview-cutout" style="${style}">
+            <img class="detail-preview-cutout-image" src="${escapeHtml(preview.cutoutUrl)}" alt="${escapeHtml(preview.alt || "当前热点主体抠图")}" />
+          </div>
+          <figcaption>${escapeHtml(preview.caption || "主体抠图预览")}</figcaption>
+        </figure>
+      `;
+    }
+    if (preview.organicUrl) {
+      return `
+        <figure class="detail-preview" aria-label="当前热点区域图像">
+          <div class="detail-preview-crop detail-preview-organic" style="${style}">
+            <img class="detail-preview-organic-image" src="${escapeHtml(preview.organicUrl)}" alt="${escapeHtml(preview.alt || "当前热点区域图像")}" />
+          </div>
+          <figcaption>${escapeHtml(preview.caption || "区域上下文预览")}</figcaption>
+        </figure>
+      `;
+    }
+    const maskStyle = buildPreviewMaskStyle(preview, mask);
+    const hasMask = Boolean(maskStyle);
+    const softClass = preview.softEdge === false ? "" : " detail-preview-soft";
+    const imageStyle = hasMask ? ` style="${maskStyle}"` : "";
     return `
       <figure class="detail-preview" aria-label="当前热点区域图像">
-        <div class="detail-preview-crop" style="${style}">
-          <img src="${escapeHtml(preview.imageUrl)}" alt="${escapeHtml(preview.alt || "当前热点区域图像")}" />
+        <div class="detail-preview-crop${hasMask ? " has-mask" : ""}${softClass}" style="${style}">
+          <img src="${escapeHtml(preview.imageUrl)}" alt="${escapeHtml(preview.alt || "当前热点区域图像")}"${imageStyle} />
         </div>
         <figcaption>${escapeHtml(preview.caption || "热点区域预览")}</figcaption>
       </figure>
     `;
+  }
+
+  function buildPreviewMaskStyle(preview, mask) {
+    if (!preview || !preview.maskImage || !mask) return "";
+    const maskWidth = Math.max(0.0001, Number(mask.width || 0));
+    const maskHeight = Math.max(0.0001, Number(mask.height || 0));
+    const maskX = Math.max(0, Math.min(1, Number(mask.x || 0)));
+    const maskY = Math.max(0, Math.min(1, Number(mask.y || 0)));
+    const maskPositionX = maskWidth < 1 ? maskX / (1 - maskWidth) : 0;
+    const maskPositionY = maskHeight < 1 ? maskY / (1 - maskHeight) : 0;
+    return [
+      `--mask-image:url("${escapeHtml(preview.maskImage)}")`,
+      `--mask-w:${maskWidth.toFixed(5)}`,
+      `--mask-h:${maskHeight.toFixed(5)}`,
+      `--mask-px:${maskPositionX.toFixed(5)}`,
+      `--mask-py:${maskPositionY.toFixed(5)}`
+    ].join(";");
   }
 
   function renderMessages(messages) {
@@ -537,7 +679,7 @@
   function renderHistoryList(items, activeId, options = {}) {
     const now = options.now === undefined ? Date.now() : options.now;
     return items
-      .slice(0, 6)
+      .slice(0, HISTORY_RECENT_LIMIT)
       .map(
         (item) => {
           const title = item.title || item.question || "未命名对话";
@@ -606,11 +748,24 @@
     `;
   }
 
-  function renderGeneratingState() {
+  function renderSubmittedQuestion(question) {
+    const text = String(question || "").trim();
+    if (!text) return "";
     return `
-      <div class="empty-state">
-        <h1>正在生成</h1>
-        <p>正在依次模拟 LLM 回答、结构化解析、LayoutSpec 规划和生图接口。</p>
+      <div class="submitted-question" aria-label="已提交的问题">
+        <p>${escapeHtml(text)}</p>
+      </div>
+    `;
+  }
+
+  function renderGeneratingState(question) {
+    return `
+      <div class="generating-state">
+        ${renderSubmittedQuestion(question)}
+        <div class="generating-status">
+          <h1>正在生成</h1>
+          <p>正在依次模拟 LLM 回答、结构化解析、LayoutSpec 规划和生图接口。</p>
+        </div>
       </div>
     `;
   }
