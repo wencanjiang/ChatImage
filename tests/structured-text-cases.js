@@ -158,7 +158,7 @@ function validateCase(testCase, normalized, imagePrompt) {
   assert.ok(spec.visualComposition.densityStrategy, `${testCase.id}: densityStrategy is required`);
   assert.ok(spec.visualComposition.layoutVariant, `${testCase.id}: layoutVariant is required`);
   assert.ok(
-    ["compare-matrix", "compare-split", "asymmetric-focus-stack", "swimlane-flow", "timeline", "grid"].includes(
+    ["compare-matrix", "compare-split", "asymmetric-focus-stack", "swimlane-flow", "timeline", "grid", "map", "scene", "poster"].includes(
       spec.visualComposition.layoutVariant
     ),
     `${testCase.id}: unexpected layoutVariant ${spec.visualComposition.layoutVariant}`

@@ -161,7 +161,7 @@ function createFakeUpstream() {
     if (url.pathname === "/image" && req.method === "POST") {
       imageAttempts += 1;
       if (imageAttempts === 1) {
-        return sendJson(res, 200, { data: { imageUrl: "https://example.com/missing-image.png", width: 1600, height: 900 } });
+        return sendJson(res, 200, { data: { imageUrl: `http://${req.headers.host}/missing-image.png`, width: 1600, height: 900 } });
       }
       return sendJson(res, 200, {
         data: {

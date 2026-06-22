@@ -44,5 +44,69 @@
     "maxModules": 6,
     "requiredKeywords": ["DNS", "三次握手", "端口", "防火墙", "超时"],
     "expectedCompositionKeywords": ["排查", "路径", "流程"]
+  },
+  {
+    "id": "rag_pipeline",
+    "question": "解释 RAG 检索增强生成系统的工作链路，覆盖文档切分、向量化、召回、重排、上下文拼接和答案生成。",
+    "acceptedRelationTypes": ["flow", "hierarchy"],
+    "minModules": 5,
+    "maxModules": 6,
+    "requiredKeywords": ["RAG", "文档切分", "向量化", "召回", "重排", "上下文"],
+    "expectedCompositionKeywords": ["流程", "链路", "路径", "闭环", "泳道"]
+  },
+  {
+    "id": "transformer_architecture",
+    "question": "解释 Transformer 架构的核心组成，覆盖 Token Embedding、位置编码、自注意力、前馈网络、残差连接和 LayerNorm。",
+    "acceptedRelationTypes": ["hierarchy", "flow"],
+    "minModules": 5,
+    "maxModules": 6,
+    "requiredKeywords": ["Transformer", "Embedding", "位置编码", "自注意力", "前馈", "LayerNorm"],
+    "expectedCompositionKeywords": ["架构", "层级", "模块", "结构", "流程"]
+  },
+  {
+    "id": "smartwatch_structure",
+    "question": "生成智能手表内部结构与功能解析，覆盖屏幕、电池、传感器、主板、表带和外壳之间的关系。",
+    "acceptedRelationTypes": ["hierarchy", "matrix", "flow"],
+    "minModules": 5,
+    "maxModules": 6,
+    "requiredKeywords": ["屏幕", "电池", "传感器", "主板", "表带", "外壳"],
+    "expectedCompositionKeywords": ["结构", "层级", "拆解", "矩阵", "模块"]
+  },
+  {
+    "id": "oauth2_login_flow",
+    "question": "解释 OAuth 2.0 授权码登录流程，覆盖客户端、授权服务器、资源服务器、授权码、Access Token、Refresh Token 和 scope。",
+    "acceptedRelationTypes": ["flow", "timeline"],
+    "minModules": 5,
+    "maxModules": 6,
+    "requiredKeywords": ["OAuth", "授权码", "Access Token", "Refresh Token", "scope"],
+    "requiredKeywordGroups": [["客户端", "Client"], ["授权服务器", "Authorization Server"], ["资源服务器", "Resource Server"]],
+    "expectedCompositionKeywords": ["流程", "链路", "时序", "泳道", "路径"]
+  },
+  {
+    "id": "sql_nosql_compare",
+    "question": "对比 SQL 数据库和 NoSQL 数据库的差异、事务一致性、数据模型、扩展方式和适用场景。",
+    "acceptedRelationTypes": ["compare", "matrix"],
+    "minModules": 5,
+    "maxModules": 6,
+    "requiredKeywords": ["SQL", "NoSQL", "事务", "一致性", "数据模型", "扩展"],
+    "expectedCompositionKeywords": ["对比", "矩阵", "双栏", "权衡"]
+  },
+  {
+    "id": "kubernetes_deployment",
+    "question": "解释 Kubernetes 应用部署架构，覆盖 Pod、Deployment、Service、Ingress、ConfigMap、Secret 和自动扩缩容。",
+    "acceptedRelationTypes": ["hierarchy", "flow"],
+    "minModules": 5,
+    "maxModules": 6,
+    "requiredKeywords": ["Kubernetes", "Pod", "Deployment", "Service", "Ingress", "ConfigMap", "Secret"],
+    "expectedCompositionKeywords": ["架构", "层级", "流程", "拓扑", "模块"]
+  },
+  {
+    "id": "ecommerce_funnel",
+    "question": "为电商网站设计转化漏斗分析图，覆盖流量来源、商品详情页、加购、结算、支付成功和复购。",
+    "acceptedRelationTypes": ["flow", "hierarchy", "matrix"],
+    "minModules": 5,
+    "maxModules": 6,
+    "requiredKeywords": ["流量", "商品详情页", "加购", "结算", "支付", "复购"],
+    "expectedCompositionKeywords": ["漏斗", "流程", "路径", "转化", "层级"]
   }
 ]

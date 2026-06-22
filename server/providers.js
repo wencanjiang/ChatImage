@@ -15,6 +15,65 @@ async function callTextApi(serverConfig, { content, model, purpose, responseForm
   return callOpenAiChatTextApi(serverConfig, { content, model, purpose, responseFormat });
 }
 
+async function callTextApiDetailed(serverConfig, { content, model, purpose, responseFormat }) {
+  const primaryModel = model || serverConfig.textModel || "";
+  try {
+    const primaryContent = await callTextApi(serverConfig, {
+      content,
+      model: primaryModel,
+      purpose,
+      responseFormat
+    });
+    return {
+      content: primaryContent,
+      modelUsed: primaryModel,
+      fallbackReason: ""
+    };
+  } catch (error) {
+    if (!shouldFallbackTextApi(serverConfig, error, primaryModel)) throw error;
+    const fallbackModel = String(serverConfig.textFallbackModel || "").trim();
+    try {
+      const fallbackContent = await callTextApi(serverConfig, {
+        content,
+        model: fallbackModel,
+        purpose,
+        responseFormat
+      });
+      return {
+        content: fallbackContent,
+        modelUsed: fallbackModel,
+        fallbackReason: formatTextFallbackReason(error, primaryModel, fallbackModel)
+      };
+    } catch (fallbackError) {
+      fallbackError.message = `${fallbackError.message || fallbackError} (fallback ${fallbackModel} after ${primaryModel} failed; primary: ${
+        error.message || error
+      })`;
+      throw fallbackError;
+    }
+  }
+}
+
+function shouldFallbackTextApi(serverConfig, error, primaryModel) {
+  if (!serverConfig || serverConfig.textFallbackOn5xx === false) return false;
+  const fallbackModel = String(serverConfig.textFallbackModel || "").trim();
+  if (!fallbackModel || fallbackModel === String(primaryModel || "").trim()) return false;
+  return isTransientApiFailure(error);
+}
+
+function formatTextFallbackReason(error, primaryModel, fallbackModel) {
+  const status = Number(error && error.statusCode);
+  const statusText = Number.isFinite(status) ? `status ${status}` : "request error";
+  const message = String((error && error.message) || error || "").slice(0, 240);
+  return `${primaryModel || "primary"} -> ${fallbackModel}: ${statusText}; ${message}`;
+}
+
+function isTransientApiFailure(error) {
+  const status = Number(error && error.statusCode);
+  if (Number.isFinite(status)) return status >= 500 || status === 408 || status === 429;
+  const message = String((error && error.message) || error || "");
+  return /timed out|timeout|fetch failed|network|socket|ECONNRESET|ETIMEDOUT|UND_ERR|Bad Gateway|Gateway Timeout|Operation timed out/i.test(message);
+}
+
 async function callWuyinFormTextApi(serverConfig, { content, model, purpose, responseFormat }) {
   const apiKey = serverConfig.textApiKey || serverConfig.apiKey;
 
@@ -47,7 +106,7 @@ async function callWuyinFormTextApi(serverConfig, { content, model, purpose, res
   }
   const contentValue = extractTextContent(data);
   if (!contentValue) {
-    throw new Error(`Text API returned no content: ${JSON.stringify(data).slice(0, 500)}`);
+    throw new Error("Text API returned no content");
   }
   return contentValue;
 }
@@ -63,7 +122,6 @@ async function callOpenAiChatTextApi(serverConfig, { content, model, purpose, re
   const payload = {
     model: model || serverConfig.textModel || undefined,
     messages,
-    max_completion_tokens: Number(serverConfig.textMaxCompletionTokens || 4096),
     temperature: Number(serverConfig.textTemperature ?? 1.0),
     top_p: Number(serverConfig.textTopP ?? 0.95),
     stream: false,
@@ -71,6 +129,10 @@ async function callOpenAiChatTextApi(serverConfig, { content, model, purpose, re
     frequency_penalty: 0,
     presence_penalty: 0
   };
+  const maxCompletionTokens = Number(serverConfig.textMaxCompletionTokens);
+  if (Number.isFinite(maxCompletionTokens) && maxCompletionTokens > 0) {
+    payload.max_completion_tokens = maxCompletionTokens;
+  }
   if (serverConfig.textThinkingType) {
     payload.thinking = { type: serverConfig.textThinkingType };
   }
@@ -97,7 +159,7 @@ async function callOpenAiChatTextApi(serverConfig, { content, model, purpose, re
   }
   const contentValue = extractTextContent(data);
   if (!contentValue) {
-    throw new Error(`Text API returned no content: ${JSON.stringify(data).slice(0, 500)}`);
+    throw new Error("Text API returned no content");
   }
   return contentValue;
 }
@@ -127,9 +189,10 @@ async function callVisionApi(serverConfig, { content, imageUrl, model, purpose, 
     throw error;
   }
 
-  const apiKey = serverConfig.visionApiKey || serverConfig.apiKey;
+  const mimoVisionRequest = isMimoVisionRequest(serverConfig);
+  const apiKey = serverConfig.visionApiKey || (mimoVisionRequest ? serverConfig.textApiKey : "") || serverConfig.apiKey;
   if (!apiKey) {
-    const error = new Error("CHATIMAGE_VISION_API_KEY or CHATIMAGE_API_KEY is required for real image hotspot alignment");
+    const error = new Error("CHATIMAGE_VISION_API_KEY, CHATIMAGE_TEXT_API_KEY, or CHATIMAGE_API_KEY is required for real image hotspot alignment");
     error.statusCode = 503;
     throw error;
   }
@@ -147,7 +210,7 @@ async function callVisionApi(serverConfig, { content, imageUrl, model, purpose, 
   }
 
   const payload = {
-    model: model || serverConfig.visionModel || undefined,
+    model: model || serverConfig.visionModel || (mimoVisionRequest ? "mimo-v2.5" : undefined),
     messages: [
       {
         role: "user",
@@ -177,7 +240,7 @@ async function callVisionApi(serverConfig, { content, imageUrl, model, purpose, 
   }
   const contentValue = extractTextContent(data);
   if (!contentValue) {
-    throw new Error(`Vision API returned no content: ${JSON.stringify(data).slice(0, 500)}`);
+    throw new Error("Vision API returned no content");
   }
   return contentValue;
 }
@@ -215,7 +278,7 @@ async function callWuyinFormVisionApi(serverConfig, { apiKey, content, imageUrl,
   }
   const contentValue = extractTextContent(data);
   if (!contentValue) {
-    throw new Error(`Vision API returned no content: ${JSON.stringify(data).slice(0, 500)}`);
+    throw new Error("Vision API returned no content");
   }
   return contentValue;
 }
@@ -238,6 +301,13 @@ function resolveVisionRequestFormat(serverConfig) {
   return "openai-chat";
 }
 
+function isMimoVisionRequest(serverConfig) {
+  return (
+    String(serverConfig.visionMode || "").trim().toLowerCase() === "mimo-vision" ||
+    String(serverConfig.visionFallbackMode || "").trim().toLowerCase() === "mimo-vision"
+  );
+}
+
 function createVisionHeaders(serverConfig, apiKey) {
   const mode = String(serverConfig.visionAuthMode || "bearer").trim().toLowerCase();
   const headers = {
@@ -252,7 +322,7 @@ function createVisionHeaders(serverConfig, apiKey) {
   return headers;
 }
 
-async function callImageApi(serverConfig, { prompt, size, model }) {
+async function callImageApi(serverConfig, { prompt, size, model, signal }) {
   if (!prompt.trim()) {
     const error = new Error("prompt is required");
     error.statusCode = 400;
@@ -260,35 +330,23 @@ async function callImageApi(serverConfig, { prompt, size, model }) {
   }
 
   const url = new URL(serverConfig.imageEndpoint);
-  url.searchParams.set("key", serverConfig.apiKey);
-  const response = await fetchWithTimeout(
-    url,
-    {
-      method: "POST",
-      headers: {
-        Authorization: serverConfig.apiKey,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(
+  // Upstream image API authenticates via the bare key in the Authorization header.
+  // The key must NOT be a Bearer token (that is rejected as code:403) and must NOT
+  // be placed in the URL query string (it leaks into upstream access logs).
+  // CHATIMAGE_IMAGE_KEY_IN_QUERY=1 keeps the legacy leaky form only if an upstream
+  // ever requires it.
+  if (serverConfig.imageKeyInQuery) url.searchParams.set("key", serverConfig.apiKey);
+  const payload = model
+    ? {
+        prompt,
+        size,
         model
-          ? {
-              prompt,
-              size,
-              model
-            }
-          : {
-              prompt,
-              size
-            }
-      )
-    },
-    createFetchOptions(serverConfig, "Image API request")
-  );
-
-  const data = await parseJsonResponse(response);
-  if (isApiErrorPayload(data)) {
-    throw new Error(`Image API error: ${formatApiError(data)}`);
-  }
+      }
+    : {
+        prompt,
+        size
+      };
+  const data = await createImageTaskOrDirectResult(serverConfig, url, payload);
   const directUrl = extractImageUrl(data);
   if (directUrl) {
     return {
@@ -300,13 +358,13 @@ async function callImageApi(serverConfig, { prompt, size, model }) {
 
   const taskId = extractTaskId(data);
   if (!taskId) {
-    throw new Error(`Image API returned no task id or image url: ${JSON.stringify(data).slice(0, 500)}`);
+    throw new Error("Image API returned no task id or image url");
   }
 
-  const detail = await pollImageTask(serverConfig, taskId);
+  const detail = await pollImageTask(serverConfig, taskId, signal);
   const imageUrl = extractImageUrl(detail);
   if (!imageUrl) {
-    throw new Error(`Image task completed without image url: ${JSON.stringify(detail).slice(0, 500)}`);
+    throw new Error("Image task completed without image url");
   }
 
   return {
@@ -316,31 +374,103 @@ async function callImageApi(serverConfig, { prompt, size, model }) {
   };
 }
 
-async function pollImageTask(serverConfig, taskId) {
+async function createImageTaskOrDirectResult(serverConfig, url, payload) {
+  const retryAttempts = Number(serverConfig.apiFetchRetryAttempts || 0);
+  const attempts = Math.max(1, Number(serverConfig.imageCreateAttempts || 0) || retryAttempts + 1);
+  const delayMs = Number(serverConfig.apiFetchRetryDelayMs || 800);
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const response = await fetchWithTimeout(
+        url,
+        {
+          method: "POST",
+          headers: {
+            Authorization: serverConfig.apiKey,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        },
+        createFetchOptions(serverConfig, "Image API request")
+      );
+      const data = await parseJsonResponse(response);
+      if (isApiErrorPayload(data)) {
+        const formatted = formatApiError(data);
+        if (attempt < attempts - 1 && shouldRetryImageCreatePayloadError(data, formatted)) {
+          await sleep(delayMs * (attempt + 1));
+          continue;
+        }
+        throw new Error(`Image API error: ${formatted}`);
+      }
+      return data;
+    } catch (error) {
+      if (attempt < attempts - 1 && isTransientApiFailure(error)) {
+        await sleep(delayMs * (attempt + 1));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error("Image API request failed after retries");
+}
+
+function shouldRetryImageCreatePayloadError(data, formatted) {
+  if (isTransientApiFailure(formatted)) return true;
+  const code = Number(data && (data.code ?? data.status ?? data.error?.code));
+  if (code !== 400) return false;
+  const rawText = [
+    data && data.msg,
+    data && data.message,
+    data && (typeof data.error === "string" ? data.error : ""),
+    data && data.error && data.error.message,
+    data && data.error && data.error.msg
+  ]
+    .map((value) => String(value || ""))
+    .join(" ");
+  return !/invalid|parameter|model|size|auth|key|permission|forbidden|unbound|missing|required/i.test(rawText);
+}
+
+async function pollImageTask(serverConfig, taskId, signal) {
   const maxAttempts = Number(serverConfig.imagePollAttempts || 30);
   const firstDelay = Number(serverConfig.imagePollInitialDelayMs ?? 1200);
   const nextDelay = Number(serverConfig.imagePollDelayMs ?? 2000);
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    await sleep(attempt === 0 ? firstDelay : nextDelay);
+    if (signal && signal.aborted) {
+      const abortError = new Error("Image task polling aborted by client disconnect");
+      abortError.statusCode = 499;
+      throw abortError;
+    }
+    await sleepAbortable(attempt === 0 ? firstDelay : nextDelay, signal);
     const url = new URL(serverConfig.imageDetailEndpoint);
-    url.searchParams.set("key", serverConfig.apiKey);
+    if (serverConfig.imageKeyInQuery) url.searchParams.set("key", serverConfig.apiKey);
     url.searchParams.set("id", taskId);
-    const response = await fetchWithTimeout(
-      url,
-      {
-        headers: { Authorization: serverConfig.apiKey }
-      },
-      createFetchOptions(serverConfig, "Image detail API request")
-    );
-    const data = await parseJsonResponse(response);
+    let data;
+    try {
+      const response = await fetchWithTimeout(
+        url,
+        {
+          headers: { Authorization: serverConfig.apiKey }
+        },
+        createFetchOptions(serverConfig, "Image detail API request")
+      );
+      data = await parseJsonResponse(response);
+    } catch (error) {
+      if (attempt < maxAttempts - 1 && isTransientApiFailure(error)) {
+        continue;
+      }
+      throw error;
+    }
     if (isApiErrorPayload(data)) {
-      throw new Error(`Image detail API error: ${formatApiError(data)}`);
+      const formatted = formatApiError(data);
+      if (attempt < maxAttempts - 1 && isTransientApiFailure(formatted)) {
+        continue;
+      }
+      throw new Error(`Image detail API error: ${formatted}`);
     }
     const imageUrl = extractImageUrl(data);
     if (imageUrl) return data;
     const status = String(data.status || data.state || data.data?.status || "").toLowerCase();
     if (status.includes("fail") || status.includes("error")) {
-      throw new Error(`Image task failed: ${JSON.stringify(data).slice(0, 500)}`);
+      throw new Error(`Image task failed: ${formatApiError(data)}`);
     }
   }
   throw new Error("Image task timed out");
@@ -354,16 +484,28 @@ async function parseJsonResponse(response) {
   } catch (error) {
     data = parseLeadingJsonValue(text);
     if (!data) {
-      throw new Error(`API returned non-JSON response (${response.status}): ${text.slice(0, 500)}`);
+      const nonJsonError = new Error(`API returned non-JSON response (${response.status})`);
+      nonJsonError.statusCode = response.status;
+      throw nonJsonError;
     }
   }
 
   if (!response.ok) {
-    const error = new Error(`API request failed (${response.status}): ${JSON.stringify(data).slice(0, 500)}`);
+    const error = new Error(`API request failed (${response.status})`);
     error.statusCode = response.status;
+    error.upstreamError = summarizeUpstreamError(data);
     throw error;
   }
   return data;
+}
+
+function summarizeUpstreamError(value) {
+  if (!value || typeof value !== "object") return "";
+  const code = value.code ?? value.status ?? value.error?.code;
+  const type = value.type ?? value.error?.type;
+  return [code !== undefined ? `code=${String(code).slice(0, 40)}` : "", type ? `type=${String(type).slice(0, 40)}` : ""]
+    .filter(Boolean)
+    .join(" ");
 }
 
 function parseLeadingJsonValue(text) {
@@ -469,11 +611,29 @@ function isApiErrorPayload(value) {
 }
 
 function formatApiError(value) {
-  if (!value || typeof value !== "object") return String(value);
+  if (!value || typeof value !== "object") return safeUpstreamSnippet(String(value));
   if (value.error && typeof value.error === "object") {
-    return value.error.message || value.error.msg || JSON.stringify(value.error).slice(0, 500);
+    return safeUpstreamSnippet(
+      value.error.message || value.error.msg || `code=${value.error.code ?? "?"}`
+    );
   }
-  return value.msg || value.message || value.error || JSON.stringify(value).slice(0, 500);
+  return safeUpstreamSnippet(
+    value.msg
+      || value.message
+      || (typeof value.error === "string" ? value.error : "")
+      || `code=${value.code ?? "?"}`
+  );
+}
+
+// Sanitize a string before embedding it into a client-visible error message.
+// Strips bearer tokens, "key=" segments and full URL query strings that some
+// upstream gateways echo back inside their error bodies, and caps the length.
+function safeUpstreamSnippet(text) {
+  if (!text) return "";
+  let out = String(text);
+  out = out.replace(/(?:Bearer|api[_-]?key|token|key)\s*[:=]\s*[A-Za-z0-9._\-+/=]+/gi, "[redacted]");
+  out = out.replace(/(https?:\/\/[^\s?]+)\?[^\s]*/gi, "$1?[redacted]");
+  return out.slice(0, 200);
 }
 
 function extractTaskId(value) {
@@ -684,6 +844,29 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Abortable sleep used by long polling loops. Resolves either when the timer
+// fires or when the supplied AbortSignal is aborted, ensuring we stop holding
+// upstream-gate slots after the originating client has disconnected.
+function sleepAbortable(ms, signal) {
+  if (!signal) return sleep(ms);
+  return new Promise((resolve) => {
+    if (signal.aborted) {
+      resolve();
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 function createFetchOptions(serverConfig, label) {
   return {
     label,
@@ -714,6 +897,7 @@ module.exports = {
   buildWuyinVisionContent,
   callImageApi,
   callTextApi,
+  callTextApiDetailed,
   callVisionApi,
   callOpenAiChatTextApi,
   callWuyinFormTextApi,

@@ -12,6 +12,7 @@ function main() {
     CHATIMAGE_TEXT_SYSTEM_PROMPT: "system prompt",
     CHATIMAGE_TEXT_THINKING_TYPE: "enabled",
     CHATIMAGE_IMAGE_MODEL: "custom-image-model",
+    CHATIMAGE_IMAGE_API_SIZE: "1024x1024",
     CHATIMAGE_VISION_ENDPOINT: "https://vision.example.com/v1/chat/completions",
     CHATIMAGE_VISION_API_KEY: "vision-key",
     CHATIMAGE_VISION_MODEL: "custom-vision-model",
@@ -30,6 +31,13 @@ function main() {
     CHATIMAGE_LOCATEANYTHING_MAX_IMAGE_SIDE: "777",
     CHATIMAGE_LOCATEANYTHING_GENERATION_MODE: "direct",
     CHATIMAGE_LOCATEANYTHING_LICENSE_ACK: "research-evaluation",
+    CHATIMAGE_SAM3_ENABLED: "1",
+    CHATIMAGE_SAM3_PYTHON: "sam3-python",
+    CHATIMAGE_SAM3_WORKER: "sam3-worker.py",
+    CHATIMAGE_SAM3_CHECKPOINT: "sam3.pt",
+    CHATIMAGE_SAM3_DEVICE: "cuda:0",
+    CHATIMAGE_SAM3_TIMEOUT_MS: "6543",
+    CHATIMAGE_SAM3_LICENSE_ACK: "research-evaluation",
     CHATIMAGE_API_REQUEST_TIMEOUT_MS: "4567",
     CHATIMAGE_API_FETCH_RETRY_ATTEMPTS: "3",
     CHATIMAGE_API_FETCH_RETRY_DELAY_MS: "123",
@@ -46,6 +54,7 @@ function main() {
   assert.strictEqual(config.textSystemPrompt, "system prompt");
   assert.strictEqual(config.textThinkingType, "enabled");
   assert.strictEqual(config.imageModel, "custom-image-model");
+  assert.strictEqual(config.imageApiSize, "1024x1024");
   assert.strictEqual(config.visionEndpoint, "https://vision.example.com/v1/chat/completions");
   assert.strictEqual(config.visionApiKey, "vision-key");
   assert.strictEqual(config.visionModel, "custom-vision-model");
@@ -64,6 +73,13 @@ function main() {
   assert.strictEqual(config.locateAnythingMaxImageSide, 777);
   assert.strictEqual(config.locateAnythingGenerationMode, "direct");
   assert.strictEqual(config.locateAnythingLicenseAck, "research-evaluation");
+  assert.strictEqual(config.sam3Enabled, "1");
+  assert.strictEqual(config.sam3Python, "sam3-python");
+  assert.strictEqual(config.sam3WorkerPath, "sam3-worker.py");
+  assert.strictEqual(config.sam3Checkpoint, "sam3.pt");
+  assert.strictEqual(config.sam3Device, "cuda:0");
+  assert.strictEqual(config.sam3TimeoutMs, 6543);
+  assert.strictEqual(config.sam3LicenseAck, "research-evaluation");
   assert.strictEqual(config.apiRequestTimeoutMs, 4567);
   assert.strictEqual(config.apiFetchRetryAttempts, 3);
   assert.strictEqual(config.apiFetchRetryDelayMs, 123);
@@ -78,20 +94,44 @@ function main() {
   assert.strictEqual(defaults.textRequestFormat, "openai-chat");
   assert.strictEqual(defaults.textThinkingType, "disabled");
   assert.strictEqual(defaults.imageModel, "GPT-Image-2");
+  assert.strictEqual(defaults.imageApiSize, "1024x1024");
   assert.strictEqual(defaults.visionMode, "local-ocr");
   assert.strictEqual(defaults.visionEndpoint, "");
   assert.strictEqual(defaults.visionModel, "");
   assert.strictEqual(defaults.visionAuthMode, "bearer");
   assert.strictEqual(defaults.visionRequestFormat, "openai-chat");
+  const mimoVisionDefaults = createRealInstanceServerConfig("api-key", {
+    CHATIMAGE_TEXT_API_KEY: "text-key",
+    CHATIMAGE_TEXT_BASE_URL: "https://api.xiaomimimo.com/v1",
+    CHATIMAGE_VISION_MODE: "mimo-vision"
+  });
+  assert.strictEqual(mimoVisionDefaults.visionMode, "mimo-vision");
+  assert.strictEqual(mimoVisionDefaults.visionEndpoint, "https://api.xiaomimimo.com/v1/chat/completions");
+  assert.strictEqual(mimoVisionDefaults.visionModel, "mimo-v2.5");
+  assert.strictEqual(mimoVisionDefaults.textApiKey, "text-key");
+  const locateWithMimoFallback = createRealInstanceServerConfig("api-key", {
+    CHATIMAGE_TEXT_API_KEY: "text-key",
+    CHATIMAGE_TEXT_BASE_URL: "https://api.xiaomimimo.com/v1",
+    CHATIMAGE_VISION_MODE: "locateanything",
+    CHATIMAGE_VISION_FALLBACK_MODE: "mimo-vision"
+  });
+  assert.strictEqual(locateWithMimoFallback.visionMode, "locateanything");
+  assert.strictEqual(locateWithMimoFallback.visionFallbackMode, "mimo-vision");
+  assert.strictEqual(locateWithMimoFallback.visionEndpoint, "https://api.xiaomimimo.com/v1/chat/completions");
+  assert.strictEqual(locateWithMimoFallback.visionModel, "mimo-v2.5");
   assert.strictEqual(defaults.locateAnythingModel, "nvidia/LocateAnything-3B");
   assert.strictEqual(defaults.locateAnythingDevice, "cuda");
   assert.strictEqual(defaults.locateAnythingMaxNewTokens, null);
   assert.strictEqual(defaults.locateAnythingMaxImageSide, 960);
   assert.strictEqual(defaults.locateAnythingLicenseAck, "");
+  assert.strictEqual(defaults.sam3Enabled, "");
+  assert.strictEqual(defaults.sam3Device, "cuda");
+  assert.strictEqual(defaults.sam3TimeoutMs, 120000);
+  assert.strictEqual(defaults.sam3LicenseAck, "");
   assert.strictEqual(defaults.apiRequestTimeoutMs, 120000);
   assert.strictEqual(defaults.apiFetchRetryAttempts, 2);
   assert.strictEqual(defaults.apiFetchRetryDelayMs, 800);
-  assert.strictEqual(defaults.imagePollAttempts, 90);
+  assert.strictEqual(defaults.imagePollAttempts, 180);
 
   console.log("real-scripts.test.js passed");
 }

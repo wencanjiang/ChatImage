@@ -42,8 +42,14 @@ def main():
             if mode == "no-box" and index == 0:
                 rejected.append({"moduleId": module["moduleId"], "reason": "no valid box"})
                 continue
-            if mode == "invalid-bounds" and index == 0:
+            if mode == "tiny-card" and index == 0:
+                bounds = {"x": 0.12, "y": 0.22, "width": 0.04, "height": 0.04}
+            elif mode == "scene-small-subject" and index == 0:
+                bounds = {"x": 0.18, "y": 0.28, "width": 0.08, "height": 0.06}
+            elif mode == "invalid-bounds" and index == 0:
                 bounds = {"x": 0.98, "y": 0.2, "width": 0.2, "height": 0.2}
+            elif mode == "scene-good-locate" and index == 0:
+                bounds = {"x": 0.12, "y": 0.32, "width": 0.2, "height": 0.46}
             else:
                 bounds = {"x": 0.08 + index * 0.22, "y": 0.18, "width": 0.18, "height": 0.2}
             output_modules.append({
@@ -53,6 +59,8 @@ def main():
                 "bounds": bounds,
                 "confidence": 0.88,
                 "answer": "<box><80><180><260><380></box>",
+                "source": "layout-guided-locateanything" if mode == "layout-guided" and index == 0 else "locateanything",
+                "candidateScore": 0.86 if mode == "scene-good-locate" else 0.72 if mode == "scene-small-subject" else 0.82,
             })
         if mode == "non-json":
             print("not json", flush=True)

@@ -26,6 +26,7 @@
     const minWidth = 0.12;
     const minHeight = 0.12;
     const maxOverlapArea = 0.002;
+    const maxFreeformOverlapArea = 0.028;
     const epsilon = 0.000001;
     const errors = [];
     const moduleRegions = (regions || []).filter((region) => region.role === "module");
@@ -50,7 +51,11 @@
     for (let i = 0; i < moduleRegions.length; i += 1) {
       for (let j = i + 1; j < moduleRegions.length; j += 1) {
         const area = overlapArea(moduleRegions[i].bounds, moduleRegions[j].bounds);
-        if (area > maxOverlapArea) {
+        const allowedOverlapArea =
+          moduleRegions[i].shape === "freeform" || moduleRegions[j].shape === "freeform" || moduleRegions[i].shape === "mask" || moduleRegions[j].shape === "mask"
+            ? maxFreeformOverlapArea
+            : maxOverlapArea;
+        if (area > allowedOverlapArea) {
           errors.push(`${moduleRegions[i].id} overlaps ${moduleRegions[j].id}`);
         }
       }

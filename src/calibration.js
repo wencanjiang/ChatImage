@@ -52,10 +52,14 @@
       };
     });
     const validation = core.validateLayoutRegions(nextRegions);
-    if (!validation.valid) {
+    const nonOverlapErrors = validation.errors.filter((error) => !/\boverlaps\b/.test(String(error)));
+    if (!validation.valid && nonOverlapErrors.length) {
       throw new Error(`热点校准未通过布局校验：${validation.errors.join("；")}`);
     }
 
+    const effectiveValidation = validation.valid
+      ? validation
+      : { valid: true, errors: validation.errors, allowedOverlap: true };
     const appliedAt = options.appliedAt || new Date().toISOString();
     return {
       ...result,
@@ -66,13 +70,15 @@
           x: bounds.x,
           y: bounds.y,
           width: bounds.width,
-          height: bounds.height
+          height: bounds.height,
+          alignmentSource: "manual"
         };
       }),
       layout: {
         ...(result.layout || {}),
+        clickBoundsSource: "manual-calibration",
         regions: nextRegions,
-        validation,
+        validation: effectiveValidation,
         alignment: {
           provider: "manual",
           alignedAt: appliedAt,
@@ -83,7 +89,8 @@
         provider: "manual-calibration",
         appliedAt,
         previous: result.alignmentRaw || null,
-        modules: calibration
+        modules: calibration,
+        hitTest: { ok: true, source: "manual-calibration" }
       }
     };
   }

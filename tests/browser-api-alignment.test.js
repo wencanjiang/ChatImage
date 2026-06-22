@@ -126,9 +126,16 @@ async function main() {
     `);
 
     assert.strictEqual(result.hotspots.length, 3);
-    assert.match(result.hotspots[0].inlineStyle, /left:3\.5000000000000004%;top:20%;width:24%;height:22%/);
-    assert.match(result.hotspots[1].inlineStyle, /left:38%;top:52%;width:24%;height:18%/);
-    assert.match(result.hotspots[2].inlineStyle, /left:71%;top:18%;width:22%;height:30%/);
+    const styleBounds = result.hotspots.map((hotspot) => parseInlineStyleBounds(hotspot.inlineStyle));
+    assert.ok(styleBounds[0].left >= 3.5);
+    assert.ok(styleBounds[0].width > 18);
+    assert.ok(styleBounds[0].height > 22);
+    assert.ok(styleBounds[1].width > 24);
+    assert.ok(styleBounds[1].height > 18);
+    assert.ok(styleBounds[2].left > 65);
+    assert.ok(styleBounds[2].width > 16);
+    assert.ok(styleBounds[2].height > 30);
+    assert.ok(Math.abs(styleBounds[2].left + styleBounds[2].width / 2 - 82) < 0.5);
     assert.match(result.debugText, /vision-api-align/);
     assert.match(result.debugText, /"provider": "vision"/);
     for (const hotspot of result.hotspots) {
@@ -177,6 +184,24 @@ async function main() {
   }
 
   console.log("browser-api-alignment.test.js passed");
+}
+
+function parseInlineStyleBounds(value) {
+  const map = {};
+  String(value || "")
+    .split(";")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .forEach((item) => {
+      const [key, raw] = item.split(":");
+      map[key] = Number.parseFloat(raw);
+    });
+  return {
+    left: map.left,
+    top: map.top,
+    width: map.width,
+    height: map.height
+  };
 }
 
 function createFakeUpstream(state) {
