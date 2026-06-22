@@ -25,6 +25,7 @@ async function main() {
   await testVeryLowConfidenceRouteUsesCorridorFallback();
   await testLowConfidenceLodgingObjectUsesSemanticBoundsFallback();
   await testLandmarkWithBridgeTextDoesNotUseRouteFallback();
+  await testMapRegionInputBoundsAreContextual();
   await testRefineFailureDoesNotBlockAlignment();
   testNormalizeRejectsInvalidMaskBounds();
   testConfigRequiresExplicitEnableAndAck();
@@ -384,6 +385,37 @@ async function testLandmarkWithBridgeTextDoesNotUseRouteFallback() {
     assert.ok(refined.modules[0].mask.bounds.x < refined.modules[0].bounds.x);
     assert.match(refined.modules[0].mask.image, /^data:image\/png;base64,/);
   });
+}
+
+async function testMapRegionInputBoundsAreContextual() {
+  const alignment = {
+    provider: "locateanything",
+    providerChain: ["locateanything"],
+    modules: [
+      {
+        moduleId: "module_1",
+        label: "光明顶与云海",
+        regionKind: "mountain",
+        maskPolicy: "full-region",
+        targetDescription: "visual target: complete mountain peak, cloud sea and surrounding ridge region",
+        bounds: { x: 0.78, y: 0.34, width: 0.16, height: 0.18 },
+        confidence: 0.82,
+        source: "locateanything"
+      }
+    ],
+    warnings: []
+  };
+  const refined = await refineAlignmentWithSam3(createConfig(), alignment, {
+    imageUrl: createHealthFixtureDataUrl(),
+    imageWidth: 640,
+    imageHeight: 360
+  });
+  const input = refined.modules[0].mask.inputBounds;
+  assert.deepStrictEqual(refined.modules[0].bounds, alignment.modules[0].bounds);
+  assert.ok(input.x < alignment.modules[0].bounds.x);
+  assert.ok(input.y < alignment.modules[0].bounds.y);
+  assert.ok(input.width >= 0.22, `expected contextual input width, got ${input.width}`);
+  assert.ok(input.height >= 0.25, `expected contextual input height, got ${input.height}`);
 }
 
 async function testRefineFailureDoesNotBlockAlignment() {

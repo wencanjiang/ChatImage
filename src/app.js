@@ -1062,9 +1062,6 @@
 
   function shouldUseUnionPreviewBounds(strategy) {
     if (!strategy) return false;
-    if (strategy.cardLike || (String(strategy.visualMode || "").toLowerCase() === "infographic" && !strategy.route && !strategy.flowStrip)) {
-      return false;
-    }
     if (shouldUseContextPreviewShape(strategy)) return true;
     if (!strategy.preferContextCrop || strategy.independentSubject) return false;
     const visualMode = String(strategy.visualMode || "").toLowerCase();

@@ -308,11 +308,11 @@ function getAlignmentBoundsExpansionPolicy(module, request, candidate) {
   if (["landmark", "building", "mountain", "water", "area", "district", "panel"].includes(kind) || policy === "full-region") {
     return {
       strategy: "semantic-region-pad",
-      padX: 0.055,
-      padY: 0.055,
-      minPad: 0.01,
-      maxWidth: 0.58,
-      maxHeight: 0.58
+      padX: visualMode === "map" || visualMode === "scene" || visualMode === "poster" ? 0.1 : 0.055,
+      padY: visualMode === "map" || visualMode === "scene" || visualMode === "poster" ? 0.1 : 0.055,
+      minPad: visualMode === "map" || visualMode === "scene" || visualMode === "poster" ? 0.018 : 0.01,
+      maxWidth: visualMode === "map" || visualMode === "scene" || visualMode === "poster" ? 0.66 : 0.58,
+      maxHeight: visualMode === "map" || visualMode === "scene" || visualMode === "poster" ? 0.66 : 0.58
     };
   }
   if (cardLike) {
