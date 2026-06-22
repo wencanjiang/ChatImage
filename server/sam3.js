@@ -351,9 +351,9 @@ function expandBoundsForSam3(bounds, module) {
   } else if (["object", "person", "product"].includes(kind) || policy === "subject") {
     padX = 0.14;
     padY = 0.14;
-  } else if (["landmark", "building", "mountain", "water", "area"].includes(kind) || policy === "full-region") {
-    padX = 0.12;
-    padY = 0.12;
+  } else if (["landmark", "building", "mountain", "water", "area", "district", "panel"].includes(kind) || policy === "full-region") {
+    padX = 0.2;
+    padY = 0.2;
   } else if (kind === "legend" || policy === "legend") {
     padX = 0.1;
     padY = 0.1;

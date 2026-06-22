@@ -181,6 +181,8 @@ Key modules:
 | `POST /api/image` | Proxy image generation requests. |
 | `POST /api/vision` | Proxy vision alignment requests. |
 
+Vision provider request / response details are documented in [`docs/vision-endpoint-contract.md`](docs/vision-endpoint-contract.md).
+
 ## Testing
 
 Run the full local regression suite:

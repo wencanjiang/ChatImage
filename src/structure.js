@@ -58,6 +58,9 @@
     if (isRagQuestion(question)) {
       return ensureVisualTargetContracts(buildRagPipelineFallbackSpec(question, rawAnswer));
     }
+    if (isAgentWorkflowQuestion(question)) {
+      return ensureVisualTargetContracts(buildAgentWorkflowFallbackSpec(question, rawAnswer));
+    }
     if (isEcommerceFunnelQuestion(question)) {
       return ensureVisualTargetContracts(buildEcommerceFunnelFallbackSpec(question, rawAnswer));
     }
@@ -1712,6 +1715,104 @@
     };
   }
 
+  function buildAgentWorkflowFallbackSpec(question, rawAnswer) {
+    const source = String(rawAnswer || question || "");
+    return {
+      title: "大模型 Agent 工作流程",
+      language: inferQuestionLanguage(question),
+      visualMode: "infographic",
+      summary: "把 Agent 从感知输入、任务规划、记忆检索、工具调用到反馈迭代的闭环拆成可点击模块。",
+      relationType: "flow",
+      visualComposition: {
+        compositionType: "swimlane-flow",
+        layoutVariant: "swimlane-flow",
+        visualFocus: "一个从用户意图进入、多步推理执行、再回到观察反馈的 Agent 闭环",
+        primaryModules: ["module_1", "module_2", "module_3"],
+        secondaryModules: ["module_4", "module_5"],
+        densityStrategy: "用连续链路和回环箭头表达 Agent 的运行机制，每个模块都保留真实职责、输入输出和常见风险，避免背景/现状/趋势模板。",
+        moduleCountReason: "Agent 工作流的核心不是行业发展，而是感知、规划、记忆、工具、反馈五个协作环节。"
+      },
+      auxiliaryModules: [],
+      modules: [
+        {
+          id: "module_1",
+          title: "感知输入",
+          imageText: "用户目标、环境状态与上下文进入 Agent",
+          detail:
+            "感知输入负责把用户问题、文件、图片、网页状态、系统约束和当前环境整理成 Agent 能处理的上下文。它不只是接收一句 prompt，还要识别任务目标、可用资源、权限边界和缺失信息。这个环节质量会直接影响后续规划：如果意图理解偏了，后面再强的工具调用也只是在错误方向上加速。",
+          sourceExcerpt: source.slice(0, 150),
+          iconHint: "target",
+          regionKind: "card",
+          regionPrompt: "Agent workflow card for perception input, user goal, environment state, context intake",
+          maskPolicy: "card",
+          visualEvidence: ["user prompt", "environment state", "context panel"],
+          locatorQueries: ["完整的感知输入卡片", "user goal and context intake module"],
+          priority: 1
+        },
+        {
+          id: "module_2",
+          title: "任务规划",
+          imageText: "拆解步骤、选择策略并决定下一步动作",
+          detail:
+            "任务规划把模糊目标拆成可执行步骤，并决定先查资料、先写代码、先调用工具，还是先向用户澄清。成熟的 Agent 会在这里维护计划、依赖关系和停止条件，而不是一次性生成完整答案。规划阶段还要根据中间结果动态调整路线，例如工具返回失败、上下文不足或发现更优路径时，需要重排后续动作。",
+          sourceExcerpt: source.slice(150, 320),
+          iconHint: "layout",
+          regionKind: "card",
+          regionPrompt: "Agent planning card with task decomposition, next action, strategy selection",
+          maskPolicy: "card",
+          visualEvidence: ["step list", "decision node", "planning arrows"],
+          locatorQueries: ["完整的任务规划卡片", "task planning module in agent workflow"],
+          priority: 2
+        },
+        {
+          id: "module_3",
+          title: "记忆与状态",
+          imageText: "短期上下文、长期记忆和中间结果保持一致",
+          detail:
+            "记忆与状态让 Agent 知道已经做过什么、哪些事实可靠、哪些假设还没有验证。短期记忆通常来自当前对话和工具输出，长期记忆可能来自用户偏好、项目文件、知识库或历史任务。这个模块的关键是可追溯和去噪：错误记忆会污染推理，缺失状态会导致重复操作或前后矛盾。",
+          sourceExcerpt: source.slice(320, 500),
+          iconHint: "database",
+          regionKind: "card",
+          regionPrompt: "Agent memory and state card with short-term context, long-term memory, intermediate results",
+          maskPolicy: "card",
+          visualEvidence: ["memory store", "state timeline", "context buffer"],
+          locatorQueries: ["完整的记忆与状态卡片", "memory and state module in agent workflow"],
+          priority: 3
+        },
+        {
+          id: "module_4",
+          title: "工具调用",
+          imageText: "检索、代码、浏览器、数据库等外部能力执行",
+          detail:
+            "工具调用是 Agent 从“会说”变成“会做”的关键。它可以调用搜索、浏览器、代码执行、数据库、文件系统或业务 API，把计划转化为真实动作。这里要处理参数构造、权限校验、错误重试、结果解析和副作用控制；如果工具选择不当或返回结果未校验，Agent 很容易把错误输出包装成看似合理的结论。",
+          sourceExcerpt: source.slice(500, 700),
+          iconHint: "tool",
+          regionKind: "card",
+          regionPrompt: "Agent tool-use card with API calls, browser, code execution, search, database",
+          maskPolicy: "card",
+          visualEvidence: ["tool icons", "API connector", "execution log"],
+          locatorQueries: ["完整的工具调用卡片", "external tools module in agent workflow"],
+          priority: 4
+        },
+        {
+          id: "module_5",
+          title: "反馈迭代",
+          imageText: "观察结果、校验输出并进入下一轮修正",
+          detail:
+            "反馈迭代把工具结果、用户反馈和自检结论重新送回 Agent，让它判断任务是否完成、是否需要修正计划，或者是否应该继续追问。好的反馈环节会检查事实一致性、输出质量、风险边界和用户目标是否真正满足。它也是 Agent 与普通一次性问答的区别：系统能围绕目标持续行动，直到达到可验证的完成状态。",
+          sourceExcerpt: source.slice(700, 900),
+          iconHint: "refresh",
+          regionKind: "card",
+          regionPrompt: "Agent feedback loop card with observation, verification, iteration arrows",
+          maskPolicy: "card",
+          visualEvidence: ["feedback loop", "check mark", "iteration arrow"],
+          locatorQueries: ["完整的反馈迭代卡片", "feedback iteration module in agent workflow"],
+          priority: 5
+        }
+      ]
+    };
+  }
+
   function buildTopicFallbackSpec(title, subject, question, rawAnswer, relationType) {
     const source = String(rawAnswer || question || "");
     // The generic 5-segment fallback runs when no specialised template
@@ -1721,7 +1822,6 @@
     const trimmedSubject = String(subject || "").trim();
     const subjectIsConcise = trimmedSubject.length > 0 && trimmedSubject.length <= 12;
     const topic = subjectIsConcise ? trimmedSubject : "\u8be5\u4e3b\u9898";
-    const development = subjectIsConcise && trimmedSubject.endsWith("\u53d1\u5c55") ? trimmedSubject : `${topic}\u7684\u53d1\u5c55`;
     const targetModuleCount = inferTargetModuleCount(question, relationType, rawAnswer);
     return {
       title,
@@ -1742,45 +1842,45 @@
       modules: [
         {
           id: "module_1",
-          title: "\u80cc\u666f\u57fa\u7840",
-          imageText: "\u5148\u770b\u5f62\u6210\u80cc\u666f",
-          detail: `${development}\u524d\u63d0\u662f\u5176\u6280\u672f\u539f\u7406\u3001\u5e02\u573a\u52a8\u56e0\u548c\u5e94\u7528\u573a\u666f\u3002\u8fd9\u4e00\u5c42\u8bf4\u660e\u95ee\u9898\u7684\u8d77\u6e90\u3001\u53d7\u54ea\u4e9b\u6761\u4ef6\u7ea6\u675f\uff0c\u4ee5\u53ca\u540e\u7eed\u5224\u65ad\u7684\u4e3b\u8981\u4f9d\u636e\u3002`,
+          title: "\u95ee\u9898\u5b9a\u4e49",
+          imageText: "\u5148\u786e\u8ba4\u8fb9\u754c",
+          detail: `\u56f4\u7ed5${topic}\uff0c\u5148\u628a\u5b83\u6307\u5411\u7684\u5bf9\u8c61\u3001\u8303\u56f4\u548c\u9700\u8981\u56de\u7b54\u7684\u6838\u5fc3\u5224\u65ad\u8bf4\u6e05\u695a\u3002\u8fd9\u4e00\u5c42\u4e0d\u9884\u8bbe\u5b83\u4e00\u5b9a\u5c5e\u4e8e\u6280\u672f\u3001\u5546\u4e1a\u6216\u4ea7\u4e1a\u589e\u957f\u95ee\u9898\uff0c\u800c\u662f\u628a\u539f\u59cb\u56de\u7b54\u91cc\u7684\u5b9a\u4e49\u3001\u9650\u5b9a\u6761\u4ef6\u548c\u9605\u8bfb\u5165\u53e3\u6574\u7406\u6210\u53ef\u70b9\u51fb\u7684\u4e3b\u533a\u57df\u3002`,
           sourceExcerpt: source.slice(0, 90),
           iconHint: "target",
           priority: 1
         },
         {
           id: "module_2",
-          title: "\u5f53\u524d\u73b0\u72b6",
-          imageText: "\u4ea7\u4e1a\u6b63\u5728\u6269\u5c55",
-          detail: `${topic}\u76ee\u524d\u5904\u4e8e\u4ece\u6280\u672f\u9a8c\u8bc1\u5230\u573a\u666f\u843d\u5730\u3001\u518d\u5230\u89c4\u6a21\u5316\u5e94\u7528\u7684\u8fc7\u7a0b\u4e2d\u3002\u8fd9\u91cc\u6982\u62ec\u5df2\u7ecf\u89e3\u51b3\u7684\u95ee\u9898\u3001\u4ecd\u7136\u5361\u4f4f\u7684\u73af\u8282\uff0c\u4ee5\u53ca\u8fd9\u4e9b\u72b6\u6001\u5bf9\u4e0b\u4e00\u6b65\u51b3\u7b56\u7684\u5f71\u54cd\uff0c\u5e76\u5217\u51fa\u4ee3\u8868\u6027\u73a9\u5bb6\u3001\u573a\u666f\u548c\u5df2\u9a8c\u8bc1\u7684\u9650\u5236\u3002`,
+          title: "\u5173\u952e\u8981\u7d20",
+          imageText: "\u62c6\u51fa\u4e3b\u8981\u90e8\u5206",
+          detail: `${topic}\u9700\u8981\u62c6\u6210\u51e0\u4e2a\u771f\u6b63\u5f71\u54cd\u7406\u89e3\u7684\u8981\u7d20\uff1a\u4e3b\u4f53\u662f\u4ec0\u4e48\u3001\u5173\u7cfb\u5982\u4f55\u8fde\u63a5\u3001\u54ea\u4e9b\u7ec6\u8282\u51b3\u5b9a\u4e86\u5b83\u7684\u5448\u73b0\u6216\u4f7f\u7528\u65b9\u5f0f\u3002\u8fd9\u91cc\u4f18\u5148\u91c7\u7528\u539f\u56de\u7b54\u4e2d\u51fa\u73b0\u7684\u5177\u4f53\u540d\u8bcd\u3001\u5bf9\u8c61\u548c\u573a\u666f\uff0c\u907f\u514d\u7528\u901a\u7528\u5957\u8bdd\u4ee3\u66ff\u771f\u5b9e\u5185\u5bb9\u3002`,
           sourceExcerpt: source.slice(90, 180),
           iconHint: "nodes",
           priority: 2
         },
         {
           id: "module_3",
-          title: "\u6838\u5fc3\u9a71\u52a8",
-          imageText: "\u6280\u672f\u4e0e\u9700\u6c42\u5171\u632f",
-          detail: `${development}\u589e\u957f\u6765\u81ea\u6280\u672f\u6210\u719f\u3001\u6210\u672c\u4e0b\u964d\u3001\u6295\u5165\u589e\u52a0\u548c\u771f\u5b9e\u9700\u6c42\u5171\u540c\u63a8\u52a8\u3002\u8fd9\u91cc\u533a\u5206\u5355\u4e00\u56e0\u7d20\u4e0e\u591a\u56e0\u7d20\u5171\u632f\uff0c\u6307\u51fa\u54ea\u4e9b\u662f\u77ed\u671f\u52a0\u901f\u5668\u3001\u54ea\u4e9b\u662f\u957f\u671f\u57fa\u7840\u6761\u4ef6\u3002`,
+          title: "\u8fd0\u4f5c\u903b\u8f91",
+          imageText: "\u8bf4\u6e05\u600e\u4e48\u8fde\u8d77\u6765",
+          detail: `\u8fd9\u4e00\u533a\u57df\u89e3\u91ca${topic}\u5185\u90e8\u5404\u90e8\u5206\u4e4b\u95f4\u7684\u987a\u5e8f\u3001\u56e0\u679c\u6216\u7a7a\u95f4\u5173\u7cfb\u3002\u5982\u679c\u5b83\u662f\u6d41\u7a0b\uff0c\u5c31\u5f3a\u8c03\u8f93\u5165\u3001\u5904\u7406\u548c\u7ed3\u679c\uff1b\u5982\u679c\u5b83\u662f\u5730\u56fe\u6216\u573a\u666f\uff0c\u5c31\u5f3a\u8c03\u4f4d\u7f6e\u3001\u8def\u7ebf\u548c\u533a\u57df\u7279\u5f81\uff1b\u5982\u679c\u5b83\u662f\u5bf9\u6bd4\uff0c\u5c31\u5f3a\u8c03\u7ef4\u5ea6\u4e0e\u5dee\u5f02\u3002`,
           sourceExcerpt: source.slice(180, 270),
           iconHint: "idea",
           priority: 3
         },
         {
           id: "module_4",
-          title: "\u4e3b\u8981\u6311\u6218",
-          imageText: "\u843d\u5730\u4ecd\u6709\u95e8\u69db",
-          detail: `${development}\u4ecd\u9762\u4e34\u6210\u672c\u3001\u53ef\u9760\u6027\u3001\u6570\u636e\u3001\u4f9b\u5e94\u94fe\u3001\u76d1\u7ba1\u6216\u5546\u4e1a\u6a21\u5f0f\u7b49\u6311\u6218\u3002\u8fd9\u91cc\u8bf4\u660e\u963b\u529b\u7684\u6765\u6e90\u3001\u5bfc\u81f4\u7684\u7ed3\u679c\uff0c\u5e76\u533a\u5206\u53ef\u901a\u8fc7\u6267\u884c\u6539\u5584\u7684\u95ee\u9898\u4e0e\u4f9d\u8d56\u5916\u90e8\u6761\u4ef6\u53d8\u5316\u7684\u95ee\u9898\u3002`,
+          title: "\u4f7f\u7528\u573a\u666f",
+          imageText: "\u653e\u5230\u5177\u4f53\u60c5\u5883",
+          detail: `\u7406\u89e3${topic}\u9700\u8981\u56de\u5230\u5177\u4f53\u60c5\u5883\uff1a\u5b83\u5728\u4ec0\u4e48\u573a\u5408\u4e0b\u6700\u6709\u4ef7\u503c\uff0c\u54ea\u4e9b\u4eba\u6216\u5bf9\u8c61\u4f1a\u76f4\u63a5\u53d7\u5f71\u54cd\uff0c\u7528\u6237\u70b9\u51fb\u8fd9\u4e00\u5757\u65f6\u5e94\u8be5\u80fd\u770b\u5230\u54ea\u4e9b\u5177\u4f53\u4fe1\u606f\u3002\u8fd9\u4e00\u5c42\u4e5f\u4f1a\u4fdd\u7559\u9650\u5236\u548c\u4f8b\u5916\uff0c\u907f\u514d\u628a\u6240\u6709\u60c5\u51b5\u90fd\u8bf4\u6210\u4e00\u4e2a\u7b80\u5355\u7ed3\u8bba\u3002`,
           sourceExcerpt: source.slice(270, 360),
           iconHint: "risk",
           priority: 4
         },
         {
           id: "module_5",
-          title: "\u672a\u6765\u8d8b\u52bf",
-          imageText: "\u8d70\u5411\u89c4\u6a21\u5e94\u7528",
-          detail: `${development}\u4e0b\u4e00\u9636\u6bb5\u53ef\u4ece\u6807\u6746\u573a\u666f\u3001\u5546\u4e1a\u5316\u8282\u594f\u3001\u751f\u6001\u534f\u540c\u548c\u957f\u671f\u7ade\u4e89\u683c\u5c40\u89c2\u5bdf\u3002\u8fd9\u91cc\u5217\u51fa\u54ea\u4e9b\u6307\u6807\u8868\u793a\u8d8b\u52bf\u5728\u52a0\u901f\u3001\u54ea\u4e9b\u53d8\u91cf\u53ef\u80fd\u6539\u53d8\u672a\u6765\u8d70\u5411\u3002`,
+          title: "\u884c\u52a8\u5efa\u8bae",
+          imageText: "\u4e0b\u4e00\u6b65\u600e\u4e48\u770b",
+          detail: `\u6700\u540e\u5c06${topic}\u8f6c\u6210\u53ef\u7ee7\u7eed\u8ffd\u95ee\u6216\u6267\u884c\u7684\u5224\u65ad\u70b9\uff1a\u5e94\u8be5\u5148\u770b\u54ea\u4e2a\u90e8\u5206\u3001\u54ea\u4e9b\u7ec6\u8282\u503c\u5f97\u653e\u5927\u3001\u4ec0\u4e48\u6761\u4ef6\u53d8\u5316\u540e\u7ed3\u8bba\u4f1a\u4e0d\u540c\u3002\u5b83\u4e0d\u8ffd\u6c42\u628a\u4e00\u5207\u90fd\u5f52\u7eb3\u6210\u8d8b\u52bf\uff0c\u800c\u662f\u5e2e\u7528\u6237\u627e\u5230\u4e0b\u4e00\u4e2a\u6700\u6709\u610f\u4e49\u7684\u4ea4\u4e92\u5165\u53e3\u3002`,
           sourceExcerpt: source.slice(360, 450),
           iconHint: "step",
           priority: 5
@@ -2066,7 +2166,7 @@
               id: `module_${index + 1}`,
               title: sanitizeModuleTitle(module.title || `模块 ${index + 1}`, index, question, rawAnswer, visualMode),
               imageText: String(module.imageText || module.shortText || module.detail || "").slice(0, 32),
-              detail: sanitizeDetailForUser(String(module.detail || "").slice(0, 1400), String(module.imageText || module.title || "")),
+              detail: repairKnownThinDetail(module, sanitizeDetailForUser(String(module.detail || "").slice(0, 1400), String(module.imageText || module.title || ""))),
               sourceExcerpt: sanitizeDetailForUser(String(module.sourceExcerpt || "").slice(0, 160), String(module.imageText || module.title || "")),
               iconHint: String(module.iconHint || "idea"),
               regionKind: inferRegionKind(module, visualMode),
@@ -2115,6 +2215,7 @@
       isKubernetesQuestion(question) ||
       isHttpRenderFlowQuestion(question) ||
       isRagQuestion(question) ||
+      isAgentWorkflowQuestion(question) ||
       isEcommerceFunnelQuestion(question) ||
       isSmartwatchStructureQuestion(question) ||
       isMapQuestion(question) ||
@@ -2257,9 +2358,10 @@
     const cleanModule = (module) => {
       if (!module || typeof module !== "object") return module;
       const fallback = String(module.imageText || module.title || "");
+      const cleanedDetail = sanitizeDetailForUser(String(module.detail || ""), fallback);
       return {
         ...module,
-        detail: sanitizeDetailForUser(String(module.detail || ""), fallback),
+        detail: repairKnownThinDetail(module, cleanedDetail),
         sourceExcerpt: sanitizeDetailForUser(String(module.sourceExcerpt || ""), fallback),
         imageText: sanitizeDetailForUser(String(module.imageText || ""), String(module.title || ""))
       };
@@ -2270,6 +2372,19 @@
       modules: Array.isArray(spec.modules) ? spec.modules.map(cleanModule) : spec.modules,
       auxiliaryModules: Array.isArray(spec.auxiliaryModules) ? spec.auxiliaryModules.map(cleanModule) : spec.auxiliaryModules
     };
+  }
+
+  function repairKnownThinDetail(module, detail) {
+    const source = String(detail || "").trim();
+    const title = String((module && module.title) || "");
+    if (source.length >= 70) return source;
+    if (/苏堤春晓/.test(title)) {
+      return "苏堤是一条贯穿西湖南北的长堤，堤路、拱桥、垂柳和两侧湖面共同形成连续的游览轴线。它和白堤不同，更像一条穿湖而过的绿色长廊，行走时会不断切换左侧、右侧和远山视野。春日柳色、桥影、湖风和清晨光线是这里的核心风貌；规划游线时，它适合承担纵向穿越和慢行观景的功能，也能解释为什么西湖不是一个单一湖面，而是被堤桥分割成多层空间。";
+    }
+    if (/三潭印月/.test(title)) {
+      return "三潭印月位于湖心附近，由小岛、水中石塔和周围水面共同构成。它面积不必最大，但识别度很高，因为三座石塔、月影意象和湖面留白形成了西湖最典型的精致焦点。它与岸边景点不同，体验更依赖船行距离、观看角度和水面氛围；石塔是视觉锚点，岛屿提供停留空间，周围湖水则让画面保持安静和层次。作为热点时，它适合呈现局部风貌，而不是被大面积湖面吞掉。";
+    }
+    return source;
   }
 
   function ensureVisualTargetContracts(spec) {
@@ -3623,6 +3738,11 @@
       /\bRAG\b/i.test(text) ||
       /\u68c0\u7d22\u589e\u5f3a|\u5411\u91cf\u5316|\u91cd\u6392|\u4e0a\u4e0b\u6587\u62fc\u63a5|\u6587\u6863\u5207\u5206/.test(text)
     ) && /\u68c0\u7d22|\u53ec\u56de|\u751f\u6210|retrieval|embedding|rerank/i.test(text);
+  }
+
+  function isAgentWorkflowQuestion(question) {
+    const text = String(question || "");
+    return /\bagent\b/i.test(text) && /工作流|工作流程|流程|闭环|感知|规划|记忆|工具|反馈|结构|架构|组成|模块|执行|决策|策略|风控|workflow|loop|tool|architecture|structure|module/i.test(text);
   }
 
   function isEcommerceFunnelQuestion(question) {

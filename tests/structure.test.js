@@ -263,9 +263,10 @@ function main() {
   assert.doesNotMatch(topicMock.summary, /\u4ecb\u7ecd\u4e00\u4e0b/);
   assert.doesNotMatch(JSON.stringify(topicMock.modules.map((item) => item.detail)), /\u4ecb\u7ecd\u4e00\u4e0b/);
   assert.doesNotMatch(JSON.stringify(topicMock.modules.map((item) => item.detail)), /\u7684\u53d1\u5c55\u7684\u53d1\u5c55|\u7684\u53d1\u5c55\u7684/);
-  assert.match(topicMock.modules[3].detail, /^\u5177\u8eab\u667a\u80fd\u4ea7\u4e1a\u7684\u53d1\u5c55\u4ecd\u9762\u4e34/);
+  assert.match(topicMock.modules[3].detail, /^\u7406\u89e3\u5177\u8eab\u667a\u80fd\u4ea7\u4e1a\u7684\u53d1\u5c55\u9700\u8981\u56de\u5230\u5177\u4f53\u60c5\u5883/);
   assert.doesNotMatch(topicMockText, /ChatImage|LayoutSpec|hotspot|imageProvider|\u751f\u56fe\u63a5\u53e3|\u70ed\u70b9|\u533a\u57df\u8ffd\u95ee/);
-  assert.match(topicMockText, /\u80cc\u666f\u57fa\u7840|\u672a\u6765\u8d8b\u52bf/);
+  assert.match(topicMockText, /\u95ee\u9898\u5b9a\u4e49|\u884c\u52a8\u5efa\u8bae/);
+  assert.doesNotMatch(topicMockText, /\u6280\u672f\u6210\u719f|\u6210\u672c\u4e0b\u964d|\u77ed\u671f\u52a0\u901f\u5668|\u957f\u671f\u57fa\u7840\u6761\u4ef6/);
 
   const restMock = buildMockSpec("对比 REST 和 GraphQL 的设计差异、优缺点和适用场景", "REST GraphQL cache Schema scenarios".repeat(20));
   const restMockText = JSON.stringify(restMock);
@@ -359,6 +360,53 @@ function main() {
   assert.match(containerVmText, /隔离模型|启动速度|资源占用|运维方式|适用场景/);
   assert.doesNotMatch(containerVmText, /背景基础|当前现状|核心驱动|未来趋势/);
 
+  const agentWorkflowMock = buildMockSpec(
+    "解释大模型 Agent 的工作流程，重点说明感知、规划、记忆、工具调用和反馈迭代",
+    "Agent 会读取用户目标和环境上下文，规划步骤，维护记忆状态，调用工具执行动作，再根据观察结果反馈迭代。".repeat(12)
+  );
+  const agentWorkflowText = JSON.stringify(agentWorkflowMock);
+  assert.strictEqual(agentWorkflowMock.title, "大模型 Agent 工作流程");
+  assert.strictEqual(agentWorkflowMock.visualComposition.layoutVariant, "swimlane-flow");
+  assert.match(agentWorkflowText, /感知输入|任务规划|记忆与状态|工具调用|反馈迭代/);
+  assert.doesNotMatch(JSON.stringify(agentWorkflowMock.modules.map((module) => module.title)), /背景基础|当前现状|核心驱动|主要挑战|未来趋势/);
+  assert.ok(
+    agentWorkflowMock.modules.every((module) => String(module.detail || "").length >= 90),
+    "Agent fallback details should be concrete enough for interaction panels"
+  );
+  const repairedAgentWorkflow = normalizeVisualSpec(
+    {
+      title: "解释大模型 Agent 的工作流程",
+      visualMode: "infographic",
+      relationType: "flow",
+      modules: ["背景基础", "当前现状", "核心驱动", "主要挑战", "未来趋势"].map((title) => ({
+        title,
+        imageText: title,
+        detail: "这是一段泛化模板详情，没有解释 Agent 的感知、规划、记忆、工具和反馈闭环。".repeat(4)
+      }))
+    },
+    "解释大模型 Agent 的工作流程，重点说明感知、规划、记忆、工具调用和反馈迭代",
+    "Agent 会读取用户目标和环境上下文，规划步骤，维护记忆状态，调用工具执行动作，再根据观察结果反馈迭代。".repeat(12)
+  );
+  assert.match(JSON.stringify(repairedAgentWorkflow.modules.map((module) => module.title)), /感知输入|任务规划|工具调用|反馈迭代/);
+
+  const tradingAgentMock = buildMockSpec(
+    "自动化交易Agent结构是什么样的",
+    "自动化交易 Agent 由行情感知、策略规划、记忆状态、交易工具调用、风控校验和执行反馈组成。系统需要先读取市场数据和账户约束，再规划交易动作，最后根据成交和风险结果迭代。".repeat(10)
+  );
+  const tradingAgentText = JSON.stringify(tradingAgentMock);
+  assert.strictEqual(tradingAgentMock.visualComposition.layoutVariant, "swimlane-flow");
+  assert.match(tradingAgentText, /感知输入|任务规划|记忆与状态|工具调用|反馈迭代/);
+  assert.doesNotMatch(tradingAgentText, /背景基础|当前现状|核心驱动|主要挑战|未来趋势/);
+  assert.doesNotMatch(tradingAgentText, /技术成熟|成本下降|短期加速器|长期基础条件/);
+
+  const genericFallbackMock = buildMockSpec(
+    "解释一个暂时没有专用模板的新概念",
+    "这个概念包含定义、组成、运作机制、适用场景和后续判断建议，需要按原回答内容组织成可交互模块。".repeat(12)
+  );
+  const genericFallbackText = JSON.stringify(genericFallbackMock);
+  assert.doesNotMatch(genericFallbackText, /技术成熟|成本下降|投入增加|短期加速器|长期基础条件/);
+  assert.doesNotMatch(genericFallbackText, /产业正在扩展|技术与需求共振|走向规模应用/);
+
   const mapMock = buildMockSpec("手绘地图，西湖，画在一张图上，点击交互地理区域呈现地理风貌", "西湖导览".repeat(40));
   const mapMockText = JSON.stringify(mapMock);
   assert.strictEqual(mapMock.visualMode, "map");
@@ -370,6 +418,35 @@ function main() {
   assert.strictEqual(mapMock.modules.find((module) => module.regionKind === "route").maskPolicy, "route");
   assert.match(mapMockText, /西湖水域|白堤断桥|苏堤春晓|三潭印月|雷峰塔/);
   assert.match(mapMockText, /孤山|宝石山|曲院风荷|柳浪闻莺/);
+
+  assert.strictEqual(inferVisualMode("黄山旅游攻略"), "map");
+  const huangshanMock = buildMockSpec(
+    "黄山旅游攻略",
+    "黄山旅游攻略适合做成一张手绘导览地图，包含核心景区、索道入口、住宿补给和自然地貌。".repeat(8)
+  );
+  const huangshanText = JSON.stringify(huangshanMock);
+  assert.strictEqual(huangshanMock.title, "黄山手绘导览地图");
+  assert.strictEqual(huangshanMock.visualMode, "map");
+  assert.strictEqual(huangshanMock.visualComposition.layoutVariant, "map");
+  assert.match(huangshanText, /云谷索道入口|迎客松玉屏线|光明顶与云海|西海大峡谷|山上住宿补给/);
+  assert.doesNotMatch(JSON.stringify(huangshanMock.modules.map((module) => module.title)), /背景基础|当前现状|核心驱动|主要挑战|未来趋势/);
+  const repairedHuangshan = normalizeVisualSpec(
+    {
+      title: "黄山旅游攻略",
+      visualMode: "infographic",
+      relationType: "hierarchy",
+      modules: ["背景基础", "当前现状", "核心驱动"].map((title) => ({
+        title,
+        imageText: title,
+        detail: "这是一段通用模板详情，无法描述黄山真实景区、路线和补给。".repeat(5)
+      }))
+    },
+    "黄山旅游攻略",
+    "黄山旅游攻略适合做成一张手绘导览地图，包含核心景区、索道入口、住宿补给和自然地貌。".repeat(8)
+  );
+  assert.strictEqual(repairedHuangshan.visualMode, "map");
+  assert.strictEqual(repairedHuangshan.title, "黄山手绘导览地图");
+  assert.match(JSON.stringify(repairedHuangshan.modules.map((module) => module.title)), /云谷索道入口|迎客松玉屏线|光明顶与云海/);
 
   const campusMapMock = buildMockSpec(
     "画一张大学校园手绘导览地图，点击图书馆、体育馆、学生宿舍、食堂、湖边草坪、校史馆可以看详情",

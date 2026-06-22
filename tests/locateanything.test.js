@@ -20,6 +20,7 @@ async function main() {
   await testFakeLocateAnythingSuccess();
   await testLocatedBoundsAreSlightlyExpanded();
   await testRouteBoundsExpandPerpendicularForSegmentation();
+  await testMapRegionBoundsExpandEnoughForSegmentation();
   await testMimoVisionFallbackFillsMissingModule();
   await testMimoVisionReplacesLayoutGuidedModule();
   await testGoodSceneLocateCandidateSkipsMimoVisionOverride();
@@ -183,6 +184,38 @@ async function testRouteBoundsExpandPerpendicularForSegmentation() {
     const heightGrowth = first.bounds.height - first.rawBounds.height;
     assert.strictEqual(first.boundsExpansion.strategy, "route-context-pad");
     assert.ok(widthGrowth > heightGrowth, "vertical route should gain more perpendicular width than along-route height");
+  });
+}
+
+async function testMapRegionBoundsExpandEnoughForSegmentation() {
+  await withEnv("CHATIMAGE_FAKE_LOCATE_MODE", "success", async () => {
+    const parsed = await runLocateAnythingAlignmentWithFallback(
+      createConfig(),
+      {
+        imageUrl: createHealthFixtureDataUrl(),
+        imageWidth: 640,
+        imageHeight: 360,
+        visualMode: "map",
+        modules: [
+          {
+            moduleId: "module_1",
+            label: "Cloud peak",
+            order: 1,
+            text: "mountain region",
+            regionKind: "mountain",
+            maskPolicy: "full-region",
+            regionPrompt: "complete mountain peak, cloud sea, ridge and attached label",
+            plannedBounds: { x: 0.72, y: 0.28, width: 0.2, height: 0.2 }
+          }
+        ],
+        purpose: "test_map_region_bounds_expansion"
+      },
+      {}
+    );
+    const first = parsed.modules[0];
+    assert.strictEqual(first.boundsExpansion.strategy, "semantic-region-pad");
+    assert.ok(first.bounds.width >= first.rawBounds.width + 0.035);
+    assert.ok(first.bounds.height >= first.rawBounds.height + 0.035);
   });
 }
 
