@@ -11,7 +11,7 @@
   <!-- Reserved project / promo page link -->
   <a href="docs/index.html"><img src="https://img.shields.io/badge/Project%20Page-Demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project Page" /></a>
   <!-- Reserved technical docs link -->
-  <a href="docs/"><img src="https://img.shields.io/badge/Tech%20Docs-Index-25a36a?style=flat-square&logo=googledocs" alt="Tech Docs" /></a>
+  <a href="docs/TECHNICAL_REPORT.md"><img src="https://img.shields.io/badge/Tech%20Report-Docs-25a36a?style=flat-square&logo=googledocs" alt="Tech Report" /></a>
   <a href="https://github.com/wencanjiang/ChatImage/actions"><img src="https://img.shields.io/badge/Tests-passing-2da44e?style=flat-square&logo=githubactions" alt="Tests" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square&logo=opensourceinitiative" alt="License" /></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=flat-square&logo=nodedotjs" alt="Node.js 18+" /></a>
@@ -165,7 +165,7 @@ Key modules:
 | `server/providers.js` | Upstream provider adapters. |
 | `scripts/build.js` | Zero-dependency frontend build script. |
 | `tests/` | Unit, integration, browser, and provider smoke tests. |
-| `docs/` | Technical and review notes. |
+| `docs/TECHNICAL_REPORT.md` | Authoritative technical report. Historical notes in `docs/archive/`. |
 
 ## API Surface
 
