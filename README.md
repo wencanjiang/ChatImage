@@ -1,6 +1,6 @@
 <!-- Logo / hero image — replace the src with your own asset when available -->
 <p align="center">
-  <img src="docs/assets/logo.png" alt="ChatImage" width="120" />
+  <img src="docs/assets/logo.svg" alt="ChatImage" width="120" />
 </p>
 
 # ChatImage
@@ -9,7 +9,7 @@
   <!-- Reserved arXiv paper link — fill in when the paper is public -->
   <a href="https://arxiv.org/abs/XXXX.XXXXX"><img src="https://img.shields.io/badge/arXiv-Paper-b31b1b?style=flat-square&logo=arxiv" alt="arXiv Paper" /></a>
   <!-- Reserved project / promo page link -->
-  <a href="https://chatimage.github.io/"><img src="https://img.shields.io/badge/Project%20Page-Demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project Page" /></a>
+  <a href="docs/index.html"><img src="https://img.shields.io/badge/Project%20Page-Demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project Page" /></a>
   <!-- Reserved technical docs link -->
   <a href="docs/"><img src="https://img.shields.io/badge/Tech%20Docs-Index-25a36a?style=flat-square&logo=googledocs" alt="Tech Docs" /></a>
   <a href="https://github.com/wencanjiang/ChatImage/actions"><img src="https://img.shields.io/badge/Tests-passing-2da44e?style=flat-square&logo=githubactions" alt="Tests" /></a>
@@ -20,7 +20,7 @@
 > Turn a long-form LLM answer into an interactive visual image — structured infographics with clickable hotspots, per-region detail panels, and in-context follow-up threads.
 
 <p align="center">
-  <img src="docs/assets/screenshot.png" alt="ChatImage screenshot" width="760" />
+  <img src="docs/assets/hero.png" alt="ChatImage screenshot" width="760" />
 </p>
 
 English | [简体中文](README_CN.md)

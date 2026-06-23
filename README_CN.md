@@ -1,6 +1,6 @@
 <!-- Logo / 主图 — 准备好后替换 src 为你自己的素材 -->
 <p align="center">
-  <img src="docs/assets/logo.png" alt="ChatImage" width="120" />
+  <img src="docs/assets/logo.svg" alt="ChatImage" width="120" />
 </p>
 
 # ChatImage
@@ -9,7 +9,7 @@
   <!-- 预留 arXiv 论文链接 — 论文公开后填入 -->
   <a href="https://arxiv.org/abs/XXXX.XXXXX"><img src="https://img.shields.io/badge/arXiv-论文-b31b1b?style=flat-square&logo=arxiv" alt="arXiv Paper" /></a>
   <!-- 预留项目 / 宣传页链接 -->
-  <a href="https://chatimage.github.io/"><img src="https://img.shields.io/badge/项目主页-Demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project Page" /></a>
+  <a href="docs/index.html"><img src="https://img.shields.io/badge/项目主页-Demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project Page" /></a>
   <!-- 预留技术文档链接 -->
   <a href="docs/"><img src="https://img.shields.io/badge/技术文档-目录-25a36a?style=flat-square&logo=googledocs" alt="Tech Docs" /></a>
   <a href="https://github.com/wencanjiang/ChatImage/actions"><img src="https://img.shields.io/badge/测试-通过-2da44e?style=flat-square&logo=githubactions" alt="Tests" /></a>
@@ -20,7 +20,7 @@
 > 把一段长篇 LLM 回答变成可交互的视觉图像——结构化信息图叠加可点击热点，每个区域有独立详解面板和上下文追问。
 
 <p align="center">
-  <img src="docs/assets/screenshot.png" alt="ChatImage 截图" width="760" />
+  <img src="docs/assets/hero.png" alt="ChatImage 截图" width="760" />
 </p>
 
 [English](README.md) | 简体中文
