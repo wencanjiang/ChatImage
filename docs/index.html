@@ -147,6 +147,32 @@
     .hero-cta{flex-direction:column;align-items:stretch}
     .hero-cta .btn{justify-content:center}
   }
+
+  /* demo filter tabs */
+  .filter-tabs{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:32px}
+  .filter-tab{border:1px solid var(--line);border-radius:999px;padding:8px 18px;font-size:14px;
+    font-weight:600;color:var(--muted);background:var(--panel);cursor:pointer;transition:all .15s ease}
+  .filter-tab:hover{border-color:var(--accent);color:var(--accent-strong)}
+  .filter-tab.active{background:var(--accent);color:#fffaf0;border-color:var(--accent)}
+  .demo.hide-filter{display:none}
+  /* lightbox */
+  .lightbox{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;
+    background:rgba(37,33,28,.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:24px}
+  .lightbox.open{display:flex}
+  .lightbox-inner{max-width:92vw;max-height:90vh;position:relative}
+  .lightbox-inner img{max-width:92vw;max-height:82vh;border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,.4)}
+  .lightbox-close{position:absolute;top:-14px;right:-14px;width:36px;height:36px;border-radius:50%;
+    border:0;background:var(--accent);color:#fff;font-size:20px;cursor:pointer;display:grid;place-items:center;
+    box-shadow:0 4px 12px rgba(0,0,0,.3);z-index:1}
+  .lightbox-close:hover{background:var(--accent-strong)}
+  .lightbox-cap{color:#fffaf0;text-align:center;margin-top:12px;font-size:14px}
+  .lightbox-cap strong{display:block;font-size:16px;margin-bottom:2px}
+  /* copy button */
+  .copy-q{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line-soft);
+    border-radius:6px;padding:3px 8px;font-size:12px;color:var(--muted);background:var(--bg);
+    cursor:pointer;transition:all .15s ease;margin-top:8px}
+  .copy-q:hover{border-color:var(--accent);color:var(--accent-strong)}
+  .copy-q.copied{color:var(--good);border-color:var(--good)}
 </style>
 </head>
 <body>
@@ -159,6 +185,7 @@
       <a href="#how" class="hide-sm">How it works</a>
       <a href="#demos">Demos</a>
       <a href="#quickstart" class="hide-sm">Get started</a>
+      <a href="TECHNICAL_REPORT.md" class="hide-sm" target="_blank" rel="noopener">Docs</a>
       <a class="btn btn-ghost btn-sm" href="https://github.com/wencanjiang/ChatImage" target="_blank" rel="noopener">GitHub ↗</a>
     </div>
   </div>
@@ -269,71 +296,85 @@
     <div class="sec-head reveal">
       <span class="eyebrow">See it in action</span>
       <h2>Demos — all run with no API keys</h2>
-      <p>Every example below was generated in mock mode. Clone the repo and reproduce any of them with a single question.</p>
+      <p>Every example below was generated in mock mode. Click any card to view full-size, or copy the question to try it yourself.</p>
+    </div>
+    <div class="filter-tabs reveal">
+      <button class="filter-tab active" data-filter="all">All (8)</button>
+      <button class="filter-tab" data-filter="infographic">Infographics</button>
+      <button class="filter-tab" data-filter="map">Maps</button>
+      <button class="filter-tab" data-filter="scene">Scenes</button>
     </div>
     <div class="demo-grid">
-      <div class="demo reveal">
-        <div class="shot"><span class="tag">infographic · 5 hotspots</span><img src="assets/demos/rest-graphql.png" alt="REST vs GraphQL comparison infographic" /></div>
+      <div class="demo reveal" data-cat="infographic" data-img="assets/demos/rest-graphql.png" data-title="REST vs GraphQL">
+        <div class="shot"><span class="tag">infographic</span><img src="assets/demos/rest-graphql.png" alt="REST vs GraphQL comparison infographic" loading="lazy" /></div>
         <div class="body">
           <h3>REST vs GraphQL</h3>
-          <p class="q">对比 REST 和 GraphQL 的设计差异、优缺点和适用场景</p>
-          <div class="meta"><span>swimlane-flow</span><span>5 modules</span></div>
+          <p class="q" data-q="对比 REST 和 GraphQL 的设计差异、优缺点和适用场景">对比 REST 和 GraphQL 的设计差异、优缺点和适用场景</p>
+          <div class="meta"><span>swimlane-flow</span><span>5 hotspots</span></div>
+          <button class="copy-q" data-copy="对比 REST 和 GraphQL 的设计差异、优缺点和适用场景">📋 Copy question</button>
         </div>
       </div>
-      <div class="demo reveal">
-        <div class="shot"><span class="tag">infographic · 8 hotspots</span><img src="assets/demos/rag-pipeline.png" alt="RAG retrieval-augmented generation pipeline" /></div>
+      <div class="demo reveal" data-cat="infographic" data-img="assets/demos/rag-pipeline.png" data-title="RAG 检索增强流程">
+        <div class="shot"><span class="tag">infographic</span><img src="assets/demos/rag-pipeline.png" alt="RAG retrieval-augmented generation pipeline" loading="lazy" /></div>
         <div class="body">
           <h3>RAG 检索增强流程</h3>
-          <p class="q">讲解 RAG 检索增强生成的完整流程，包括文档切分、向量化、检索召回、重排和上下文拼接</p>
+          <p class="q" data-q="讲解 RAG 检索增强生成的完整流程，包括文档切分、向量化、检索召回、重排和上下文拼接">讲解 RAG 检索增强生成的完整流程，包括文档切分、向量化、检索召回、重排和上下文拼接</p>
           <div class="meta"><span>swimlane</span><span>6 + 2 aux</span></div>
+          <button class="copy-q" data-copy="讲解 RAG 检索增强生成的完整流程，包括文档切分、向量化、检索召回、重排和上下文拼接">📋 Copy question</button>
         </div>
       </div>
-      <div class="demo reveal">
-        <div class="shot"><span class="tag">infographic · 5 hotspots</span><img src="assets/demos/oauth2-login-flow.png" alt="OAuth 2.0 authorization code flow" /></div>
+      <div class="demo reveal" data-cat="infographic" data-img="assets/demos/oauth2-login-flow.png" data-title="OAuth 2.0 授权码流程">
+        <div class="shot"><span class="tag">infographic</span><img src="assets/demos/oauth2-login-flow.png" alt="OAuth 2.0 authorization code flow" loading="lazy" /></div>
         <div class="body">
           <h3>OAuth 2.0 授权码流程</h3>
-          <p class="q">画一张 OAuth 2.0 授权码模式的流程图，说明客户端、授权服务器和资源服务器的交互</p>
-          <div class="meta"><span>swimlane-flow</span><span>5 modules</span></div>
+          <p class="q" data-q="画一张 OAuth 2.0 授权码模式的流程图，说明客户端、授权服务器和资源服务器的交互">画一张 OAuth 2.0 授权码模式的流程图，说明客户端、授权服务器和资源服务器的交互</p>
+          <div class="meta"><span>swimlane-flow</span><span>5 hotspots</span></div>
+          <button class="copy-q" data-copy="画一张 OAuth 2.0 授权码模式的流程图，说明客户端、授权服务器和资源服务器的交互">📋 Copy question</button>
         </div>
       </div>
-      <div class="demo reveal">
-        <div class="shot"><span class="tag">infographic · 5 hotspots</span><img src="assets/demos/kubernetes.png" alt="Kubernetes deployment architecture" /></div>
+      <div class="demo reveal" data-cat="infographic" data-img="assets/demos/kubernetes.png" data-title="Kubernetes 部署架构">
+        <div class="shot"><span class="tag">infographic</span><img src="assets/demos/kubernetes.png" alt="Kubernetes deployment architecture" loading="lazy" /></div>
         <div class="body">
           <h3>Kubernetes 部署架构</h3>
-          <p class="q">介绍 Kubernetes 的集群部署架构，说明控制平面和工作节点各组件的职责</p>
-          <div class="meta"><span>layered</span><span>5 modules</span></div>
+          <p class="q" data-q="介绍 Kubernetes 的集群部署架构，说明控制平面和工作节点各组件的职责">介绍 Kubernetes 的集群部署架构，说明控制平面和工作节点各组件的职责</p>
+          <div class="meta"><span>layered</span><span>5 hotspots</span></div>
+          <button class="copy-q" data-copy="介绍 Kubernetes 的集群部署架构，说明控制平面和工作节点各组件的职责">📋 Copy question</button>
         </div>
       </div>
-      <div class="demo reveal">
-        <div class="shot"><span class="tag">map · 9 hotspots</span><img src="assets/demos/west-lake-map.png" alt="West Lake hand-drawn tourist map" /></div>
-        <div class="body">
-          <h3>西湖手绘导览地图</h3>
-          <p class="q">画一张西湖景区的手绘导览地图，标注断桥、苏堤、三潭印月等主要景点和游览路线</p>
-          <div class="meta"><span>hand-drawn map</span><span>9 regions</span></div>
-        </div>
-      </div>
-      <div class="demo reveal">
-        <div class="shot"><span class="tag">scene · 4 hotspots</span><img src="assets/demos/museum-scene.png" alt="Museum scene illustration with explorable exhibits" /></div>
-        <div class="body">
-          <h3>博物馆场景图</h3>
-          <p class="q">画一幅博物馆场景插画，展示大厅、展柜、互动装置和导览路线</p>
-          <div class="meta"><span>scene</span><span>4 modules</span></div>
-        </div>
-      </div>
-      <div class="demo reveal">
-        <div class="shot"><span class="tag">infographic · 5 hotspots</span><img src="assets/demos/agent-workflow.png" alt="Agent workflow infographic" /></div>
+      <div class="demo reveal" data-cat="infographic" data-img="assets/demos/agent-workflow.png" data-title="大模型 Agent 工作流程">
+        <div class="shot"><span class="tag">infographic</span><img src="assets/demos/agent-workflow.png" alt="Agent workflow infographic" loading="lazy" /></div>
         <div class="body">
           <h3>大模型 Agent 工作流程</h3>
-          <p class="q">解释大模型 Agent 的工作流程，重点说明感知、规划、记忆、工具调用和反馈迭代</p>
-          <div class="meta"><span>swimlane</span><span>5 modules</span></div>
+          <p class="q" data-q="解释大模型 Agent 的工作流程，重点说明感知、规划、记忆、工具调用和反馈迭代">解释大模型 Agent 的工作流程，重点说明感知、规划、记忆、工具调用和反馈迭代</p>
+          <div class="meta"><span>swimlane</span><span>5 hotspots</span></div>
+          <button class="copy-q" data-copy="解释大模型 Agent 的工作流程，重点说明感知、规划、记忆、工具调用和反馈迭代">📋 Copy question</button>
         </div>
       </div>
-      <div class="demo reveal">
-        <div class="shot"><span class="tag">funnel · 5 hotspots</span><img src="assets/demos/ecommerce-funnel.png" alt="E-commerce conversion funnel analysis" /></div>
+      <div class="demo reveal" data-cat="infographic" data-img="assets/demos/ecommerce-funnel.png" data-title="电商转化漏斗分析">
+        <div class="shot"><span class="tag">infographic</span><img src="assets/demos/ecommerce-funnel.png" alt="E-commerce conversion funnel analysis" loading="lazy" /></div>
         <div class="body">
           <h3>电商转化漏斗分析</h3>
-          <p class="q">分析电商从曝光到复购的完整转化漏斗，指出每个阶段的关键指标和优化方向</p>
-          <div class="meta"><span>funnel</span><span>5 modules</span></div>
+          <p class="q" data-q="分析电商从曝光到复购的完整转化漏斗，指出每个阶段的关键指标和优化方向">分析电商从曝光到复购的完整转化漏斗，指出每个阶段的关键指标和优化方向</p>
+          <div class="meta"><span>funnel</span><span>5 hotspots</span></div>
+          <button class="copy-q" data-copy="分析电商从曝光到复购的完整转化漏斗，指出每个阶段的关键指标和优化方向">📋 Copy question</button>
+        </div>
+      </div>
+      <div class="demo reveal" data-cat="map" data-img="assets/demos/west-lake-map.png" data-title="西湖手绘导览地图">
+        <div class="shot"><span class="tag">map</span><img src="assets/demos/west-lake-map.png" alt="West Lake hand-drawn tourist map" loading="lazy" /></div>
+        <div class="body">
+          <h3>西湖手绘导览地图</h3>
+          <p class="q" data-q="画一张西湖景区的手绘导览地图，标注断桥、苏堤、三潭印月等主要景点和游览路线">画一张西湖景区的手绘导览地图，标注断桥、苏堤、三潭印月等主要景点和游览路线</p>
+          <div class="meta"><span>hand-drawn map</span><span>9 regions</span></div>
+          <button class="copy-q" data-copy="画一张西湖景区的手绘导览地图，标注断桥、苏堤、三潭印月等主要景点和游览路线">📋 Copy question</button>
+        </div>
+      </div>
+      <div class="demo reveal" data-cat="scene" data-img="assets/demos/museum-scene.png" data-title="博物馆场景图">
+        <div class="shot"><span class="tag">scene</span><img src="assets/demos/museum-scene.png" alt="Museum scene illustration with explorable exhibits" loading="lazy" /></div>
+        <div class="body">
+          <h3>博物馆场景图</h3>
+          <p class="q" data-q="画一幅博物馆场景插画，展示大厅、展柜、互动装置和导览路线">画一幅博物馆场景插画，展示大厅、展柜、互动装置和导览路线</p>
+          <div class="meta"><span>scene</span><span>4 hotspots</span></div>
+          <button class="copy-q" data-copy="画一幅博物馆场景插画，展示大厅、展柜、互动装置和导览路线">📋 Copy question</button>
         </div>
       </div>
     </div>
@@ -386,6 +427,7 @@
       <div class="hero-cta" style="margin-bottom:0">
         <a class="btn btn-primary" href="https://github.com/wencanjiang/ChatImage" target="_blank" rel="noopener">Star on GitHub ★</a>
         <a class="btn btn-ghost" href="https://github.com/wencanjiang/ChatImage#quick-start" target="_blank" rel="noopener">Quick start</a>
+        <a class="btn btn-ghost" href="TECHNICAL_REPORT.md" target="_blank" rel="noopener">Technical report 📄</a>
       </div>
     </div>
   </div>
@@ -398,7 +440,7 @@
     <div class="links">
       <a href="https://github.com/wencanjiang/ChatImage" target="_blank" rel="noopener">GitHub</a>
       <a href="https://arxiv.org/abs/XXXX.XXXXX" target="_blank" rel="noopener">arXiv</a>
-      <a href="https://github.com/wencanjiang/ChatImage#readme" target="_blank" rel="noopener">Docs</a>
+      <a href="TECHNICAL_REPORT.md" target="_blank" rel="noopener">Tech report</a>
       <a href="https://github.com/wencanjiang/ChatImage/issues" target="_blank" rel="noopener">Issues</a>
     </div>
     <div class="copy">MIT License © ChatImage Contributors · An open-source project turning LLM answers into interactive visual images.</div>
@@ -418,6 +460,83 @@
     });
   },{threshold:0.12,rootMargin:'0px 0px -40px 0px'});
   els.forEach(function(e){io.observe(e)});
+})();
+</script>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-inner">
+    <button class="lightbox-close" id="lightboxClose">&times;</button>
+    <img id="lightboxImg" src="" alt="" />
+    <div class="lightbox-cap"><strong id="lightboxTitle"></strong><span id="lightboxSub"></span></div>
+  </div>
+</div>
+
+<script>
+// Demo filter tabs
+(function(){
+  var tabs=document.querySelectorAll('.filter-tab');
+  var demos=document.querySelectorAll('.demo[data-cat]');
+  tabs.forEach(function(tab){
+    tab.addEventListener('click',function(){
+      tabs.forEach(function(t){t.classList.remove('active')});
+      tab.classList.add('active');
+      var f=tab.dataset.filter;
+      demos.forEach(function(d){
+        if(f==='all'||d.dataset.cat===f){d.classList.remove('hide-filter')}
+        else{d.classList.add('hide-filter')}
+      });
+    });
+  });
+})();
+
+// Lightbox
+(function(){
+  var lb=document.getElementById('lightbox');
+  var lbImg=document.getElementById('lightboxImg');
+  var lbTitle=document.getElementById('lightboxTitle');
+  var lbSub=document.getElementById('lightboxSub');
+  var lbClose=document.getElementById('lightboxClose');
+  document.querySelectorAll('.demo[data-img]').forEach(function(card){
+    var shot=card.querySelector('.shot');
+    if(!shot)return;
+    shot.style.cursor='zoom-in';
+    shot.addEventListener('click',function(e){
+      if(e.target.closest('.copy-q'))return;
+      lbImg.src=card.dataset.img;
+      lbImg.alt=card.dataset.title;
+      lbTitle.textContent=card.dataset.title;
+      var meta=card.querySelector('.meta');
+      lbSub.textContent=meta?meta.textContent:'';
+      lb.classList.add('open');
+    });
+  });
+  function close(){lb.classList.remove('open');lbImg.src=''}
+  lbClose.addEventListener('click',close);
+  lb.addEventListener('click',function(e){if(e.target===lb)close()});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')close()});
+})();
+
+// Copy question buttons
+(function(){
+  document.querySelectorAll('.copy-q').forEach(function(btn){
+    btn.addEventListener('click',function(e){
+      e.stopPropagation();
+      var text=btn.dataset.copy;
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(function(){
+          btn.classList.add('copied');
+          btn.innerHTML='✓ Copied!';
+          setTimeout(function(){btn.classList.remove('copied');btn.innerHTML='📋 Copy question'},2000);
+        });
+      }else{
+        var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);
+        ta.select();try{document.execCommand('copy');btn.classList.add('copied');
+          btn.innerHTML='✓ Copied!';setTimeout(function(){btn.classList.remove('copied');btn.innerHTML='📋 Copy question'},2000)}catch(e){}
+        document.body.removeChild(ta);
+      }
+    });
+  });
 })();
 </script>
 </body>

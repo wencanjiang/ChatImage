@@ -11,7 +11,7 @@
   <!-- 预留项目 / 宣传页链接 -->
   <a href="docs/index.html"><img src="https://img.shields.io/badge/项目主页-Demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project Page" /></a>
   <!-- 预留技术文档链接 -->
-  <a href="docs/"><img src="https://img.shields.io/badge/技术文档-目录-25a36a?style=flat-square&logo=googledocs" alt="Tech Docs" /></a>
+  <a href="docs/TECHNICAL_REPORT.md"><img src="https://img.shields.io/badge/技术报告-文档-25a36a?style=flat-square&logo=googledocs" alt="Tech Report" /></a>
   <a href="https://github.com/wencanjiang/ChatImage/actions"><img src="https://img.shields.io/badge/测试-通过-2da44e?style=flat-square&logo=githubactions" alt="Tests" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/许可证-MIT-blue?style=flat-square&logo=opensourceinitiative" alt="License" /></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=flat-square&logo=nodedotjs" alt="Node.js 18+" /></a>
@@ -165,7 +165,7 @@ http://127.0.0.1:5178?provider=api
 | `server/providers.js` | 上游供应商适配器。 |
 | `scripts/build.js` | 零依赖前端构建脚本。 |
 | `tests/` | 单元、集成、浏览器、供应商冒烟测试。 |
-| `docs/` | 技术与审查笔记。 |
+| `docs/TECHNICAL_REPORT.md` | 权威技术报告（架构、数据流、对齐管线、API、测试）。历史笔记在 `docs/archive/`。 |
 
 ## API 接口
 
