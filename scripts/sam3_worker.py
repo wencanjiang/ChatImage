@@ -133,14 +133,18 @@ class Sam3Worker:
                 if not bbox:
                     rejected.append({"moduleId": module_id, "reason": "empty mask"})
                     continue
+                organic_preview = mask_to_organic_preview(image, mask, module)
                 output.append(
                     {
                         "moduleId": module_id,
                         "label": module.get("label") or "",
                         "inputBounds": normalize_bounds(bounds),
                         "maskBounds": bbox,
-                        "maskImage": mask_to_data_url(mask),
-                        "cutoutImage": mask_to_cutout_data_url(image, mask),
+                        "maskImage": mask_to_data_url(mask, module),
+                        "cutoutImage": mask_to_cutout_data_url(image, mask, module),
+                        "organicImage": organic_preview["image"],
+                        "organicBounds": organic_preview["bounds"],
+                        "organicAspectRatio": organic_preview["aspectRatio"],
                         "polygon": mask_to_polygon(mask, width, height),
                         "score": max(0.0, min(1.0, score)),
                         "maskPixels": int(mask.sum()),
@@ -295,6 +299,14 @@ def postprocess_mask(mask, module):
         alpha = cv2.morphologyEx(alpha, cv2.MORPH_CLOSE, kernel, iterations=close_iterations)
         if dilate_iterations:
             alpha = cv2.dilate(alpha, kernel, iterations=dilate_iterations)
+        # Fill interior holes so the cutout/mask is a solid silhouette instead of
+        # a fragmented shape with see-through cavities. MORPH_CLOSE above only
+        # seals small gaps; large internal holes (e.g. SAM leaving a gap where a
+        # logo or window sits inside the subject) survive it. Routes are skipped:
+        # a route is a thin/looping line whose enclosed area is not part of it,
+        # so RETR_EXTERNAL filling would wrongly flood the loop interior.
+        if policy != "route" and kind != "route":
+            alpha = fill_mask_holes(alpha)
         return alpha > 0
     except Exception:
         return mask
@@ -322,8 +334,19 @@ def mask_to_normalized_bounds(mask, width, height):
     }
 
 
-def mask_to_data_url(mask):
+def should_fill_mask_holes(module):
+    policy = str((module or {}).get("maskPolicy") or "").lower()
+    kind = str((module or {}).get("regionKind") or "").lower()
+    return policy != "route" and kind != "route"
+
+
+def solid_preview_alpha(mask, module=None):
     alpha = (mask.astype(np.uint8) * 255)
+    return fill_mask_holes(alpha) if should_fill_mask_holes(module) else alpha
+
+
+def mask_to_data_url(mask, module=None):
+    alpha = solid_preview_alpha(mask, module)
     ys, xs = np.where(alpha > 0)
     if xs.size == 0 or ys.size == 0:
         return ""
@@ -339,8 +362,8 @@ def mask_to_data_url(mask):
     return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
 
 
-def mask_to_cutout_data_url(image, mask):
-    alpha = (mask.astype(np.uint8) * 255)
+def mask_to_cutout_data_url(image, mask, module=None):
+    alpha = solid_preview_alpha(mask, module)
     ys, xs = np.where(alpha > 0)
     if xs.size == 0 or ys.size == 0:
         return ""
@@ -356,6 +379,86 @@ def mask_to_cutout_data_url(image, mask):
     buffer = io.BytesIO()
     cropped_image.save(buffer, format="PNG", optimize=True)
     return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
+
+
+def mask_to_organic_preview(image, mask, module=None):
+    alpha = solid_preview_alpha(mask, module)
+    ys, xs = np.where(alpha > 0)
+    if xs.size == 0 or ys.size == 0:
+        return {"image": "", "bounds": None, "aspectRatio": None}
+    height, width = alpha.shape
+    mask_area = max(1, int(mask.sum()))
+    radius = int(round(max(8, min(64, np.sqrt(mask_area) * 0.07))))
+    feather = int(round(max(8, min(42, radius * 1.35))))
+
+    try:
+        import cv2
+
+        source_alpha = fill_mask_holes(alpha)
+        if np.count_nonzero(source_alpha) < mask_area * 0.72:
+            source_alpha = alpha
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (radius * 2 + 1, radius * 2 + 1))
+        expanded_solid = cv2.dilate(source_alpha, kernel, iterations=1)
+        if feather > 0:
+            blur_kernel = feather * 2 + 1
+            if blur_kernel % 2 == 0:
+                blur_kernel += 1
+            expanded = cv2.GaussianBlur(expanded_solid, (blur_kernel, blur_kernel), 0)
+            expanded = np.maximum(expanded, source_alpha)
+        else:
+            expanded = expanded_solid
+    except Exception:
+        expanded = alpha
+
+    ys, xs = np.where(expanded > 3)
+    if xs.size == 0 or ys.size == 0:
+        return {"image": "", "bounds": None, "aspectRatio": None}
+    pad = max(8, int(round(max(width, height) * 0.018)))
+    x0 = max(0, int(xs.min()) - pad)
+    y0 = max(0, int(ys.min()) - pad)
+    x1 = min(width, int(xs.max()) + 1 + pad)
+    y1 = min(height, int(ys.max()) + 1 + pad)
+
+    cropped_image = image.crop((x0, y0, x1, y1)).convert("RGBA")
+    cropped_alpha = Image.fromarray(expanded[y0:y1, x0:x1], mode="L")
+    cropped_image.putalpha(cropped_alpha)
+    cropped_image.thumbnail((640, 640), Image.Resampling.LANCZOS)
+    buffer = io.BytesIO()
+    cropped_image.save(buffer, format="PNG", optimize=True)
+    return {
+        "image": "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("ascii"),
+        "bounds": {
+            "x": round(x0 / width, 6),
+            "y": round(y0 / height, 6),
+            "width": round((x1 - x0) / width, 6),
+            "height": round((y1 - y0) / height, 6),
+        },
+        "aspectRatio": round(cropped_image.width / max(1, cropped_image.height), 6),
+    }
+
+
+def fill_mask_holes(alpha):
+    try:
+        import cv2
+
+        contours, _ = cv2.findContours(alpha, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            return alpha
+        filled = np.zeros_like(alpha)
+        cv2.drawContours(filled, contours, -1, 255, thickness=cv2.FILLED)
+        return filled
+    except Exception:
+        return alpha
+
+
+def should_trim_region_boundary(module):
+    if not module:
+        return False
+    policy = str(module.get("maskPolicy") or "").lower()
+    kind = str(module.get("regionKind") or "").lower()
+    if policy == "route" or kind == "route":
+        return False
+    return policy == "full-region" or kind in ["landmark", "building", "mountain", "water", "axis", "panel", "background"]
 
 
 def pad_transparent(image):

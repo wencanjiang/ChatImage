@@ -26,6 +26,8 @@ async function main() {
   await testGoodSceneLocateCandidateSkipsMimoVisionOverride();
   await testTinySceneSubjectCandidateUsesMimoVisionOverride();
   await testMapLegendFarFromPlanFallsBackToPlanned();
+  await testCampusLibraryWrongBuildingUsesMimoVisionOverride();
+  await testCampusLibraryFarLocateFallsBackToPlanned();
   await testTinyInfographicCardFallsBackToPlanned();
   await testPlannedFallbackForMissingModule();
   await testLowConfidenceLocalOcrFallsBackToPlanned();
@@ -419,6 +421,106 @@ async function testMapLegendFarFromPlanFallsBackToPlanned() {
   });
 }
 
+async function testCampusLibraryWrongBuildingUsesMimoVisionOverride() {
+  await withEnv("CHATIMAGE_FAKE_LOCATE_MODE", "success", async () => {
+    const calls = [];
+    const parsed = await runLocateAnythingAlignmentWithFallback(
+      createConfig({ visionMode: "locateanything", visionFallbackMode: "mimo-vision", visionModel: "mimo-v2.5" }),
+      {
+        imageUrl: createHealthFixtureDataUrl(),
+        imageWidth: 640,
+        imageHeight: 360,
+        visualMode: "map",
+        modules: [
+          {
+            moduleId: "module_library",
+            label: "图书馆",
+            order: 1,
+            text: "阅读与自习中心",
+            regionKind: "building",
+            maskPolicy: "subject-with-label",
+            regionPrompt: "校园导览地图中的图书馆建筑和贴近的图书馆短标签，不是实验楼或教学楼",
+            visualEvidence: ["图书馆建筑", "图书馆短标签", "与实验楼不同的建筑"],
+            locatorQueries: ["图书馆", "library building", "campus library"],
+            plannedBounds: { x: 0.62, y: 0.28, width: 0.2, height: 0.2 }
+          }
+        ],
+        purpose: "test_campus_library_wrong_building_uses_mimo"
+      },
+      {
+        callVisionApi: async (_config, payload) => {
+          calls.push(payload.purpose);
+          if (payload.purpose === "mimo_vision_verify_align") {
+            return JSON.stringify({
+              provider: "mimo-vision-verify",
+              modules: [
+                {
+                  moduleId: "module_library",
+                  accepted: true,
+                  correctedBounds: { x: 0.62, y: 0.28, width: 0.2, height: 0.2 },
+                  confidence: 0.91,
+                  reason: "correct 图书馆 building, not the left-side laboratory"
+                }
+              ],
+              rejectedModules: []
+            });
+          }
+          return JSON.stringify({
+            provider: "mimo-vision",
+            modules: [
+              {
+                moduleId: "module_library",
+                label: "图书馆",
+                bounds: { x: 0.62, y: 0.28, width: 0.2, height: 0.2 },
+                confidence: 0.9,
+                matchedText: "图书馆 building footprint and label"
+              }
+            ],
+            rejectedModules: []
+          });
+        }
+      }
+    );
+    assert.deepStrictEqual(calls, ["mimo_vision_align", "mimo_vision_verify_align"]);
+    assert.strictEqual(parsed.modules[0].source, "mimo-vision");
+    assert.ok(parsed.modules[0].bounds.x > 0.58, `library should not keep the left-side LocateAnything box: ${JSON.stringify(parsed.modules[0])}`);
+    assert.deepStrictEqual(parsed.acceptedLocateAnythingModules, []);
+    assert.deepStrictEqual(parsed.acceptedMimoVisionModules, ["module_library"]);
+  });
+}
+
+async function testCampusLibraryFarLocateFallsBackToPlanned() {
+  await withEnv("CHATIMAGE_FAKE_LOCATE_MODE", "success", async () => {
+    const parsed = await runLocateAnythingAlignmentWithFallback(
+      createConfig({ visionMode: "locateanything" }),
+      {
+        imageUrl: createHealthFixtureDataUrl(),
+        imageWidth: 640,
+        imageHeight: 360,
+        visualMode: "map",
+        modules: [
+          {
+            moduleId: "module_library",
+            label: "图书馆",
+            order: 1,
+            text: "阅读与自习中心",
+            regionKind: "building",
+            maskPolicy: "subject-with-label",
+            regionPrompt: "校园导览地图中的图书馆建筑和贴近的图书馆短标签，不是实验楼或教学楼",
+            plannedBounds: { x: 0.62, y: 0.28, width: 0.2, height: 0.2 }
+          }
+        ],
+        purpose: "test_campus_library_far_locate_fallback"
+      },
+      {}
+    );
+    assert.strictEqual(parsed.modules[0].source, "planned");
+    assert.deepStrictEqual(parsed.fallbackModules, ["module_library"]);
+    assert.deepStrictEqual(parsed.acceptedLocateAnythingModules, []);
+    assert.match(JSON.stringify(parsed.rejectedModules), /failed planned-region quality checks/);
+  });
+}
+
 async function testTinyInfographicCardFallsBackToPlanned() {
   await withEnv("CHATIMAGE_FAKE_LOCATE_MODE", "tiny-card", async () => {
     const parsed = await runLocateAnythingAlignmentWithFallback(
@@ -668,6 +770,15 @@ function testSemanticHintUsesPrimaryChineseLabels() {
     }),
     "complete compact information legend panel with icons labels"
   );
+  const libraryHint = buildSemanticHint({
+    label: "图书馆",
+    regionKind: "building",
+    maskPolicy: "subject-with-label",
+    regionPrompt: "校园导览地图中的图书馆建筑和贴近的图书馆短标签，不是实验楼或教学楼",
+    locatorQueries: ["图书馆", "library building", "campus library"]
+  });
+  assert.match(libraryHint, /campus library building/);
+  assert.match(libraryHint, /not laboratory/);
   assert.match(
     buildSemanticHint({
       label: "\u5b64\u5c71",

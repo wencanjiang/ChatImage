@@ -117,6 +117,9 @@ async function runLocateAnythingAlignmentWithFallback(serverConfig, request, hel
     try {
       const remote = await runMimoVisionAlignmentFallback(serverConfig, request, mimoVisionTargets, helpers);
       for (const item of remote.modules || []) {
+        removeModuleIdFromAcceptedLists(item.moduleId, {
+          acceptedLocateAnythingModules
+        });
         byId.set(item.moduleId, { ...item, source: "mimo-vision" });
         acceptedMimoVisionModules.push(item.moduleId);
       }
@@ -437,14 +440,14 @@ function isAcceptableSemanticCandidate(module, candidate, request) {
   if (visualMode !== "map") return true;
   const kind = String((module && module.regionKind) || "").toLowerCase();
   const policy = String((module && module.maskPolicy) || "").toLowerCase();
-  if (!["legend", "panel"].includes(kind) && policy !== "legend") return true;
+  if (!["legend", "panel"].includes(kind) && policy !== "legend" && !isNamedCampusBuildingModule(module)) return true;
   const planned = module && module.plannedBounds;
   const bounds = candidate && candidate.bounds;
   if (!planned || !bounds) return true;
   const overlap = normalizedOverlapRatio(planned, bounds);
-  if (overlap >= 0.08) return true;
+  if (overlap >= (isNamedCampusBuildingModule(module) ? 0.12 : 0.08)) return true;
   const distance = normalizedCenterDistance(planned, bounds);
-  return distance <= 0.32;
+  return distance <= (isNamedCampusBuildingModule(module) ? 0.22 : 0.32);
 }
 
 function isCardLikeCandidateModule(module) {
@@ -521,6 +524,7 @@ function shouldReviewLocateCandidateWithMimo(module, candidate, request) {
 function shouldReviewSemanticVisualCandidate(module, candidate) {
   const source = String((candidate && candidate.source) || "");
   if (source === "layout-guided-locateanything") return true;
+  if (isNamedCampusBuildingModule(module)) return true;
   const score = Number(candidate && candidate.candidateScore);
   if (!Number.isFinite(score)) return true;
   if (score < 0.74) return true;
@@ -557,6 +561,24 @@ function isHugeNonBackgroundCandidate(module, bounds) {
   const policy = String((module && module.maskPolicy) || "").toLowerCase();
   if (kind === "background" || policy === "full-region") return false;
   return boundsArea(bounds) > 0.58;
+}
+
+function isNamedCampusBuildingModule(module) {
+  const kind = String((module && module.regionKind) || "").toLowerCase();
+  const policy = String((module && module.maskPolicy) || "").toLowerCase();
+  if (kind !== "building" && policy !== "subject-with-label") return false;
+  const text = [
+    module && module.label,
+    module && module.regionPrompt,
+    module && module.text,
+    module && module.detail,
+    module && module.sourceExcerpt,
+    ...(Array.isArray(module && module.visualEvidence) ? module.visualEvidence : []),
+    ...(Array.isArray(module && module.locatorQueries) ? module.locatorQueries : [])
+  ]
+    .map((value) => String(value || ""))
+    .join(" ");
+  return /校园|校区|大学|学院|图书馆|实验楼|教学楼|食堂|宿舍|体育馆|校史馆|library|laboratory|teaching building|canteen|dormitory|gymnasium|campus/i.test(text);
 }
 
 async function runMimoVisionAlignmentFallback(serverConfig, request, modules, helpers) {
@@ -1413,11 +1435,26 @@ function buildStrongMapSemanticHint(kind, raw, primaryRaw = "") {
   if (/\u4ea4\u901a|\u63a5\u9a73|\u9ad8\u94c1|\u5df4\u58eb|\u7d22\u9053|\u8f66\u7ad9|transport|transit|bus|rail|station|cableway|ropeway/i.test(primaryText)) {
     return "transport information legend panel with route icons";
   }
-  if (/building/.test(kind)) return "visible building landmark icon and nearby short label";
+  if (/building/.test(kind)) return buildNamedBuildingSemanticHint(primaryText || text) || "visible building landmark icon and nearby short label";
   if (/water/.test(kind)) return "visible water area";
   if (/landmark/.test(kind)) return "visible landmark scenic region";
   if (/mountain/.test(kind)) return "visible mountain terrain scenic region";
   return "";
+}
+
+function buildNamedBuildingSemanticHint(text) {
+  const source = String(text || "");
+  const namedBuildings = [
+    [/\u56fe\u4e66\u9986|library/i, "campus library building: visible library building footprint plus its 图书馆/library label; not laboratory, teaching building, canteen, dormitory, gym, or gate"],
+    [/\u5b9e\u9a8c\u697c|\u5b9e\u9a8c\u5ba4|laboratory|lab building/i, "campus laboratory building: visible lab/实验楼 building footprint plus its label; not library, teaching building, canteen, dormitory, gym, or gate"],
+    [/\u6559\u5b66\u697c|teaching building|classroom building/i, "campus teaching building: visible 教学楼/classroom building footprint plus its label; not library, laboratory, canteen, dormitory, gym, or gate"],
+    [/\u98df\u5802|canteen|dining hall|cafeteria/i, "campus canteen/dining hall building: visible 食堂/canteen footprint plus its label; not library, laboratory, teaching building, dormitory, gym, or gate"],
+    [/\u5bbf\u820d|\u5bbf\u820d\u533a|dormitory|student housing/i, "campus dormitory/student housing region: visible 宿舍/dorm building group plus its label; not library, laboratory, teaching building, canteen, gym, or gate"],
+    [/\u4f53\u80b2\u9986|gymnasium|sports hall|arena/i, "campus gymnasium/sports hall building: visible 体育馆/gym footprint plus its label; not library, laboratory, teaching building, canteen, dormitory, or gate"],
+    [/\u6821\u53f2\u9986|history museum|school museum/i, "campus history museum building: visible 校史馆 building footprint plus its label; not library, laboratory, teaching building, canteen, dormitory, gym, or gate"]
+  ];
+  const match = namedBuildings.find(([pattern]) => pattern.test(source));
+  return match ? match[1] : "";
 }
 
 function extractRouteName(text) {

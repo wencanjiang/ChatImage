@@ -11,19 +11,19 @@ alignment that grounds hotspots to real image content
 (Section~\ref{sec:method_alignment}), and the interactive hotspot layer and
 per-region follow-up threads (Section~\ref{sec:method_interaction}).
 
-\begin{figure*}[t!]
+\begin{figure}[t!]
     \centering
-    \includegraphics[width=0.98\textwidth]{model.pdf}
+    \includegraphics[width=\linewidth]{model.pdf}
     \caption{\textbf{\method{} pipeline.} A user question yields a raw LLM
     answer, which is normalized into a structured visual specification and a
     normalized layout. An image prompt is synthesized and the image is
     generated. In the second pass, a visual grounding model localizes where
     each structured module actually rendered; hotspots are placed at the
     grounded coordinates and become clickable regions with detail panels and
-    follow-up threads. \tbd{replace with ChatImage architecture figure}}
+    follow-up threads.}
     \label{fig:architecture}
     \vspace{-0.6em}
-\end{figure*}
+\end{figure}
 
 \subsection{End-to-End Pipeline}
 \label{sec:method_pipeline}
@@ -115,7 +115,7 @@ module's title, region prompt, and semantic hints. It outputs a bounding box
 per module in normalized coordinates, scored against the planned bounds to
 select the best candidate (with optional crop-and-re-ground for low-confidence
 cases). This is a \emph{referring localization} step: we are localizing
-``where did the module labeled $X$ actually render,'' not detecting a
+``where the module labeled $X$ actually rendered,'' not detecting a
 predefined object class.
 
 \paragraph{Fallbacks.}

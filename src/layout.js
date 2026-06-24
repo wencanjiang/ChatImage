@@ -116,7 +116,7 @@
       return "swimlane-flow must preserve the left-to-right or top-to-bottom step order from module_1 onward.";
     }
     if (["map", "scene", "poster"].includes(variant)) {
-      return "semantic regions may be organic, but each target must stay close to its planned area and remain visually separable.";
+      return "semantic targets may be organic, but each target must stay close to its planned area and remain recognizable as natural image content.";
     }
     return "Keep every module inside its listed target footprint and preserve module order.";
   }
@@ -127,14 +127,20 @@
 
   function createGridRegions(modules) {
     const count = modules.length;
-    const columns = count <= 4 ? 2 : 3;
+    const columns = count <= 4 ? 2 : count <= 9 ? 3 : count <= 16 ? 4 : 5;
     const rows = Math.ceil(count / columns);
     const gapX = 0.035;
-    const gapY = 0.055;
     const startX = 0.06;
     const startY = 0.28;
     const totalW = 0.88;
-    const totalH = 0.58;
+    const minCellHeight = 0.12;
+    let gapY = 0.055;
+    let totalH = 0.58;
+    // 行数较多时固定高度会把单元压到最小点击区域以下，向下扩展到安全区并压缩纵向间距
+    if ((totalH - gapY * (rows - 1)) / rows < minCellHeight) {
+      gapY = 0.03;
+      totalH = 0.95 - startY;
+    }
     const cellW = (totalW - gapX * (columns - 1)) / columns;
     const cellH = (totalH - gapY * (rows - 1)) / rows;
     return modules.map((module, index) => ({
@@ -552,6 +558,7 @@
         iconHint: module.iconHint,
         regionKind: module.regionKind,
         maskPolicy: module.maskPolicy,
+        priority: module.priority,
         textBudget: module.textBudget,
         zIndex: inferHotspotZIndex(module, region),
         x: region.bounds.x,
@@ -584,11 +591,31 @@
         if (other.id === hotspot.id) continue;
         if (!pointInBounds(center, other)) continue;
         if (Number(other.zIndex || 0) < Number(hotspot.zIndex || 0)) continue;
+        if (!shouldRaiseHotspotAbove(hotspot, other)) continue;
         hotspot.zIndex = Number(other.zIndex || 0) + 1;
         hotspot.clickDiagnostics = (hotspot.clickDiagnostics || []).concat(`center_was_covered_by:${other.id}`);
       }
     }
     return repaired;
+  }
+
+  function shouldRaiseHotspotAbove(target, blocker) {
+    if (isLowPriorityContextHotspot(target)) return false;
+    const targetPriority = normalizedHotspotPriority(target);
+    const blockerPriority = normalizedHotspotPriority(blocker);
+    if (targetPriority !== blockerPriority) return targetPriority < blockerPriority;
+    const targetArea = Number(target.width || 0) * Number(target.height || 0);
+    const blockerArea = Number(blocker.width || 0) * Number(blocker.height || 0);
+    if (!targetArea || !blockerArea) return false;
+    return targetArea <= blockerArea * 0.92;
+  }
+
+  function normalizedHotspotPriority(hotspot) {
+    const explicit = Number(hotspot && hotspot.priority);
+    if (Number.isFinite(explicit) && explicit > 0) return explicit;
+    const id = String((hotspot && hotspot.id) || "");
+    const match = id.match(/(?:module|region|item)_?(\d+)/i);
+    return match ? Number(match[1]) : 999;
   }
 
   function isLowPriorityContextHotspot(hotspot) {
@@ -725,8 +752,9 @@
   function inferHotspotZIndex(module, region) {
     const kind = String((module && module.regionKind) || "").toLowerCase();
     const policy = String((module && module.maskPolicy) || "").toLowerCase();
-    if (kind === "background" || policy === "full-region") return 1;
+    if (kind === "background" || (policy === "full-region" && !["landmark", "building", "route", "axis", "legend"].includes(kind))) return 1;
     if (["water", "mountain", "foreground", "panel"].includes(kind)) return 2;
+    if (["landmark", "building"].includes(kind)) return 6;
     if (["route", "axis"].includes(kind) || policy === "route") return 7;
     if (kind === "legend" || policy === "legend") return 8;
     if (["object-with-label", "object", "person", "landmark", "building"].includes(kind) || ["subject", "subject-with-label"].includes(policy)) {
@@ -1071,10 +1099,10 @@
     });
     const modeLine =
       visualMode === "map"
-        ? "Draw one coherent hand-drawn guide illustration, not cards or a flowchart. Use paths, landmarks, icons, terrain, labels, and separable organic regions."
+        ? "Draw one coherent hand-drawn guide illustration, not cards or a flowchart. Use paths, landmarks, icons, terrain, labels, and natural organic areas."
         : visualMode === "poster"
           ? "Draw one editorial poster-like visual, not cards. Use a strong central motif, supporting objects, short labels, and clear visual hierarchy."
-          : "Draw one coherent illustrated scene, not cards. Make objects, people, devices, and zones visually separable for later interaction.";
+          : "Draw one coherent illustrated scene, not cards. Make objects, people, devices, and zones recognizable as natural parts of the scene.";
     const promptMode = visualMode === "map" ? "guide-illustration" : visualMode;
     const promptVariant = visualMode === "map" ? "guide-illustration" : visualComposition.layoutVariant || layout.layoutVariant || visualMode;
     return [
@@ -1087,9 +1115,9 @@
       }.`,
       `Canvas intent: ${layout.aspectRatio || "16:9"}; requested API bitmap may be square, so keep the whole scene centered with safe margins.`,
       modeLine,
-      "Interactive targets that must be visible and separable:",
+      "Clickable targets to include as natural visual content for later LocateAnything/SAM grounding:",
       regions.join("\n"),
-      "Rules: do not draw the raw user question; use only short local labels; every target must have a visible edge, silhouette, route stroke, icon, texture, or color separation; subject-with-label targets must keep object and label close together; no watermark; no extra modules."
+      "Rules: do not draw the raw user question; use only short local labels; do not draw numeric callout markers, numbered pins, circled numbers, index labels, right-side scenic spot lists, legend columns, sidebar panels, or catalog strips; do not pre-cut the image into isolated segmentation regions; do not draw segmentation masks, bounding boxes, transparent overlays, contour strokes, or pink/white/neon mask-like borders; targets should be recognizable through real visual cues such as landmarks, objects, route strokes, silhouettes, labels, terrain, texture, shadow, or shoreline; subject-with-label targets must keep object and label close together; no watermark; no extra modules."
     ].join("\n");
   }
 
@@ -1166,6 +1194,9 @@
             "Routes/trails/coasts: visible colored route strokes with short labels.",
             "Lodging/hotel/accommodation: draw an actual visible house/bed/hotel marker with a short lodging label on the map; do not satisfy it only with a legend symbol or explanatory text.",
             "Transport/cableway/station/entrance: visible station/cableway/vehicle marker or compact legend item.",
+            "Do not draw numeric callout markers, numbered pins, circled numbers, index labels, or 01/02 style scenic spot numbers on the map.",
+            "Do not draw a right-side scenic spot list, legend column, itinerary ranking, sidebar panel, catalog strip, or landscape-arrangement panel.",
+            "Do not draw artificial segmentation outlines, neon contour strokes, or pink/white mask-like borders around full map regions. Separate regions with natural terrain, water/shoreline, paths, vegetation, buildings, labels, shadows, or subtle tonal changes instead.",
             "Do not draw big cards, numbered badges, GUI panels, table blocks, or flow arrows."
           ]
         : visualMode === "poster"
@@ -1202,19 +1233,23 @@
         null,
         2
       ),
-      "Target semantic regions. Every item below must be visible in the image and visually separable:",
+      "Natural visual targets for later grounding. Every item below must appear as real map/scene/poster content, not as drawn mask regions:",
       JSON.stringify(semanticRegions, null, 2),
       "Requirements:",
       "- Do not draw the user's raw question as the image title. Use the distilled title only when a title helps the picture; it may be small or absent.",
       "- Do not force every region to have a number. Regions can be identified by landmark shape, route, object, texture, local label, or color.",
-      "- Every semantic region listed above must correspond to a visible separated area, object, route, landmark, icon, legend item, or natural zone.",
+      "- Never draw numeric hotspot markers, circled callout numbers, numbered pins, index lists, or 01/02 style scenic spot markers unless the user's subject explicitly requires numbers.",
+      "- For map and scene images, do not draw a right-side scenic spot list, legend column, catalog panel, sidebar, ranked landscape arrangement, or separate UI strip. Keep the whole image as one coherent artwork.",
+      "- Every target listed above must correspond to a recognizable area, object, route, landmark, icon, legend item, or natural zone in the artwork.",
       "- Treat visualEvidence as acceptance criteria: if that evidence is not visible, the interactive target has failed.",
-      "- Respect maskPolicy when drawing: route targets should be visible narrow paths; subject and subject-with-label targets should have clean silhouettes; legend targets should be compact blocks; full-region targets should have organic separable boundaries.",
-      "- For subject-with-label targets, place the object/person and its short attached label close enough that a later mask can cut both together without including a large background rectangle.",
+      "- Treat maskPolicy only as downstream grounding metadata. Do not draw visible mask artifacts, segmentation boundaries, bounding boxes, transparent overlays, or pre-cut region panels because of it.",
+      "- Route targets should be visible paths, subject and subject-with-label targets should have clear natural silhouettes, legend targets should be compact real legend objects, and full-region targets should be recognizable through real scene cues.",
+      "- For full-region map/scene targets, do not draw artificial segmentation outlines, neon contour strokes, or pink/white mask-like borders. Use natural edges, terrain texture, routes, labels, landmarks, shadows, shoreline, vegetation, building placement, or subtle color changes instead.",
+      "- For subject-with-label targets, place the object/person and its short attached label close together, but keep the surrounding scene natural.",
       "- Every target title and regionPrompt must be visually satisfied. Do not omit practical targets such as lodging, transport, entrances, stations, and cableways.",
       "- If a target is lodging/hotel/accommodation, the map must contain a distinct house/bed/hotel object plus its short label near the requested bounds; do not replace it with a cableway station, parking icon, or generic legend entry.",
-      "- Region boundaries can be organic, but leave enough separation for transparent click hotspots to cover the whole intended region.",
-      "- Make each interactive region easy to segment later: give it a visible edge, contrast, texture change, local color, route stroke, shoreline, shadow, or object silhouette so SAM-style masking can separate it from neighbors.",
+      "- Region boundaries can be organic. Leave enough natural visual cues for transparent click hotspots to cover the intended target after LocateAnything/SAM grounding.",
+      "- Do not optimize the artwork for segmentation by adding artificial cut lines or mask-friendly cavities. The picture must look like a finished map, scene, poster, or diagram first.",
       "- Use visible labels sparingly and keep them short. Never place long detailContext paragraphs into the image.",
       "- For route, legend, and subject-with-label targets, the visible label must include the target title as the primary short label, not only a vague descriptor.",
       "- For route targets, copy the exact target title into the local route label, for example draw '阳光海岸栈道' rather than only '东侧日出山脊栈道'.",

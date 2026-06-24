@@ -42,6 +42,7 @@
   --sidebar-w-collapsed: 56px;
   --sidebar-w-tablet: 252px;
   --topbar-h: 57px;
+  --composer-safe-space: 148px;
 }
 
 @font-face {
@@ -65,6 +66,11 @@
 html,
 body {
   min-height: 100%;
+}
+
+html {
+  scroll-padding-top: calc(var(--topbar-h) + 18px);
+  scroll-padding-bottom: var(--composer-safe-space);
 }
 
 body {
@@ -459,7 +465,7 @@ textarea:focus {
   min-height: calc(100dvh - var(--topbar-h));
   border: 0;
   border-radius: 0;
-  padding: 0 24px 156px;
+  padding: 0 24px calc(var(--composer-safe-space) + 34px);
   background: var(--bg);
   box-shadow: none;
 }
@@ -467,7 +473,7 @@ textarea:focus {
 .result-area {
   width: min(1120px, 100%);
   margin: 0 auto;
-  padding: 36px 0 40px;
+  padding: 36px 0 calc(40px + var(--composer-safe-space));
 }
 
 /* ---------------------------------------------------------------------------
@@ -1646,8 +1652,11 @@ textarea:focus {
   border-color: #e2d8c9;
 }
 
-.detail-preview-cutout-image {
+.detail-preview-cutout .detail-preview-cutout-image {
+  position: static;
   display: block;
+  width: auto;
+  height: auto;
   max-width: 100%;
   max-height: min(380px, 52vh);
   object-fit: contain;
@@ -1673,6 +1682,45 @@ textarea:focus {
   max-height: min(420px, 58vh);
   object-fit: contain;
   filter: drop-shadow(0 16px 26px rgba(15, 23, 42, 0.18));
+}
+
+.detail-panel.is-preview-flight-running .detail-preview {
+  opacity: 0;
+}
+
+.detail-preview-flight-ghost {
+  position: fixed;
+  z-index: 80;
+  pointer-events: none;
+  margin: 0;
+  box-sizing: border-box;
+  transform-origin: center center;
+  will-change: transform, opacity, filter;
+  contain: layout paint;
+}
+
+.detail-preview-flight-ghost.detail-preview-crop {
+  width: auto;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.detail-preview-flight-ghost.detail-preview-organic,
+.detail-preview-flight-ghost.detail-preview-cutout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detail-preview-flight-ghost.detail-preview-organic .detail-preview-organic-image,
+.detail-preview-flight-ghost.detail-preview-cutout .detail-preview-cutout-image {
+  position: static;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 /* ---------------------------------------------------------------------------

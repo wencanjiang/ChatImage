@@ -94,3 +94,9 @@
 - SQLite consistency risk is already addressed by wrapping chat image/thread writes in `begin immediate transaction` with rollback on failure. The duplicate-message regression test confirms failed thread writes do not erase the previous valid thread.
 - `no-store` on every static asset was too conservative for the built app. The safer split is long immutable cache only for hash-named `dist/` assets, with HTML/JSON/source maps/non-hash files staying `no-cache`.
 - Request-level logging is not enough for production debugging. Process-level `unhandledRejection` and `uncaughtException` handlers should log stack/context at the main entry point, while still letting uncaught exceptions terminate the process.
+
+## 2026-06-23 Showcase and Campus Target Cleanup
+
+- The public docs demo was wrong in a separate way from the main app: it only opened static screenshots, so users could not verify hotspot/detail behavior. The fix is to publish reusable demo state (`visualSpec`, layout, and hotspots) as JSON next to each SVG and let the docs page render the same clickable hotspot model.
+- Campus-map prompts exposed a structural parsing edge case: `点击区域后解释用途和风貌` matched the generic `点击 X` extractor, creating a fake target named `区域后解释用途和风貌`. Filtering instruction tails must happen both before list splitting and again on individual labels.
+- The latest multi-instance artifact should include campus-guide-map in addition to scenic/map/product/technical/business cases, because it directly guards the prior 图书馆 alignment/semantic-target issue.

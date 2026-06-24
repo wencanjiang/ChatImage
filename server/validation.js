@@ -222,6 +222,10 @@ function validateImageUrl(imageUrl) {
   }
   const value = imageUrl.trim();
   if (/^data:image\/[a-z0-9.+-]+[;,]/i.test(value)) return;
+  // Locally cached images persist as a same-origin relative path (e.g.
+  // /image-cache/<hash>.png) so history replays survive the upstream CDN URL
+  // expiring. Accept that exact shape without slashes/traversal in the filename.
+  if (/^\/image-cache\/[A-Za-z0-9._-]+$/.test(value)) return;
   try {
     const url = new URL(value);
     if (url.protocol === "http:" || url.protocol === "https:") return;
@@ -235,6 +239,12 @@ function validateExternalImageUrl(imageUrl) {
   validateImageUrl(imageUrl);
   const value = imageUrl.trim();
   if (/^data:image\/[a-z0-9.+-]+[;,]/i.test(value)) return;
+  // The local image-cache relative path is same-origin, not publicly fetchable
+  // by the upstream vision model, so reject it here (validateImageUrl allows it
+  // only for history persistence).
+  if (/^\/image-cache\//.test(value)) {
+    badRequest("imageUrl for vision proxy must be a public http(s) URL or data:image URL");
+  }
   const url = new URL(value);
   if (isPrivateHost(url.hostname)) {
     badRequest("imageUrl for vision proxy must be a public http(s) URL or data:image URL");

@@ -428,16 +428,20 @@ function main() {
   assert.ok(westLakeRegions.find((region) => region.hotspotId === "module_9").bounds.x > 0.6);
   const mapPrompt = buildStyleImagePrompt(mapSpec, mapLayout);
   assert.match(mapPrompt, /hand-drawn illustrated map/);
-  assert.match(mapPrompt, /Target semantic regions/);
+  assert.match(mapPrompt, /Natural visual targets/);
   assert.match(mapPrompt, /regionPrompt/);
   assert.match(mapPrompt, /visualEvidence/);
   assert.match(mapPrompt, /maskPolicy/);
   assert.match(mapPrompt, /locatorQueries/);
   assert.match(mapPrompt, /Treat visualEvidence as acceptance criteria/);
-  assert.match(mapPrompt, /Every semantic region/);
+  assert.match(mapPrompt, /Every target/);
   assert.match(mapPrompt, /Lodging\/hotel\/accommodation/);
   assert.match(mapPrompt, /Transport\/cableway\/station/);
-  assert.match(mapPrompt, /easy to segment later/);
+  assert.match(mapPrompt, /downstream grounding metadata/);
+  assert.match(mapPrompt, /Do not draw visible mask artifacts|do not draw artificial segmentation outlines/);
+  assert.match(mapPrompt, /numeric hotspot markers|numeric callout markers/);
+  assert.match(mapPrompt, /right-side scenic spot list|legend column/);
+  assert.doesNotMatch(mapPrompt, /easy to segment later|SAM-style masking|visible separated area/);
   assert.match(mapPrompt, /visible label must include the target title/);
   assert.doesNotMatch(mapPrompt, /OCR-readable/);
 

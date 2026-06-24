@@ -358,6 +358,7 @@
       // late timer cannot strip classes off / re-hide the panel unexpectedly.
       cancelDetailCloseTimer();
       cancelDetailMotionTimer();
+      cancelPreviewFlight();
       if (elements.detailPanel) {
         elements.detailPanel.classList.remove("is-closing", "is-entering", "is-preview-entering");
         elements.detailPanel.hidden = true;
@@ -430,6 +431,7 @@
       panel: Boolean(options.focusPanel),
       preview: Boolean(options.focusPanel || options.animatePreview)
     });
+    if (options.focusPanel) startPreviewFlight(result, hotspot, preview);
   }
 
   const inferPreviewStrategy = previewStrategyModel.inferPreviewStrategy;
@@ -445,6 +447,9 @@
     const rawMaskBounds = findHotspotMaskBounds(result, hotspot.id);
     const rawMaskImage = findHotspotMaskImage(result, hotspot.id);
     const rawMaskPolygon = findHotspotMaskPolygon(result, hotspot.id);
+    const rawServerOrganicImage = findHotspotOrganicImage(result, hotspot.id);
+    const rawServerOrganicBounds = findHotspotOrganicBounds(result, hotspot.id);
+    const rawServerOrganicAspectRatio = findHotspotOrganicAspectRatio(result, hotspot.id);
     const rawServerCutoutImage = findHotspotCutoutImage(result, hotspot.id);
     const strategy = inferPreviewStrategy(result, hotspot);
     const preferContextCrop = strategy.preferContextCrop;
@@ -458,12 +463,15 @@
     const maskBounds = maskConsistent ? rawMaskBounds : null;
     const maskImage = maskConsistent ? rawMaskImage : "";
     const maskPolygon = maskConsistent ? rawMaskPolygon : [];
+    const serverOrganicImage = maskConsistent ? rawServerOrganicImage : "";
+    const serverOrganicBounds = maskConsistent ? rawServerOrganicBounds : null;
+    const serverOrganicAspectRatio = maskConsistent ? rawServerOrganicAspectRatio : null;
     const serverCutoutImage = maskConsistent ? rawServerCutoutImage : "";
     const forceContextShape = shouldForceContextShapePreview(strategy, maskBounds, hotspotBounds);
     const contextPreviewShape = shouldUseContextPreviewShape(strategy) || forceContextShape;
-    const previewSourceBounds = contextPreviewShape
-      ? getOrganicSourceBounds(result, hotspot, maskBounds || hotspotBounds, strategy)
-      : maskBounds || hotspotBounds;
+    const segmentedBounds = getSegmentedPreviewBounds(maskBounds, maskPolygon) || maskBounds;
+    const previewAnchorBounds = segmentedBounds || hotspotBounds;
+    const previewSourceBounds = getOrganicSourceBounds(result, hotspot, previewAnchorBounds, strategy);
     const previewKey = getCutoutPreviewKey(
       result,
       hotspot.id,
@@ -474,7 +482,7 @@
       { contextPreviewShape }
     );
     const cached = previewKey ? cutoutPreviewCache.get(previewKey) : null;
-    const baseBounds = contextPreviewShape ? previewSourceBounds : (maskBounds && !preferContextCrop ? maskBounds : hotspotBounds);
+    const baseBounds = previewSourceBounds;
     const expanded = expandNormalizedBounds(baseBounds, maskBounds && !preferContextCrop && !contextPreviewShape ? 0.018 : 0.026);
     const keepTargetShape = !contextPreviewShape && !preferContextCrop && Boolean(maskBounds || hotspot.mask || hotspot.shape === "mask" || hotspot.shape === "freeform");
     const targetCrop = keepTargetShape ? expanded : fitCropAspect(expanded, dimensions, 0.9, 3.0);
@@ -530,17 +538,43 @@
       };
     }
 
+    const canUseServerOrganicPreview = Boolean(
+      serverOrganicImage &&
+        maskBounds &&
+        (preferContextCrop || contextPreviewShape) &&
+        isSemanticVisualPreview(strategy)
+    );
+    if (canUseServerOrganicPreview) {
+      const organicCrop = computeOrganicCropBounds(
+        result,
+        hotspot,
+        serverOrganicBounds || previewSourceBounds,
+        dimensions,
+        serverOrganicBounds ? [] : (contextPreviewShape ? [] : maskPolygon)
+      );
+      return {
+        imageUrl: result.imageUrl,
+        organicUrl: serverOrganicImage,
+        alt: `${hotspot.label} \u533a\u57df\u56fe\u50cf`,
+        caption: strategy.caption || "\u533a\u57df\u4e0a\u4e0b\u6587\u9884\u89c8",
+        crop: FULL_PREVIEW_CROP,
+        aspectRatio: clampPreviewAspect(serverOrganicAspectRatio || organicCrop.aspectRatio || aspectRatio),
+        source: "sam3-server-organic-context",
+        maskImage: ""
+      };
+    }
+
     // Fallback while the organic preview is generating, or when there is no
     // mask at all. If a mask exists, keep the CSS mask-image so the preview is
     // already irregular (hard-edged) instead of a plain rectangle; the organic
     // soft-edge version replaces it once rendered.
     const fallbackAspectRatio = (fallbackCrop.width * dimensions.width) / Math.max(1, fallbackCrop.height * dimensions.height);
     const fallbackCaption = strategy.caption || (maskBounds ? "SAM3 精细区域预览" : "热点区域预览");
-    const polygonMaskImage = preferContextCrop && maskBounds && maskPolygon.length >= 3 && !contextPreviewShape
-      ? createPolygonMaskDataUrl(maskPolygon, maskBounds)
-      : "";
-    const fallbackMaskImage = contextPreviewShape ? "" : polygonMaskImage || maskImage;
-    const useMaskFallback = contextPreviewShape ? false : (preferContextCrop ? Boolean(fallbackMaskImage) : Boolean(maskBounds));
+    // Do not expose a raw SAM CSS mask as the fallback preview. In real cases
+    // the mask can be sparse or holey, so the user sees a shredded fragment
+    // before the organic preview finishes. Use a soft original-image crop first;
+    // the async organic/cutout renderer replaces it with the shaped preview.
+    const useMaskFallback = false;
     return {
       imageUrl: result.imageUrl,
       alt: `${hotspot.label} 区域图像`,
@@ -549,7 +583,7 @@
       maskBounds: useMaskFallback ? maskBounds : null,
       aspectRatio: clampPreviewAspect(fallbackAspectRatio),
       source: maskBounds ? "sam3" : "bounds",
-      maskImage: useMaskFallback ? fallbackMaskImage : "",
+      maskImage: "",
       softEdge: true
     };
   }
@@ -565,6 +599,10 @@
     const padded = geometry.paddedBounds;
     const aspectRatio = (padded.width * dimensions.width) / Math.max(1, padded.height * dimensions.height);
     return { crop: padded, aspectRatio };
+  }
+
+  function getSegmentedPreviewBounds(maskBounds, maskPolygon) {
+    return getPolygonBounds(maskPolygon) || normalizeBounds(maskBounds);
   }
 
   function hydrateHotspotCutoutPreview(result, hotspot) {
@@ -585,9 +623,8 @@
     const maskPolygon = maskConsistent ? rawMaskPolygon : [];
     const forceContextShape = shouldForceContextShapePreview(strategy, maskBounds, hotspotBounds);
     const contextPreviewShape = shouldUseContextPreviewShape(strategy) || forceContextShape;
-    const previewBounds = contextPreviewShape
-      ? getOrganicSourceBounds(result, hotspot, maskBounds || hotspotBounds, strategy)
-      : maskBounds || hotspotBounds;
+    const segmentedBounds = getSegmentedPreviewBounds(maskBounds, maskPolygon) || maskBounds;
+    const previewBounds = getOrganicSourceBounds(result, hotspot, segmentedBounds || hotspotBounds, strategy);
     const key = getCutoutPreviewKey(
       result,
       hotspot.id,
@@ -653,6 +690,7 @@
 
   async function createHotspotCutoutPreview(result, hotspot, maskBounds, maskImage) {
     const dimensions = renderModel.getImageDimensions(result);
+    const strategy = inferPreviewStrategy(result, hotspot);
     const image = await loadCanvasImage(result.imageUrl);
     const mask = await loadCanvasImage(maskImage);
     const sourceWidth = image.naturalWidth || image.width || dimensions.width;
@@ -671,6 +709,7 @@
     ctx.globalCompositeOperation = "destination-in";
     ctx.drawImage(mask, 0, 0, canvas.width, canvas.height);
     ctx.globalCompositeOperation = "source-over";
+    if (!strategy.route) fillMaskAlphaHoles(ctx, canvas.width, canvas.height);
     const tight = cropCanvasToAlpha(canvas, 10);
     if (!tight) return null;
     return {
@@ -728,8 +767,12 @@
     maskCtx.imageSmoothingEnabled = true;
     maskCtx.imageSmoothingQuality = "high";
     maskCtx.clearRect(0, 0, cw, ch);
+    const trimGeneratedBoundary = shouldTrimGeneratedBoundaryFromPreview(strategy, maskPolygon);
     if (maskPolygon.length >= 3) {
-      drawNormalizedPolygonMask(maskCtx, geometry.polygon, paddedBounds, cw, ch);
+      const displayPolygon = trimGeneratedBoundary
+        ? scalePolygonAroundCenter(maskPolygon, 0.965)
+        : geometry.polygon;
+      drawNormalizedPolygonMask(maskCtx, displayPolygon, paddedBounds, cw, ch);
     } else if (useContextShape) {
       drawContextRegionMask(maskCtx, cw, ch, strategy);
     } else if (mask) {
@@ -743,13 +786,16 @@
     } else {
       return null;
     }
+    fillMaskAlphaHoles(maskCtx, cw, ch);
 
     // Step 2: dilate (grow) the silhouette outward so a little surrounding
     // context is included, then blur for a feathered edge.
     const maskArea = Math.max(0.0001, maskBounds.width * maskBounds.height);
-    const growPx = Math.round(Math.max(2, Math.min(16, Math.sqrt(maskArea) * Math.min(cw, ch) * 0.08)));
+    const growFactor = trimGeneratedBoundary ? 0.07 : 0.12;
+    const growMax = trimGeneratedBoundary ? 14 : 28;
+    const growPx = Math.round(Math.max(2, Math.min(growMax, Math.sqrt(maskArea) * Math.min(cw, ch) * growFactor)));
     dilateMaskAlpha(maskCtx, cw, ch, growPx);
-    const featherRadius = Math.max(2, Math.round(Math.min(cw, ch) * 0.022));
+    const featherRadius = Math.max(3, Math.round(Math.min(cw, ch) * 0.028));
     const featherCanvas = document.createElement("canvas");
     featherCanvas.width = cw;
     featherCanvas.height = ch;
@@ -821,6 +867,19 @@
     ctx.fill();
   }
 
+  function shouldTrimGeneratedBoundaryFromPreview(strategy, polygon) {
+    if (!strategy || !Array.isArray(polygon) || polygon.length < 3) return false;
+    if (!strategy.mapLike || strategy.route || strategy.flowStrip || strategy.subjectWithLabel) return false;
+    const visualMode = String(strategy.visualMode || "").toLowerCase();
+    return visualMode === "map" || visualMode === "scene" || visualMode === "poster";
+  }
+
+  function isSemanticVisualPreview(strategy) {
+    if (!strategy) return false;
+    const visualMode = String(strategy.visualMode || "").toLowerCase();
+    return strategy.mapLike || visualMode === "map" || visualMode === "scene" || visualMode === "poster";
+  }
+
   function drawRoundedRectPath(ctx, x, y, width, height, radius) {
     const r = Math.max(0, Math.min(radius, width / 2, height / 2));
     ctx.beginPath();
@@ -879,16 +938,64 @@
   }
 
   function expandPolygonAroundCenter(polygon, scale) {
+    return scalePolygonAroundCenter(polygon, Math.max(1, Number(scale) || 1));
+  }
+
+  function scalePolygonAroundCenter(polygon, scale) {
     const points = normalizePolygonPoints(polygon);
     const bounds = getPolygonBounds(points);
     if (!bounds || points.length < 3) return [];
     const centerX = bounds.x + bounds.width / 2;
     const centerY = bounds.y + bounds.height / 2;
-    const factor = Math.max(1, Number(scale) || 1);
+    const factor = Math.max(0.1, Number(scale) || 1);
     return points.map((point) => ({
       x: clamp01(centerX + (point.x - centerX) * factor),
       y: clamp01(centerY + (point.y - centerY) * factor)
     }));
+  }
+
+  function fillMaskAlphaHoles(ctx, width, height) {
+    if (!ctx || width <= 0 || height <= 0) return;
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    const total = width * height;
+    const visited = new Uint8Array(total);
+    const queue = [];
+    const enqueue = (x, y) => {
+      if (x < 0 || y < 0 || x >= width || y >= height) return;
+      const index = y * width + x;
+      if (visited[index]) return;
+      const alpha = data[index * 4 + 3];
+      if (alpha > 8) return;
+      visited[index] = 1;
+      queue.push(index);
+    };
+    for (let x = 0; x < width; x += 1) {
+      enqueue(x, 0);
+      enqueue(x, height - 1);
+    }
+    for (let y = 1; y < height - 1; y += 1) {
+      enqueue(0, y);
+      enqueue(width - 1, y);
+    }
+    for (let head = 0; head < queue.length; head += 1) {
+      const index = queue[head];
+      const x = index % width;
+      const y = Math.floor(index / width);
+      enqueue(x + 1, y);
+      enqueue(x - 1, y);
+      enqueue(x, y + 1);
+      enqueue(x, y - 1);
+    }
+    let changed = false;
+    for (let index = 0; index < total; index += 1) {
+      if (visited[index]) continue;
+      const alphaIndex = index * 4 + 3;
+      if (data[alphaIndex] > 8) continue;
+      data[alphaIndex] = 255;
+      changed = true;
+    }
+    if (changed) ctx.putImageData(imageData, 0, 0);
   }
 
   // Cheap morphological dilation of an alpha silhouette by `radius` px using
@@ -1005,6 +1112,23 @@
     return typeof image === "string" && image.startsWith("data:image/png;base64,") ? image : "";
   }
 
+  function findHotspotOrganicImage(result, hotspotId) {
+    const mask = findHotspotMaskRecord(result, hotspotId);
+    const image = mask && mask.organicImage;
+    return typeof image === "string" && image.startsWith("data:image/png;base64,") ? image : "";
+  }
+
+  function findHotspotOrganicBounds(result, hotspotId) {
+    const mask = findHotspotMaskRecord(result, hotspotId);
+    return normalizeBounds(mask && mask.organicBounds);
+  }
+
+  function findHotspotOrganicAspectRatio(result, hotspotId) {
+    const mask = findHotspotMaskRecord(result, hotspotId);
+    const ratio = Number(mask && mask.organicAspectRatio);
+    return Number.isFinite(ratio) && ratio > 0 ? ratio : null;
+  }
+
   function findHotspotMaskPolygon(result, hotspotId) {
     const mask = findHotspotMaskRecord(result, hotspotId);
     const polygon = (mask && mask.polygon) || [];
@@ -1064,8 +1188,7 @@
     if (!strategy) return false;
     if (shouldUseContextPreviewShape(strategy)) return true;
     if (!strategy.preferContextCrop || strategy.independentSubject) return false;
-    const visualMode = String(strategy.visualMode || "").toLowerCase();
-    return strategy.mapLike || visualMode === "map" || visualMode === "scene" || visualMode === "poster";
+    return false;
   }
 
   function shouldForceContextShapePreview(strategy, maskBounds, hotspotBounds) {
@@ -1261,14 +1384,169 @@
     return { ...bounds, y, height: Math.min(1, targetHeight) };
   }
 
+  function startPreviewFlight(result, hotspot, preview) {
+    if (!result || !hotspot || !preview || !elements.detailPanel) return;
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const target = findDetailPreviewVisual(elements.detailPanel);
+    if (!target) return;
+    const sourceRect = getPreviewFlightSourceRect(result, hotspot);
+    // Measure the preview's RESTING geometry. restartDetailMotion() has just
+    // added is-entering (panel scales 0.972 -> 1 over 320ms) and
+    // is-preview-entering (preview floats up), so a naive getBoundingClientRect()
+    // here reads the mid-entrance, scaled-down, shifted rect. The ghost would
+    // then land at that transient spot while the real preview settles 2-3%
+    // larger and higher — the misaligned "snap" the user sees when the ghost is
+    // removed. Stripping the entrance classes during the read (then restoring
+    // them, which simply replays the entrance from t=0) yields the final rect
+    // the preview will actually occupy when the flight ends.
+    const panel = elements.detailPanel;
+    const hadEntering = panel.classList.contains("is-entering");
+    const hadPreviewEntering = panel.classList.contains("is-preview-entering");
+    if (hadEntering) panel.classList.remove("is-entering");
+    if (hadPreviewEntering) panel.classList.remove("is-preview-entering");
+    const targetRect = target.getBoundingClientRect();
+    if (hadEntering) panel.classList.add("is-entering");
+    if (hadPreviewEntering) panel.classList.add("is-preview-entering");
+    if (!sourceRect || !isUsableRect(sourceRect) || !isUsableRect(targetRect)) return;
+
+    cancelPreviewFlight();
+    const ghost = target.cloneNode(true);
+    ghost.classList.add("detail-preview-flight-ghost");
+    ghost.setAttribute("aria-hidden", "true");
+    ghost.style.boxSizing = "border-box";
+    ghost.style.left = `${targetRect.left}px`;
+    ghost.style.top = `${targetRect.top}px`;
+    ghost.style.width = `${targetRect.width}px`;
+    ghost.style.height = `${targetRect.height}px`;
+    ghost.style.maxWidth = "none";
+    ghost.style.maxHeight = "none";
+    ghost.style.aspectRatio = "auto";
+    document.body.appendChild(ghost);
+
+    const sourceCenterX = sourceRect.left + sourceRect.width / 2;
+    const sourceCenterY = sourceRect.top + sourceRect.height / 2;
+    const targetCenterX = targetRect.left + targetRect.width / 2;
+    const targetCenterY = targetRect.top + targetRect.height / 2;
+    const dx = sourceCenterX - targetCenterX;
+    const dy = sourceCenterY - targetCenterY;
+    const scale = Math.max(
+      0.16,
+      Math.min(0.72, Math.min(sourceRect.width / targetRect.width, sourceRect.height / targetRect.height))
+    );
+    const duration = 760;
+    elements.detailPanel.classList.add("is-preview-flight-running");
+    const keyframes = [
+      {
+        opacity: 0,
+        filter: "blur(12px) saturate(0.94)",
+        transform: `translate(${dx}px, ${dy}px) scale(${scale})`
+      },
+      {
+        opacity: 0.92,
+        filter: "blur(2px) saturate(1.02)",
+        transform: `translate(${dx * 0.18}px, ${dy * 0.18}px) scale(${Math.min(1.03, scale + 0.22)})`,
+        offset: 0.72
+      },
+      {
+        opacity: 1,
+        filter: "blur(0) saturate(1)",
+        transform: "translate(0, 0) scale(1)"
+      }
+    ];
+    if (typeof ghost.animate === "function") {
+      const animation = ghost.animate(keyframes, {
+        duration,
+        easing: "cubic-bezier(0.18, 0.78, 0.2, 1)",
+        fill: "both"
+      });
+      animation.finished.catch(() => {}).finally(() => finishPreviewFlight(ghost));
+    } else {
+      ghost.style.opacity = "1";
+      ghost.style.transform = "translate(0, 0) scale(1)";
+    }
+    previewFlightTimer = setTimeout(() => finishPreviewFlight(ghost), duration + 80);
+  }
+
+  function findDetailPreviewVisual(container) {
+    if (!container) return null;
+    return container.querySelector(".detail-preview-crop, .detail-preview-organic, .detail-preview-cutout");
+  }
+
+  function finishPreviewFlight(ghost) {
+    if (previewFlightTimer !== null) {
+      clearTimeout(previewFlightTimer);
+      previewFlightTimer = null;
+    }
+    if (ghost && ghost.parentNode) ghost.remove();
+    if (elements.detailPanel) elements.detailPanel.classList.remove("is-preview-flight-running");
+  }
+
+  function getPreviewFlightSourceRect(result, hotspot) {
+    const image = findVisibleResultImage();
+    if (!image) return null;
+    const imageRect = image.getBoundingClientRect();
+    if (!isUsableRect(imageRect)) return null;
+    const strategy = inferPreviewStrategy(result, hotspot);
+    const hotspotBounds = normalizeBounds({
+      x: Number(hotspot && hotspot.x),
+      y: Number(hotspot && hotspot.y),
+      width: Number(hotspot && hotspot.width),
+      height: Number(hotspot && hotspot.height)
+    });
+    const rawMaskBounds = findHotspotMaskBounds(result, hotspot.id);
+    const rawMaskPolygon = findHotspotMaskPolygon(result, hotspot.id);
+    const maskBounds = isMaskConsistentWithHotspot(rawMaskBounds, hotspotBounds, strategy) ? rawMaskBounds : null;
+    const maskPolygon = maskBounds ? rawMaskPolygon : [];
+    const organicBounds = maskBounds ? findHotspotOrganicBounds(result, hotspot.id) : null;
+    const baseBounds = organicBounds || getSegmentedPreviewBounds(maskBounds, maskPolygon) || hotspotBounds;
+    if (!baseBounds) return null;
+    const bounds = expandNormalizedBounds(baseBounds, 0.018);
+    return {
+      left: imageRect.left + bounds.x * imageRect.width,
+      top: imageRect.top + bounds.y * imageRect.height,
+      width: Math.max(18, bounds.width * imageRect.width),
+      height: Math.max(18, bounds.height * imageRect.height)
+    };
+  }
+
+  function findVisibleResultImage() {
+    const images = Array.from(document.querySelectorAll(".image-stage img"));
+    return images.find((image) => {
+      const rect = image.getBoundingClientRect();
+      return rect.width > 10 && rect.height > 10 && image.offsetParent !== null;
+    }) || null;
+  }
+
+  function isUsableRect(rect) {
+    return Boolean(
+      rect &&
+        Number.isFinite(rect.left) &&
+        Number.isFinite(rect.top) &&
+        Number.isFinite(rect.width) &&
+        Number.isFinite(rect.height) &&
+        rect.width > 1 &&
+        rect.height > 1
+    );
+  }
+
   let detailCloseTimer = null;
   let detailMotionTimer = null;
+  let previewFlightTimer = null;
 
   function cancelDetailMotionTimer() {
     if (detailMotionTimer !== null) {
       clearTimeout(detailMotionTimer);
       detailMotionTimer = null;
     }
+  }
+
+  function cancelPreviewFlight() {
+    if (previewFlightTimer !== null) {
+      clearTimeout(previewFlightTimer);
+      previewFlightTimer = null;
+    }
+    document.querySelectorAll(".detail-preview-flight-ghost").forEach((node) => node.remove());
+    if (elements.detailPanel) elements.detailPanel.classList.remove("is-preview-flight-running");
   }
 
   // Entrance animation orchestration. The detail surface is layered so the
@@ -1333,6 +1611,7 @@
   function closeDetail() {
     stateModel.closeDetail(state);
     cancelDetailMotionTimer();
+    cancelPreviewFlight();
 
     if (!elements.detailPanel || elements.detailPanel.hidden) {
       if (elements.detailBackdrop) elements.detailBackdrop.hidden = true;
@@ -1378,6 +1657,7 @@
     bindExamplePrompts();
     cancelDetailCloseTimer();
     cancelDetailMotionTimer();
+    cancelPreviewFlight();
     if (elements.detailPanel) {
       elements.detailPanel.classList.remove("is-closing", "is-entering", "is-preview-entering");
       elements.detailPanel.hidden = true;
@@ -2054,7 +2334,9 @@
     buildImageDownloadName: downloadModel.buildImageDownloadName,
     previewStrategyModel,
     buildHotspotPreviewForTest: buildHotspotPreview,
+    createHotspotCutoutPreviewForTest: createHotspotCutoutPreview,
     createOrganicPreviewForTest: createOrganicPreview,
+    fillMaskAlphaHolesForTest: fillMaskAlphaHoles,
     createPolygonMaskDataUrlForTest: createPolygonMaskDataUrl
   };
 

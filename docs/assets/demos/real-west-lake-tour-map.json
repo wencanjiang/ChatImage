@@ -1,0 +1,2522 @@
+{
+  "id": "real-west-lake-tour-map",
+  "chatImageId": "ci_82e903b7-5298-409a-a982-052b216db821",
+  "title": "West Lake tour map",
+  "originalTitle": "西湖手绘导览地图",
+  "category": "map",
+  "categoryLabel": "map",
+  "question": "手绘一张西湖游览导览图，画在一张完整旅游地图上，不要流程图，不要给每块区域画分割边框。图中自然呈现湖面、白堤断桥、苏堤春晓、三潭印月、雷峰塔、孤山、宝石山、曲院风荷、柳浪闻莺，点击不同地理区域后解释风貌和游览价值。",
+  "image": "assets/demos/real-west-lake-tour-map.png",
+  "thumbnail": "assets/demos/real-west-lake-tour-map.png",
+  "visualMode": "map",
+  "layoutFamily": "",
+  "layoutVariant": "map",
+  "modeLabel": "new real generated map",
+  "hotspotCount": 9,
+  "source": "real-chatimage-curated-runs",
+  "generatedAt": "2026-06-24T07:17:44.989Z",
+  "alignmentProvider": "locateanything",
+  "sourceCounts": {
+    "mimo-vision": 9
+  },
+  "state": {
+    "id": "ci_82e903b7-5298-409a-a982-052b216db821",
+    "question": "手绘一张西湖游览导览图，画在一张完整旅游地图上，不要流程图，不要给每块区域画分割边框。图中自然呈现湖面、白堤断桥、苏堤春晓、三潭印月、雷峰塔、孤山、宝石山、曲院风荷、柳浪闻莺，点击不同地理区域后解释风貌和游览价值。",
+    "rawAnswer": "一张西湖游览导览图，画在一张完整旅游地图上，适合做成一张手绘导览地图：画面应把核心景区、主要游览路线、交通入口、住宿或补给点、自然地貌和观景关系放在同一张图中。不同地理区域分别承担定位、分流、观景、停留或补给作用；理解时要结合它们的位置、典型风貌、游玩价值、时间安排和注意事项。地图不应做成流程图，而应通过路线、地标、图例、房屋或索道图标等可见元素表达空间关系。",
+    "title": "西湖手绘导览地图",
+    "summary": "以西湖水面为中心，把堤桥、湖心岛、南北岸山体和典型景点拆成可点击地理区域。",
+    "structuredSpec": {
+      "title": "西湖手绘导览地图",
+      "language": "zh-CN",
+      "visualMode": "map",
+      "summary": "以西湖水面为中心，把堤桥、湖心岛、南北岸山体和典型景点拆成可点击地理区域。",
+      "relationType": "hierarchy",
+      "visualComposition": {
+        "compositionType": "hand-drawn-map",
+        "layoutVariant": "map",
+        "visualFocus": "西湖水面与环湖十景地标",
+        "primaryModules": [
+          "module_1",
+          "module_2",
+          "module_3",
+          "module_4"
+        ],
+        "secondaryModules": [
+          "module_5",
+          "module_6",
+          "module_7",
+          "module_8",
+          "module_9"
+        ],
+        "densityStrategy": "用湖面、堤桥、岛屿、山体、塔影、荷塘和南岸园景组织画面，避免流程图卡片和编号模块。",
+        "moduleCountReason": "西湖地图需要覆盖多个真实地理点位，9 个区域比固定 5 或 6 块更符合可交互导览。"
+      },
+      "auxiliaryModules": [],
+      "modules": [
+        {
+          "id": "module_1",
+          "title": "西湖水域",
+          "imageText": "西湖水域",
+          "detail": "西湖水域是整张地图的空间中心，把白堤、苏堤、湖心岛、南岸塔影和北岸山体组织到同一个视野里。水面不是空白背景，而是游览节奏和方向感的核心：堤桥切分湖区，游船连接岛屿，远山倒影提供层次。从岸边、堤上和船上看西湖，会得到完全不同的空间感——湖面开阔处适合远眺，近岸水面则更适合观察柳影、荷叶和船行路线。",
+          "sourceExcerpt": "一张西湖游览导览图，画在一张完整旅游地图上，适合做成一张手绘导览地图：画面应把核心景区、主要游览路线、交通入口、住宿或补给点、自然地貌和观景关系放在同一张图中。不同地理区域分别承担定位、分流、观景、停留或补给作用；理解时要结合它们的位置、典型风貌、游玩价值、时间安排和注意事项。地",
+          "iconHint": "data",
+          "regionKind": "water",
+          "regionPrompt": "西湖中央大面积湖水区域，包含湖面、游船、水波和倒影",
+          "maskPolicy": "full-region",
+          "visualEvidence": [
+            "开阔湖面",
+            "游船或水波",
+            "周边堤岸形成边界"
+          ],
+          "locatorQueries": [
+            "西湖中央湖面",
+            "大面积水域和游船",
+            "lake water area"
+          ],
+          "spatialHint": "west",
+          "componentHints": [],
+          "imageTitle": "西湖水域",
+          "textBudget": {
+            "titleLineChars": 10,
+            "titleMaxLines": 2,
+            "titleMaxChars": 20,
+            "imageTextLineChars": 16,
+            "imageTextMaxLines": 2,
+            "imageTextMaxChars": 32
+          }
+        },
+        {
+          "id": "module_2",
+          "title": "白堤断桥",
+          "imageText": "白堤断桥",
+          "detail": "白堤和断桥位于西湖北岸，是一条由堤岸、桥、柳树和湖面边界连成的完整横向游线，也是进入湖区的诗意入口：一边靠近历史街区和孤山，一边打开湖面视线。这里更适合慢行观景，桥、堤、柳共同形成可识别的线性地理区域。从这里能看见孤山、宝石山轮廓与远处湖心的视线层次，不同季节的桥面与柳岸观感差异明显——春天柳色嫩绿，夏秋桥面人多喧闹，冬日断桥常残雪相伴。",
+          "sourceExcerpt": "图不应做成流程图，而应通过路线、地标、图例、房屋或索道图标等可见元素表达空间关系。",
+          "iconHint": "route",
+          "regionKind": "route",
+          "regionPrompt": "西湖北侧的白堤和断桥，长堤、桥、柳树、湖岸线组成的线性区域",
+          "maskPolicy": "route",
+          "spatialHint": "north",
+          "visualEvidence": [
+            "北侧长堤",
+            "断桥",
+            "柳树和湖岸线"
+          ],
+          "locatorQueries": [
+            "白堤断桥完整路线",
+            "north causeway bridge",
+            "西湖北岸长堤"
+          ],
+          "componentHints": [],
+          "imageTitle": "白堤断桥",
+          "textBudget": {
+            "titleLineChars": 10,
+            "titleMaxLines": 1,
+            "titleMaxChars": 10,
+            "imageTextLineChars": 16,
+            "imageTextMaxLines": 1,
+            "imageTextMaxChars": 16
+          }
+        },
+        {
+          "id": "module_3",
+          "title": "苏堤春晓",
+          "imageText": "苏堤春晓",
+          "detail": "苏堤是一条贯穿西湖南北的长堤，堤路、拱桥、垂柳和两侧湖面共同形成连续的游览轴线。它和白堤不同，更像一条穿湖而过的绿色长廊，行走时会不断切换左侧、右侧和远山视野。春日柳色、桥影、湖风和清晨光线是这里的核心风貌；规划游线时，它适合承担纵向穿越和慢行观景的功能，也能解释为什么西湖不是一个单一湖面，而是被堤桥分割成多层空间。",
+          "sourceExcerpt": "纵贯湖面的堤路",
+          "iconHint": "timeline",
+          "regionKind": "route",
+          "regionPrompt": "纵贯西湖的苏堤，堤路、桥、柳树和两侧湖水形成的长条区域",
+          "maskPolicy": "route",
+          "spatialHint": "west",
+          "visualEvidence": [
+            "纵向堤路",
+            "多座桥或桥洞",
+            "两侧湖水"
+          ],
+          "locatorQueries": [
+            "苏堤春晓纵向堤路",
+            "Su Causeway route",
+            "穿过湖面的长堤"
+          ],
+          "componentHints": [],
+          "imageTitle": "苏堤春晓",
+          "textBudget": {
+            "titleLineChars": 4,
+            "titleMaxLines": 2,
+            "titleMaxChars": 8,
+            "imageTextLineChars": 7,
+            "imageTextMaxLines": 2,
+            "imageTextMaxChars": 14
+          }
+        },
+        {
+          "id": "module_4",
+          "title": "三潭印月",
+          "imageText": "三潭印月",
+          "detail": "三潭印月位于湖心附近，由小岛、水中石塔和周围水面共同构成。它面积不必最大，但识别度很高，因为三座石塔、月影意象和湖面留白形成了西湖最典型的精致焦点。它与岸边景点不同，体验更依赖船行距离、观看角度和水面氛围；石塔是视觉锚点，岛屿提供停留空间，周围湖水则让画面保持安静和层次。作为热点时，它适合呈现局部风貌，而不是被大面积湖面吞掉。",
+          "sourceExcerpt": "湖心岛与石塔",
+          "iconHint": "target",
+          "regionKind": "landmark",
+          "regionPrompt": "西湖湖心附近的三潭印月，小岛、三座石塔和周围水面",
+          "maskPolicy": "subject",
+          "spatialHint": "center",
+          "visualEvidence": [
+            "湖心小岛",
+            "三座石塔",
+            "环绕水面"
+          ],
+          "locatorQueries": [
+            "三潭印月湖心岛和石塔",
+            "three pools mirroring the moon",
+            "西湖中央小岛"
+          ],
+          "componentHints": [],
+          "imageTitle": "三潭印月",
+          "textBudget": {
+            "titleLineChars": 5,
+            "titleMaxLines": 1,
+            "titleMaxChars": 5,
+            "imageTextLineChars": 10,
+            "imageTextMaxLines": 1,
+            "imageTextMaxChars": 10
+          }
+        },
+        {
+          "id": "module_5",
+          "title": "雷峰塔",
+          "imageText": "雷峰塔",
+          "detail": "雷峰塔位于西湖南岸偏高处，与山体、夕照和湖面倒影一起构成南岸的垂直视觉锚点。它不只是建筑标志，更是南岸天际线、历史传说和远眺视角的集中体现，也能帮助辨认湖面南北方向。从湖面看，雷峰塔在山体背景上特别突出；从南岸看湖，则能把水域、山体和城市边缘连成一片。游览时通常和南岸的园景安排在一起，黄昏前后光线最好。",
+          "sourceExcerpt": "南岸塔影与山色",
+          "iconHint": "idea",
+          "regionKind": "building",
+          "regionPrompt": "西湖南岸的雷峰塔，塔身、山坡、夕照和湖面倒影组成的区域",
+          "maskPolicy": "subject",
+          "spatialHint": "south",
+          "visualEvidence": [
+            "南岸塔身",
+            "山坡或夕照",
+            "湖面倒影"
+          ],
+          "locatorQueries": [
+            "雷峰塔南岸塔影",
+            "Leifeng Pagoda",
+            "西湖南岸塔"
+          ],
+          "componentHints": [],
+          "imageTitle": "雷峰塔",
+          "textBudget": {
+            "titleLineChars": 6,
+            "titleMaxLines": 1,
+            "titleMaxChars": 6,
+            "imageTextLineChars": 11,
+            "imageTextMaxLines": 1,
+            "imageTextMaxChars": 11
+          }
+        },
+        {
+          "id": "module_6",
+          "title": "孤山",
+          "imageText": "孤山",
+          "detail": "孤山位于西湖北侧、紧邻白堤，是一座小型山岛，山体不高但聚集了亭台、园林和文化建筑。它在西湖里承担北岸地形和人文气质的双重作用：一面延续白堤断桥的游线，另一面把湖面从单纯水域转成有山、有岸、有历史层次的空间。从孤山步行登高能眺望湖面，沿岸的园林又适合静坐停留——它本身是一片可以慢慢走的地理区域，而不只是地图上的一个小标记。",
+          "sourceExcerpt": "北岸山岛与人文点",
+          "iconHint": "nodes",
+          "regionKind": "landmark",
+          "regionPrompt": "西湖北侧孤山，山体、湖岸、亭台或文化建筑形成的岛状地标区域",
+          "maskPolicy": "full-region",
+          "spatialHint": "northwest",
+          "visualEvidence": [
+            "北岸山岛",
+            "湖岸边界",
+            "亭台或文化建筑"
+          ],
+          "locatorQueries": [
+            "孤山完整山岛区域",
+            "Gushan hill island",
+            "西湖北侧孤山"
+          ],
+          "componentHints": [],
+          "imageTitle": "孤山",
+          "textBudget": {
+            "titleLineChars": 4,
+            "titleMaxLines": 1,
+            "titleMaxChars": 4,
+            "imageTextLineChars": 6,
+            "imageTextMaxLines": 1,
+            "imageTextMaxChars": 6
+          }
+        },
+        {
+          "id": "module_7",
+          "title": "宝石山",
+          "imageText": "宝石山",
+          "detail": "宝石山位于西湖北岸偏东北方向，山脊、林木和山顶的保俶塔共同构成北岸的高处地标。它与雷峰塔隔湖相望——一个偏北，一个偏南，共同给西湖提供纵深和方向感。宝石山不是孤立的一座塔，而是一段连续的山体背景，把平面的湖区扩展成有山、有岸、有城市边缘的环湖山水格局。从山上往下看，能把湖面、城市天际线和远处群山一并收入视野。",
+          "sourceExcerpt": "北岸山脊与保俶塔",
+          "iconHint": "summary",
+          "regionKind": "mountain",
+          "regionPrompt": "西湖北岸宝石山，山脊、保俶塔、林木和城市边缘组成的高处区域",
+          "maskPolicy": "full-region",
+          "spatialHint": "northeast",
+          "visualEvidence": [
+            "北岸山脊",
+            "保俶塔或高塔",
+            "林木轮廓"
+          ],
+          "locatorQueries": [
+            "宝石山和保俶塔",
+            "Baoshi Hill ridge",
+            "西湖北岸山脊"
+          ],
+          "componentHints": [],
+          "imageTitle": "宝石山",
+          "textBudget": {
+            "titleLineChars": 5,
+            "titleMaxLines": 1,
+            "titleMaxChars": 5,
+            "imageTextLineChars": 10,
+            "imageTextMaxLines": 1,
+            "imageTextMaxChars": 10
+          }
+        },
+        {
+          "id": "module_8",
+          "title": "曲院风荷",
+          "imageText": "曲院风荷",
+          "detail": "曲院风荷位于西湖西北侧或近岸位置，是一片由荷塘、水面、曲桥和岸边植物组成的园林区域。它和普通湖岸最大的不同在于：重点不是开阔水面，而是夏季的荷景、近岸停留和园林路径——荷叶、桥线和岸边树影共同形成一个紧凑、可识别的小尺度环境。夏季和清晨最能体现风荷的层次，是从大湖面切换到细腻水生植物景观的过渡带。",
+          "sourceExcerpt": "荷塘、曲桥、夏景",
+          "iconHint": "risk",
+          "regionKind": "landmark",
+          "regionPrompt": "西湖北西侧曲院风荷，荷塘、曲桥、近岸植物和水面形成的景区区域",
+          "maskPolicy": "full-region",
+          "spatialHint": "northwest",
+          "visualEvidence": [
+            "荷叶或荷花",
+            "曲桥",
+            "近岸园林"
+          ],
+          "locatorQueries": [
+            "曲院风荷荷塘区域",
+            "lotus pond and curved bridge",
+            "西湖荷花景区"
+          ],
+          "componentHints": [],
+          "imageTitle": "曲院风荷",
+          "textBudget": {
+            "titleLineChars": 6,
+            "titleMaxLines": 2,
+            "titleMaxChars": 12,
+            "imageTextLineChars": 11,
+            "imageTextMaxLines": 2,
+            "imageTextMaxChars": 22
+          }
+        },
+        {
+          "id": "module_9",
+          "title": "柳浪闻莺",
+          "imageText": "柳浪闻莺",
+          "detail": "柳浪闻莺位于西湖南岸或东南岸近水园林中，柳树、园路、湖岸和鸟鸣组成柔和的岸线区域。它与雷峰塔这类高耸地标完全不同——重点不是远眺，而是贴近湖岸的步行体验、春日柳色和园林声景。这片区域提醒人们南岸并不只有塔和远山，也有适合慢慢穿行、拍摄近景和感受季节变化的低矮景观带。柳树、岸线和游步道形成一个连续的环境，春夏之际尤其有声音和颜色的层次感。",
+          "sourceExcerpt": "南岸柳林与园景",
+          "iconHint": "source",
+          "regionKind": "landmark",
+          "regionPrompt": "西湖南岸柳浪闻莺，柳树、园路、湖岸和鸟鸣意象组成的近岸景区",
+          "maskPolicy": "full-region",
+          "spatialHint": "southeast",
+          "visualEvidence": [
+            "南岸柳树",
+            "园路",
+            "湖岸近景"
+          ],
+          "locatorQueries": [
+            "柳浪闻莺南岸柳林",
+            "willow waves and orioles",
+            "西湖南岸园林"
+          ],
+          "componentHints": [],
+          "imageTitle": "柳浪闻莺",
+          "textBudget": {
+            "titleLineChars": 6,
+            "titleMaxLines": 1,
+            "titleMaxChars": 6,
+            "imageTextLineChars": 11,
+            "imageTextMaxLines": 1,
+            "imageTextMaxChars": 11
+          }
+        }
+      ],
+      "qualityWarnings": [
+        "topic_mismatch"
+      ],
+      "textModelUsed": "mimo-v2.5-pro",
+      "textModelFallbackReason": ""
+    },
+    "layout": {
+      "id": "layout_8c7377c1-bada-4b7f-9da8-b0e08c61034b",
+      "family": "grid",
+      "visualMode": "map",
+      "layoutVariant": "map",
+      "aspectRatio": "16:9",
+      "canvas": {
+        "width": 1600,
+        "height": 900,
+        "safeArea": {
+          "x": 0.055,
+          "y": 0.055,
+          "width": 0.89,
+          "height": 0.89
+        }
+      },
+      "regions": [
+        {
+          "id": "title",
+          "role": "title",
+          "bounds": {
+            "x": 0.06,
+            "y": 0.06,
+            "width": 0.58,
+            "height": 0.08
+          },
+          "shape": "rect",
+          "zIndex": 1
+        },
+        {
+          "id": "summary",
+          "role": "summary",
+          "bounds": {
+            "x": 0.06,
+            "y": 0.15,
+            "width": 0.62,
+            "height": 0.07
+          },
+          "shape": "rect",
+          "zIndex": 1
+        },
+        {
+          "id": "region_module_1",
+          "hotspotId": "module_1",
+          "role": "module",
+          "bounds": {
+            "x": 0.208,
+            "y": 0.202,
+            "width": 0.624,
+            "height": 0.576
+          },
+          "shape": "freeform",
+          "zIndex": 2,
+          "alignedBy": "mimo-vision",
+          "rawAlignmentBounds": {
+            "x": 0.26,
+            "y": 0.25,
+            "width": 0.52,
+            "height": 0.48
+          },
+          "boundsExpansion": {
+            "strategy": "semantic-region-pad",
+            "padX": 0.1,
+            "padY": 0.1,
+            "from": {
+              "x": 0.26,
+              "y": 0.25,
+              "width": 0.52,
+              "height": 0.48
+            },
+            "to": {
+              "x": 0.208,
+              "y": 0.202,
+              "width": 0.624,
+              "height": 0.576
+            }
+          },
+          "boundsExpandedForAlignment": true,
+          "mask": null,
+          "clickBoundsSource": "hotspot-derived"
+        },
+        {
+          "id": "region_module_2",
+          "hotspotId": "module_2",
+          "role": "module",
+          "bounds": {
+            "x": 0.308403,
+            "y": 0.107824,
+            "width": 0.443194,
+            "height": 0.164352
+          },
+          "shape": "freeform",
+          "zIndex": 2,
+          "alignedBy": "mimo-vision",
+          "rawAlignmentBounds": {
+            "x": 0.34,
+            "y": 0.13,
+            "width": 0.38,
+            "height": 0.12
+          },
+          "boundsExpansion": {
+            "strategy": "route-context-pad",
+            "padX": 0.045,
+            "padY": 0.14,
+            "from": {
+              "x": 0.34,
+              "y": 0.13,
+              "width": 0.38,
+              "height": 0.12
+            },
+            "to": {
+              "x": 0.3229,
+              "y": 0.1132,
+              "width": 0.4142,
+              "height": 0.1536
+            }
+          },
+          "boundsExpandedForAlignment": true,
+          "mask": null,
+          "clickBoundsSource": "hotspot-derived"
+        },
+        {
+          "id": "region_module_3",
+          "hotspotId": "module_3",
+          "role": "module",
+          "bounds": {
+            "x": 0.690432,
+            "y": 0.34,
+            "width": 0.219136,
+            "height": 0.34
+          },
+          "shape": "freeform",
+          "zIndex": 2,
+          "alignedBy": "mimo-vision",
+          "rawAlignmentBounds": {
+            "x": 0.72,
+            "y": 0.22,
+            "width": 0.16,
+            "height": 0.58
+          },
+          "boundsExpansion": {
+            "strategy": "route-context-pad",
+            "padX": 0.14,
+            "padY": 0.045,
+            "from": {
+              "x": 0.72,
+              "y": 0.22,
+              "width": 0.16,
+              "height": 0.58
+            },
+            "to": {
+              "x": 0.6976,
+              "y": 0.3,
+              "width": 0.2048,
+              "height": 0.42
+            }
+          },
+          "boundsExpandedForAlignment": true,
+          "mask": null,
+          "clickBoundsSource": "hotspot-derived"
+        },
+        {
+          "id": "region_module_4",
+          "hotspotId": "module_4",
+          "role": "module",
+          "bounds": {
+            "x": 0.441805,
+            "y": 0.430592,
+            "width": 0.18639,
+            "height": 0.198816
+          },
+          "shape": "freeform",
+          "zIndex": 2,
+          "alignedBy": "mimo-vision",
+          "rawAlignmentBounds": {
+            "x": 0.46,
+            "y": 0.45,
+            "width": 0.15,
+            "height": 0.16
+          },
+          "boundsExpansion": {
+            "strategy": "subject-pad",
+            "padX": 0.07,
+            "padY": 0.07,
+            "from": {
+              "x": 0.46,
+              "y": 0.45,
+              "width": 0.15,
+              "height": 0.16
+            },
+            "to": {
+              "x": 0.4495,
+              "y": 0.4388,
+              "width": 0.171,
+              "height": 0.1824
+            }
+          },
+          "boundsExpandedForAlignment": true,
+          "mask": null,
+          "clickBoundsSource": "hotspot-derived"
+        },
+        {
+          "id": "region_module_5",
+          "hotspotId": "module_5",
+          "role": "module",
+          "bounds": {
+            "x": 0.191805,
+            "y": 0.51361,
+            "width": 0.18639,
+            "height": 0.37278
+          },
+          "shape": "freeform",
+          "zIndex": 3,
+          "alignedBy": "mimo-vision",
+          "rawAlignmentBounds": {
+            "x": 0.21,
+            "y": 0.55,
+            "width": 0.15,
+            "height": 0.3
+          },
+          "boundsExpansion": {
+            "strategy": "subject-pad",
+            "padX": 0.07,
+            "padY": 0.07,
+            "from": {
+              "x": 0.21,
+              "y": 0.55,
+              "width": 0.15,
+              "height": 0.3
+            },
+            "to": {
+              "x": 0.1995,
+              "y": 0.529,
+              "width": 0.171,
+              "height": 0.342
+            }
+          },
+          "boundsExpandedForAlignment": true,
+          "mask": null,
+          "clickBoundsSource": "hotspot-derived"
+        },
+        {
+          "id": "region_module_6",
+          "hotspotId": "module_6",
+          "role": "module",
+          "bounds": {
+            "x": 0.24876,
+            "y": 0.035,
+            "width": 0.28248,
+            "height": 0.28248
+          },
+          "shape": "freeform",
+          "zIndex": 3,
+          "alignedBy": "mimo-vision",
+          "rawAlignmentBounds": {
+            "x": 0.28,
+            "y": 0.02,
+            "width": 0.22,
+            "height": 0.22
+          },
+          "boundsExpansion": {
+            "strategy": "semantic-region-pad",
+            "padX": 0.1,
+            "padY": 0.1,
+            "from": {
+              "x": 0.28,
+              "y": 0.02,
+              "width": 0.22,
+              "height": 0.22
+            },
+            "to": {
+              "x": 0.258,
+              "y": 0,
+              "width": 0.264,
+              "height": 0.264
+            }
+          },
+          "boundsExpandedForAlignment": true,
+          "mask": null,
+          "clickBoundsSource": "hotspot-derived"
+        },
+        {
+          "id": "region_module_7",
+          "hotspotId": "module_7",
+          "role": "module",
+          "bounds": {
+            "x": 0.67772,
+            "y": 0.035,
+            "width": 0.28728,
+            "height": 0.30096
+          },
+          "shape": "freeform",
+          "zIndex": 3,
+          "alignedBy": "mimo-vision",
+          "rawAlignmentBounds": {
+            "x": 0.75,
+            "y": 0.01,
+            "width": 0.21,
+            "height": 0.22
+          },
+          "boundsExpansion": {
+            "strategy": "semantic-region-pad",
+            "padX": 0.1,
+            "padY": 0.1,
+            "from": {
+              "x": 0.75,
+              "y": 0.01,
+              "width": 0.21,
+              "height": 0.22
+            },
+            "to": {
+              "x": 0.729,
+              "y": 0,
+              "width": 0.252,
+              "height": 0.264
+            }
+          },
+          "boundsExpandedForAlignment": true,
+          "mask": null,
+          "clickBoundsSource": "hotspot-derived"
+        },
+        {
+          "id": "region_module_8",
+          "hotspotId": "module_8",
+          "role": "module",
+          "bounds": {
+            "x": 0.035,
+            "y": 0.3303,
+            "width": 0.28248,
+            "height": 0.4494
+          },
+          "shape": "freeform",
+          "zIndex": 3,
+          "alignedBy": "mimo-vision",
+          "rawAlignmentBounds": {
+            "x": 0.02,
+            "y": 0.38,
+            "width": 0.22,
+            "height": 0.35
+          },
+          "boundsExpansion": {
+            "strategy": "semantic-region-pad",
+            "padX": 0.1,
+            "padY": 0.1,
+            "from": {
+              "x": 0.02,
+              "y": 0.38,
+              "width": 0.22,
+              "height": 0.35
+            },
+            "to": {
+              "x": 0,
+              "y": 0.345,
+              "width": 0.264,
+              "height": 0.42
+            }
+          },
+          "boundsExpandedForAlignment": true,
+          "mask": null,
+          "clickBoundsSource": "hotspot-derived"
+        },
+        {
+          "id": "region_module_9",
+          "hotspotId": "module_9",
+          "role": "module",
+          "bounds": {
+            "x": 0.47708,
+            "y": 0.473,
+            "width": 0.48792,
+            "height": 0.48
+          },
+          "shape": "freeform",
+          "zIndex": 3,
+          "alignedBy": "mimo-vision",
+          "rawAlignmentBounds": {
+            "x": 0.58,
+            "y": 0.55,
+            "width": 0.38,
+            "height": 0.42
+          },
+          "boundsExpansion": {
+            "strategy": "semantic-region-pad",
+            "padX": 0.1,
+            "padY": 0.1,
+            "from": {
+              "x": 0.58,
+              "y": 0.55,
+              "width": 0.38,
+              "height": 0.42
+            },
+            "to": {
+              "x": 0.542,
+              "y": 0.496,
+              "width": 0.456,
+              "height": 0.504
+            }
+          },
+          "boundsExpandedForAlignment": true,
+          "mask": null,
+          "clickBoundsSource": "hotspot-derived"
+        }
+      ],
+      "validation": {
+        "valid": true,
+        "errors": [],
+        "strictErrors": [
+          "region_module_1 overlaps region_module_3",
+          "region_module_1 overlaps region_module_4",
+          "region_module_1 overlaps region_module_5",
+          "region_module_1 overlaps region_module_8",
+          "region_module_1 overlaps region_module_9",
+          "region_module_2 overlaps region_module_6",
+          "region_module_3 overlaps region_module_9"
+        ]
+      },
+      "alignment": {
+        "provider": "vision",
+        "alignedAt": "2026-06-24T07:17:44.987Z",
+        "modules": [
+          {
+            "moduleId": "module_1",
+            "label": "西湖水域",
+            "bounds": {
+              "x": 0.208,
+              "y": 0.202,
+              "width": 0.624,
+              "height": 0.576
+            },
+            "rawBounds": {
+              "x": 0.26,
+              "y": 0.25,
+              "width": 0.52,
+              "height": 0.48
+            },
+            "boundsExpansion": {
+              "strategy": "semantic-region-pad",
+              "padX": 0.1,
+              "padY": 0.1,
+              "from": {
+                "x": 0.26,
+                "y": 0.25,
+                "width": 0.52,
+                "height": 0.48
+              },
+              "to": {
+                "x": 0.208,
+                "y": 0.202,
+                "width": 0.624,
+                "height": 0.576
+              }
+            },
+            "confidence": 0.9,
+            "source": "mimo-vision",
+            "matchedText": "The candidate covers the central open water area of West Lake, including visible boats and water ripples, matching the target 'West Lake water area'.",
+            "mask": null
+          },
+          {
+            "moduleId": "module_2",
+            "label": "白堤断桥",
+            "bounds": {
+              "x": 0.3229,
+              "y": 0.1132,
+              "width": 0.4142,
+              "height": 0.1536
+            },
+            "rawBounds": {
+              "x": 0.34,
+              "y": 0.13,
+              "width": 0.38,
+              "height": 0.12
+            },
+            "boundsExpansion": {
+              "strategy": "route-context-pad",
+              "padX": 0.045,
+              "padY": 0.14,
+              "from": {
+                "x": 0.34,
+                "y": 0.13,
+                "width": 0.38,
+                "height": 0.12
+              },
+              "to": {
+                "x": 0.3229,
+                "y": 0.1132,
+                "width": 0.4142,
+                "height": 0.1536
+              }
+            },
+            "confidence": 0.85,
+            "source": "mimo-vision",
+            "matchedText": "The candidate covers the linear route of Bai Causeway and Broken Bridge, including the causeway, bridge, willow trees, and lake bank, as specified in the target.",
+            "mask": null
+          },
+          {
+            "moduleId": "module_3",
+            "label": "苏堤春晓",
+            "bounds": {
+              "x": 0.6976,
+              "y": 0.3,
+              "width": 0.2048,
+              "height": 0.42
+            },
+            "rawBounds": {
+              "x": 0.72,
+              "y": 0.22,
+              "width": 0.16,
+              "height": 0.58
+            },
+            "boundsExpansion": {
+              "strategy": "route-context-pad",
+              "padX": 0.14,
+              "padY": 0.045,
+              "from": {
+                "x": 0.72,
+                "y": 0.22,
+                "width": 0.16,
+                "height": 0.58
+              },
+              "to": {
+                "x": 0.6976,
+                "y": 0.3,
+                "width": 0.2048,
+                "height": 0.42
+              }
+            },
+            "confidence": 0.85,
+            "source": "mimo-vision",
+            "matchedText": "The candidate covers the longitudinal Su Causeway route, including the causeway path, multiple bridges, and the willow trees lining it, matching the target description.",
+            "mask": null
+          },
+          {
+            "moduleId": "module_4",
+            "label": "三潭印月",
+            "bounds": {
+              "x": 0.4495,
+              "y": 0.4388,
+              "width": 0.171,
+              "height": 0.1824
+            },
+            "rawBounds": {
+              "x": 0.46,
+              "y": 0.45,
+              "width": 0.15,
+              "height": 0.16
+            },
+            "boundsExpansion": {
+              "strategy": "subject-pad",
+              "padX": 0.07,
+              "padY": 0.07,
+              "from": {
+                "x": 0.46,
+                "y": 0.45,
+                "width": 0.15,
+                "height": 0.16
+              },
+              "to": {
+                "x": 0.4495,
+                "y": 0.4388,
+                "width": 0.171,
+                "height": 0.1824
+              }
+            },
+            "confidence": 0.9,
+            "source": "mimo-vision",
+            "matchedText": "The candidate accurately frames the lake island, three stone pagodas, and the surrounding water, which is the core visual of 'Three Pools Mirroring the Moon'.",
+            "mask": null
+          },
+          {
+            "moduleId": "module_5",
+            "label": "雷峰塔",
+            "bounds": {
+              "x": 0.1995,
+              "y": 0.529,
+              "width": 0.171,
+              "height": 0.342
+            },
+            "rawBounds": {
+              "x": 0.21,
+              "y": 0.55,
+              "width": 0.15,
+              "height": 0.3
+            },
+            "boundsExpansion": {
+              "strategy": "subject-pad",
+              "padX": 0.07,
+              "padY": 0.07,
+              "from": {
+                "x": 0.21,
+                "y": 0.55,
+                "width": 0.15,
+                "height": 0.3
+              },
+              "to": {
+                "x": 0.1995,
+                "y": 0.529,
+                "width": 0.171,
+                "height": 0.342
+              }
+            },
+            "confidence": 0.85,
+            "source": "mimo-vision",
+            "matchedText": "The candidate covers the Leifeng Pagoda on the southern bank, including the tower body and the hill slope, fulfilling the target's requirement for the building landmark.",
+            "mask": null
+          },
+          {
+            "moduleId": "module_6",
+            "label": "孤山",
+            "bounds": {
+              "x": 0.258,
+              "y": 0,
+              "width": 0.264,
+              "height": 0.264
+            },
+            "rawBounds": {
+              "x": 0.28,
+              "y": 0.02,
+              "width": 0.22,
+              "height": 0.22
+            },
+            "boundsExpansion": {
+              "strategy": "semantic-region-pad",
+              "padX": 0.1,
+              "padY": 0.1,
+              "from": {
+                "x": 0.28,
+                "y": 0.02,
+                "width": 0.22,
+                "height": 0.22
+              },
+              "to": {
+                "x": 0.258,
+                "y": 0,
+                "width": 0.264,
+                "height": 0.264
+              }
+            },
+            "confidence": 0.85,
+            "source": "mimo-vision",
+            "matchedText": "The candidate covers the island-like landmass of Gushan, including the hill, shoreline, and buildings, matching the target's description of the landmark region.",
+            "mask": null
+          },
+          {
+            "moduleId": "module_7",
+            "label": "宝石山",
+            "bounds": {
+              "x": 0.729,
+              "y": 0,
+              "width": 0.252,
+              "height": 0.264
+            },
+            "rawBounds": {
+              "x": 0.75,
+              "y": 0.01,
+              "width": 0.21,
+              "height": 0.22
+            },
+            "boundsExpansion": {
+              "strategy": "semantic-region-pad",
+              "padX": 0.1,
+              "padY": 0.1,
+              "from": {
+                "x": 0.75,
+                "y": 0.01,
+                "width": 0.21,
+                "height": 0.22
+              },
+              "to": {
+                "x": 0.729,
+                "y": 0,
+                "width": 0.252,
+                "height": 0.264
+              }
+            },
+            "confidence": 0.85,
+            "source": "mimo-vision",
+            "matchedText": "The candidate covers the ridge of Baoshi Hill, including the visible Baochu Pagoda at the top and the surrounding forest, as required by the target.",
+            "mask": null
+          },
+          {
+            "moduleId": "module_8",
+            "label": "曲院风荷",
+            "bounds": {
+              "x": 0,
+              "y": 0.345,
+              "width": 0.264,
+              "height": 0.42
+            },
+            "rawBounds": {
+              "x": 0.02,
+              "y": 0.38,
+              "width": 0.22,
+              "height": 0.35
+            },
+            "boundsExpansion": {
+              "strategy": "semantic-region-pad",
+              "padX": 0.1,
+              "padY": 0.1,
+              "from": {
+                "x": 0.02,
+                "y": 0.38,
+                "width": 0.22,
+                "height": 0.35
+              },
+              "to": {
+                "x": 0,
+                "y": 0.345,
+                "width": 0.264,
+                "height": 0.42
+              }
+            },
+            "confidence": 0.85,
+            "source": "mimo-vision",
+            "matchedText": "The candidate covers the lotus pond area with the curved bridge, lotus plants, and shoreline greenery, matching the 'Lotus in the Breeze at Crooked Courtyard' scenic region.",
+            "mask": null
+          },
+          {
+            "moduleId": "module_9",
+            "label": "柳浪闻莺",
+            "bounds": {
+              "x": 0.542,
+              "y": 0.496,
+              "width": 0.456,
+              "height": 0.504
+            },
+            "rawBounds": {
+              "x": 0.58,
+              "y": 0.55,
+              "width": 0.38,
+              "height": 0.42
+            },
+            "boundsExpansion": {
+              "strategy": "semantic-region-pad",
+              "padX": 0.1,
+              "padY": 0.1,
+              "from": {
+                "x": 0.58,
+                "y": 0.55,
+                "width": 0.38,
+                "height": 0.42
+              },
+              "to": {
+                "x": 0.542,
+                "y": 0.496,
+                "width": 0.456,
+                "height": 0.504
+              }
+            },
+            "confidence": 0.85,
+            "source": "mimo-vision",
+            "matchedText": "The candidate covers the willow garden shoreline on the southeast bank, including the willow trees, garden paths, and the near-water landscape, as specified in the target.",
+            "mask": null
+          }
+        ],
+        "acceptedModules": [
+          "module_1",
+          "module_2",
+          "module_3",
+          "module_4",
+          "module_5",
+          "module_6",
+          "module_7",
+          "module_8",
+          "module_9"
+        ],
+        "rejectedModules": [],
+        "missingModules": [],
+        "sourceCounts": {
+          "mimo-vision": 9
+        }
+      },
+      "clickBoundsSource": "hotspot-derived"
+    },
+    "hotspots": [
+      {
+        "id": "module_1",
+        "label": "西湖水域",
+        "shortText": "西湖水域",
+        "detail": "西湖水域是整张地图的空间中心，把白堤、苏堤、湖心岛、南岸塔影和北岸山体组织到同一个视野里。水面不是空白背景，而是游览节奏和方向感的核心：堤桥切分湖区，游船连接岛屿，远山倒影提供层次。从岸边、堤上和船上看西湖，会得到完全不同的空间感——湖面开阔处适合远眺，近岸水面则更适合观察柳影、荷叶和船行路线。",
+        "sourceExcerpt": "一张西湖游览导览图，画在一张完整旅游地图上，适合做成一张手绘导览地图：画面应把核心景区、主要游览路线、交通入口、住宿或补给点、自然地貌和观景关系放在同一张图中。不同地理区域分别承担定位、分流、观景、停留或补给作用；理解时要结合它们的位置、典型风貌、游玩价值、时间安排和注意事项。地",
+        "iconHint": "data",
+        "x": 0.208,
+        "y": 0.202,
+        "width": 0.624,
+        "height": 0.576,
+        "textBudget": {
+          "titleLineChars": 10,
+          "titleMaxLines": 2,
+          "titleMaxChars": 20,
+          "imageTextLineChars": 16,
+          "imageTextMaxLines": 2,
+          "imageTextMaxChars": 32
+        },
+        "zIndex": 1,
+        "alignmentSource": "mimo-vision",
+        "regionKind": "water",
+        "maskPolicy": "full-region",
+        "mask": null,
+        "shape": "freeform",
+        "clickShape": "rect",
+        "maskUsableForClick": false,
+        "clickDiagnostics": [],
+        "bounds": {
+          "x": 0.208,
+          "y": 0.202,
+          "width": 0.624,
+          "height": 0.576
+        }
+      },
+      {
+        "id": "module_2",
+        "label": "白堤断桥",
+        "shortText": "白堤断桥",
+        "detail": "白堤和断桥位于西湖北岸，是一条由堤岸、桥、柳树和湖面边界连成的完整横向游线，也是进入湖区的诗意入口：一边靠近历史街区和孤山，一边打开湖面视线。这里更适合慢行观景，桥、堤、柳共同形成可识别的线性地理区域。从这里能看见孤山、宝石山轮廓与远处湖心的视线层次，不同季节的桥面与柳岸观感差异明显——春天柳色嫩绿，夏秋桥面人多喧闹，冬日断桥常残雪相伴。",
+        "sourceExcerpt": "图不应做成流程图，而应通过路线、地标、图例、房屋或索道图标等可见元素表达空间关系。",
+        "iconHint": "route",
+        "x": 0.308403,
+        "y": 0.107824,
+        "width": 0.44319400000000003,
+        "height": 0.164352,
+        "textBudget": {
+          "titleLineChars": 10,
+          "titleMaxLines": 1,
+          "titleMaxChars": 10,
+          "imageTextLineChars": 16,
+          "imageTextMaxLines": 1,
+          "imageTextMaxChars": 16
+        },
+        "zIndex": 7,
+        "alignmentSource": "mimo-vision",
+        "regionKind": "route",
+        "maskPolicy": "route",
+        "mask": null,
+        "shape": "freeform",
+        "clickShape": "rect",
+        "maskUsableForClick": false,
+        "clickDiagnostics": [
+          "expanded_visual_module_bounds"
+        ],
+        "bounds": {
+          "x": 0.308403,
+          "y": 0.107824,
+          "width": 0.443194,
+          "height": 0.164352
+        }
+      },
+      {
+        "id": "module_3",
+        "label": "苏堤春晓",
+        "shortText": "苏堤春晓",
+        "detail": "苏堤是一条贯穿西湖南北的长堤，堤路、拱桥、垂柳和两侧湖面共同形成连续的游览轴线。它和白堤不同，更像一条穿湖而过的绿色长廊，行走时会不断切换左侧、右侧和远山视野。春日柳色、桥影、湖风和清晨光线是这里的核心风貌；规划游线时，它适合承担纵向穿越和慢行观景的功能，也能解释为什么西湖不是一个单一湖面，而是被堤桥分割成多层空间。",
+        "sourceExcerpt": "纵贯湖面的堤路",
+        "iconHint": "timeline",
+        "x": 0.690432,
+        "y": 0.33999999999999997,
+        "width": 0.21913600000000003,
+        "height": 0.34,
+        "textBudget": {
+          "titleLineChars": 4,
+          "titleMaxLines": 2,
+          "titleMaxChars": 8,
+          "imageTextLineChars": 7,
+          "imageTextMaxLines": 2,
+          "imageTextMaxChars": 14
+        },
+        "zIndex": 7,
+        "alignmentSource": "mimo-vision",
+        "regionKind": "route",
+        "maskPolicy": "route",
+        "mask": null,
+        "shape": "freeform",
+        "clickShape": "rect",
+        "maskUsableForClick": false,
+        "clickDiagnostics": [
+          "expanded_visual_module_bounds"
+        ],
+        "bounds": {
+          "x": 0.690432,
+          "y": 0.34,
+          "width": 0.219136,
+          "height": 0.34
+        }
+      },
+      {
+        "id": "module_4",
+        "label": "三潭印月",
+        "shortText": "三潭印月",
+        "detail": "三潭印月位于湖心附近，由小岛、水中石塔和周围水面共同构成。它面积不必最大，但识别度很高，因为三座石塔、月影意象和湖面留白形成了西湖最典型的精致焦点。它与岸边景点不同，体验更依赖船行距离、观看角度和水面氛围；石塔是视觉锚点，岛屿提供停留空间，周围湖水则让画面保持安静和层次。作为热点时，它适合呈现局部风貌，而不是被大面积湖面吞掉。",
+        "sourceExcerpt": "湖心岛与石塔",
+        "iconHint": "target",
+        "x": 0.441805,
+        "y": 0.43059200000000003,
+        "width": 0.18639000000000003,
+        "height": 0.19881600000000002,
+        "textBudget": {
+          "titleLineChars": 5,
+          "titleMaxLines": 1,
+          "titleMaxChars": 5,
+          "imageTextLineChars": 10,
+          "imageTextMaxLines": 1,
+          "imageTextMaxChars": 10
+        },
+        "zIndex": 7,
+        "alignmentSource": "mimo-vision",
+        "regionKind": "landmark",
+        "maskPolicy": "subject",
+        "mask": null,
+        "shape": "freeform",
+        "clickShape": "rect",
+        "maskUsableForClick": false,
+        "clickDiagnostics": [
+          "expanded_visual_module_bounds",
+          "center_was_covered_by:module_9"
+        ],
+        "bounds": {
+          "x": 0.441805,
+          "y": 0.430592,
+          "width": 0.18639,
+          "height": 0.198816
+        }
+      },
+      {
+        "id": "module_5",
+        "label": "雷峰塔",
+        "shortText": "雷峰塔",
+        "detail": "雷峰塔位于西湖南岸偏高处，与山体、夕照和湖面倒影一起构成南岸的垂直视觉锚点。它不只是建筑标志，更是南岸天际线、历史传说和远眺视角的集中体现，也能帮助辨认湖面南北方向。从湖面看，雷峰塔在山体背景上特别突出；从南岸看湖，则能把水域、山体和城市边缘连成一片。游览时通常和南岸的园景安排在一起，黄昏前后光线最好。",
+        "sourceExcerpt": "南岸塔影与山色",
+        "iconHint": "idea",
+        "x": 0.191805,
+        "y": 0.51361,
+        "width": 0.18639000000000003,
+        "height": 0.37278000000000006,
+        "textBudget": {
+          "titleLineChars": 6,
+          "titleMaxLines": 1,
+          "titleMaxChars": 6,
+          "imageTextLineChars": 11,
+          "imageTextMaxLines": 1,
+          "imageTextMaxChars": 11
+        },
+        "zIndex": 7,
+        "alignmentSource": "mimo-vision",
+        "regionKind": "building",
+        "maskPolicy": "subject",
+        "mask": null,
+        "shape": "freeform",
+        "clickShape": "rect",
+        "maskUsableForClick": false,
+        "clickDiagnostics": [
+          "expanded_visual_module_bounds",
+          "center_was_covered_by:module_8"
+        ],
+        "bounds": {
+          "x": 0.191805,
+          "y": 0.51361,
+          "width": 0.18639,
+          "height": 0.37278
+        }
+      },
+      {
+        "id": "module_6",
+        "label": "孤山",
+        "shortText": "孤山",
+        "detail": "孤山位于西湖北侧、紧邻白堤，是一座小型山岛，山体不高但聚集了亭台、园林和文化建筑。它在西湖里承担北岸地形和人文气质的双重作用：一面延续白堤断桥的游线，另一面把湖面从单纯水域转成有山、有岸、有历史层次的空间。从孤山步行登高能眺望湖面，沿岸的园林又适合静坐停留——它本身是一片可以慢慢走的地理区域，而不只是地图上的一个小标记。",
+        "sourceExcerpt": "北岸山岛与人文点",
+        "iconHint": "nodes",
+        "x": 0.24876,
+        "y": 0.035,
+        "width": 0.28248,
+        "height": 0.28248,
+        "textBudget": {
+          "titleLineChars": 4,
+          "titleMaxLines": 1,
+          "titleMaxChars": 4,
+          "imageTextLineChars": 6,
+          "imageTextMaxLines": 1,
+          "imageTextMaxChars": 6
+        },
+        "zIndex": 6,
+        "alignmentSource": "mimo-vision",
+        "regionKind": "landmark",
+        "maskPolicy": "full-region",
+        "mask": null,
+        "shape": "freeform",
+        "clickShape": "rect",
+        "maskUsableForClick": false,
+        "clickDiagnostics": [
+          "expanded_visual_module_bounds"
+        ],
+        "bounds": {
+          "x": 0.24876,
+          "y": 0.035,
+          "width": 0.28248,
+          "height": 0.28248
+        }
+      },
+      {
+        "id": "module_7",
+        "label": "宝石山",
+        "shortText": "宝石山",
+        "detail": "宝石山位于西湖北岸偏东北方向，山脊、林木和山顶的保俶塔共同构成北岸的高处地标。它与雷峰塔隔湖相望——一个偏北，一个偏南，共同给西湖提供纵深和方向感。宝石山不是孤立的一座塔，而是一段连续的山体背景，把平面的湖区扩展成有山、有岸、有城市边缘的环湖山水格局。从山上往下看，能把湖面、城市天际线和远处群山一并收入视野。",
+        "sourceExcerpt": "北岸山脊与保俶塔",
+        "iconHint": "summary",
+        "x": 0.6777199999999999,
+        "y": 0.035,
+        "width": 0.28728000000000004,
+        "height": 0.30096000000000006,
+        "textBudget": {
+          "titleLineChars": 5,
+          "titleMaxLines": 1,
+          "titleMaxChars": 5,
+          "imageTextLineChars": 10,
+          "imageTextMaxLines": 1,
+          "imageTextMaxChars": 10
+        },
+        "zIndex": 1,
+        "alignmentSource": "mimo-vision",
+        "regionKind": "mountain",
+        "maskPolicy": "full-region",
+        "mask": null,
+        "shape": "freeform",
+        "clickShape": "rect",
+        "maskUsableForClick": false,
+        "clickDiagnostics": [
+          "expanded_visual_module_bounds"
+        ],
+        "bounds": {
+          "x": 0.67772,
+          "y": 0.035,
+          "width": 0.28728,
+          "height": 0.30096
+        }
+      },
+      {
+        "id": "module_8",
+        "label": "曲院风荷",
+        "shortText": "曲院风荷",
+        "detail": "曲院风荷位于西湖西北侧或近岸位置，是一片由荷塘、水面、曲桥和岸边植物组成的园林区域。它和普通湖岸最大的不同在于：重点不是开阔水面，而是夏季的荷景、近岸停留和园林路径——荷叶、桥线和岸边树影共同形成一个紧凑、可识别的小尺度环境。夏季和清晨最能体现风荷的层次，是从大湖面切换到细腻水生植物景观的过渡带。",
+        "sourceExcerpt": "荷塘、曲桥、夏景",
+        "iconHint": "risk",
+        "x": 0.035,
+        "y": 0.3302999999999999,
+        "width": 0.28248,
+        "height": 0.4494,
+        "textBudget": {
+          "titleLineChars": 6,
+          "titleMaxLines": 2,
+          "titleMaxChars": 12,
+          "imageTextLineChars": 11,
+          "imageTextMaxLines": 2,
+          "imageTextMaxChars": 22
+        },
+        "zIndex": 6,
+        "alignmentSource": "mimo-vision",
+        "regionKind": "landmark",
+        "maskPolicy": "full-region",
+        "mask": null,
+        "shape": "freeform",
+        "clickShape": "rect",
+        "maskUsableForClick": false,
+        "clickDiagnostics": [
+          "expanded_visual_module_bounds"
+        ],
+        "bounds": {
+          "x": 0.035,
+          "y": 0.3303,
+          "width": 0.28248,
+          "height": 0.4494
+        }
+      },
+      {
+        "id": "module_9",
+        "label": "柳浪闻莺",
+        "shortText": "柳浪闻莺",
+        "detail": "柳浪闻莺位于西湖南岸或东南岸近水园林中，柳树、园路、湖岸和鸟鸣组成柔和的岸线区域。它与雷峰塔这类高耸地标完全不同——重点不是远眺，而是贴近湖岸的步行体验、春日柳色和园林声景。这片区域提醒人们南岸并不只有塔和远山，也有适合慢慢穿行、拍摄近景和感受季节变化的低矮景观带。柳树、岸线和游步道形成一个连续的环境，春夏之际尤其有声音和颜色的层次感。",
+        "sourceExcerpt": "南岸柳林与园景",
+        "iconHint": "source",
+        "x": 0.47707999999999995,
+        "y": 0.4730000000000001,
+        "width": 0.48792,
+        "height": 0.48,
+        "textBudget": {
+          "titleLineChars": 6,
+          "titleMaxLines": 1,
+          "titleMaxChars": 6,
+          "imageTextLineChars": 11,
+          "imageTextMaxLines": 1,
+          "imageTextMaxChars": 11
+        },
+        "zIndex": 6,
+        "alignmentSource": "mimo-vision",
+        "regionKind": "landmark",
+        "maskPolicy": "full-region",
+        "mask": null,
+        "shape": "freeform",
+        "clickShape": "rect",
+        "maskUsableForClick": false,
+        "clickDiagnostics": [
+          "expanded_visual_module_bounds"
+        ],
+        "bounds": {
+          "x": 0.47708,
+          "y": 0.473,
+          "width": 0.48792,
+          "height": 0.48
+        }
+      }
+    ],
+    "threads": [],
+    "imageUrl": "/image-cache/de7f9adb136f1856e1b6b4ac2671b796.png",
+    "imageWidth": 3840,
+    "imageHeight": 2160,
+    "imagePrompt": "Create a polished interactive image for ChatImage.\nMode: guide-illustration. Language: zh-CN.\nTitle: 西湖手绘导览插画\nSummary: 以西湖水面为中心，把堤桥、湖心岛、南北岸山体和典型景点拆成可点击地理区域。\nComposition: guide-illustration; focus: 西湖水面与环湖十景地标.\nCanvas intent: 16:9; requested API bitmap may be square, so keep the whole scene centered with safe margins.\nDraw one coherent hand-drawn guide illustration, not cards or a flowchart. Use paths, landmarks, icons, terrain, labels, and natural organic areas.\nClickable targets to include as natural visual content for later LocateAnything/SAM grounding:\n1. 西湖水域 | label: 西湖水域 | kind: water | draw: 西湖中央大面积湖水区域，包含湖面、游船、水波和倒影 | evidence: 开阔湖面, 游船或水波\n2. 白堤断桥 | label: 白堤断桥 | kind: route | draw: 西湖北侧的白堤和断桥，长堤、桥、柳树、湖岸线组成的线性区域 | evidence: 北侧长堤, 断桥\n3. 苏堤春晓 | label: 苏堤春晓 | kind: route | draw: 纵贯西湖的苏堤，堤路、桥、柳树和两侧湖水形成的长条区域 | evidence: 纵向堤路, 多座桥或桥洞\n4. 三潭印月 | label: 三潭印月 | kind: landmark | draw: 西湖湖心附近的三潭印月，小岛、三座石塔和周围水面 | evidence: 湖心小岛, 三座石塔\n5. 雷峰塔 | label: 雷峰塔 | kind: building | draw: 西湖南岸的雷峰塔，塔身、山坡、夕照和湖面倒影组成的区域 | evidence: 南岸塔身, 山坡或夕照\n6. 孤山 | label: 孤山 | kind: landmark | draw: 西湖北侧孤山，山体、湖岸、亭台或文化建筑形成的岛状地标区域 | evidence: 北岸山岛, 湖岸边界\n7. 宝石山 | label: 宝石山 | kind: mountain | draw: 西湖北岸宝石山，山脊、保俶塔、林木和城市边缘组成的高处区域 | evidence: 北岸山脊, 保俶塔或高塔\n8. 曲院风荷 | label: 曲院风荷 | kind: landmark | draw: 西湖北西侧曲院风荷，荷塘、曲桥、近岸植物和水面形成的景区区域 | evidence: 荷叶或荷花, 曲桥\n9. 柳浪闻莺 | label: 柳浪闻莺 | kind: landmark | draw: 西湖南岸柳浪闻莺，柳树、园路、湖岸和鸟鸣意象组成的近岸景区 | evidence: 南岸柳树, 园路\nRules: do not draw the raw user question; use only short local labels; do not pre-cut the image into isolated segmentation regions; do not draw segmentation masks, bounding boxes, transparent overlays, contour strokes, or pink/white/neon mask-like borders; targets should be recognizable through real visual cues such as landmarks, objects, route strokes, silhouettes, labels, terrain, texture, shadow, or shoreline; subject-with-label targets must keep object and label close together; no watermark; no extra modules.",
+    "providerRaw": {
+      "task": {
+        "code": 200,
+        "msg": "成功",
+        "data": {
+          "id": "image_7842db0b-2225-473c-88e4-6fbbea046192",
+          "count": "1"
+        },
+        "exec_time": 1.055693,
+        "ip": "183.157.161.222"
+      },
+      "detail": {
+        "code": 200,
+        "msg": "成功",
+        "data": {
+          "task_id": "image_7842db0b-2225-473c-88e4-6fbbea046192",
+          "request": {
+            "prompt": "Create a polished interactive image for ChatImage.\nMode: guide-illustration. Language: zh-CN.\nTitle: 西湖手绘导览插画\nSummary: 以西湖水面为中心，把堤桥、湖心岛、南北岸山体和典型景点拆成可点击地理区域。\nComposition: guide-illustration; focus: 西湖水面与环湖十景地标.\nCanvas intent: 16:9; requested API bitmap may be square, so keep the whole scene centered with safe margins.\nDraw one coherent hand-drawn guide illustration, not cards or a flowchart. Use paths, landmarks, icons, terrain, labels, and natural organic areas.\nClickable targets to include as natural visual content for later LocateAnything/SAM grounding:\n1. 西湖水域 | label: 西湖水域 | kind: water | draw: 西湖中央大面积湖水区域，包含湖面、游船、水波和倒影 | evidence: 开阔湖面, 游船或水波\n2. 白堤断桥 | label: 白堤断桥 | kind: route | draw: 西湖北侧的白堤和断桥，长堤、桥、柳树、湖岸线组成的线性区域 | evidence: 北侧长堤, 断桥\n3. 苏堤春晓 | label: 苏堤春晓 | kind: route | draw: 纵贯西湖的苏堤，堤路、桥、柳树和两侧湖水形成的长条区域 | evidence: 纵向堤路, 多座桥或桥洞\n4. 三潭印月 | label: 三潭印月 | kind: landmark | draw: 西湖湖心附近的三潭印月，小岛、三座石塔和周围水面 | evidence: 湖心小岛, 三座石塔\n5. 雷峰塔 | label: 雷峰塔 | kind: building | draw: 西湖南岸的雷峰塔，塔身、山坡、夕照和湖面倒影组成的区域 | evidence: 南岸塔身, 山坡或夕照\n6. 孤山 | label: 孤山 | kind: landmark | draw: 西湖北侧孤山，山体、湖岸、亭台或文化建筑形成的岛状地标区域 | evidence: 北岸山岛, 湖岸边界\n7. 宝石山 | label: 宝石山 | kind: mountain | draw: 西湖北岸宝石山，山脊、保俶塔、林木和城市边缘组成的高处区域 | evidence: 北岸山脊, 保俶塔或高塔\n8. 曲院风荷 | label: 曲院风荷 | kind: landmark | draw: 西湖北西侧曲院风荷，荷塘、曲桥、近岸植物和水面形成的景区区域 | evidence: 荷叶或荷花, 曲桥\n9. 柳浪闻莺 | label: 柳浪闻莺 | kind: landmark | draw: 西湖南岸柳浪闻莺，柳树、园路、湖岸和鸟鸣意象组成的近岸景区 | evidence: 南岸柳树, 园路\nRules: do not draw the raw user question; use only short local labels; do not pre-cut the image into isolated segmentation regions; do not draw segmentation masks, bounding boxes, transparent overlays, contour strokes, or pink/white/neon mask-like borders; targets should be recognizable through real visual cues such as landmarks, objects, route strokes, silhouettes, labels, terrain, texture, shadow, or shoreline; subject-with-label targets must keep object and label close together; no watermark; no extra modules.",
+            "size": "1024x1024"
+          },
+          "status": 2,
+          "result": [
+            "https://img.pinest.xyz/pmg/images/2026/06/24/1782285308_24c36c576f2c891ea9056d4796f32411.png"
+          ],
+          "created_at": "2026-06-24 15:14:10",
+          "updated_at": "2026-06-24 15:16:49",
+          "count": "1",
+          "unit": null,
+          "message": ""
+        },
+        "exec_time": 0.167039,
+        "ip": "183.157.161.222"
+      }
+    },
+    "alignmentRaw": {
+      "provider": "locateanything",
+      "imageUrl": "https://img.pinest.xyz/pmg/images/2026/06/24/1782285308_24c36c576f2c891ea9056d4796f32411.png",
+      "imageWidth": 3840,
+      "imageHeight": 2160,
+      "moduleCount": 9,
+      "prompt": "This image is a semantic visual work, not a card-only infographic. Locate the complete visible region/object/route/landmark described by regionPrompt, even if it has no number. Prefer the full semantic footprint over local OCR text.\n\nUse each module's visualEvidence, maskPolicy, spatialHint, locatorQueries, and componentHints when choosing the bounds.\n\n你是 ChatImage 的视觉对齐助手。请观察图片，找出每个信息图模块卡片的真实边界框。\n\n只返回 JSON，不要解释，不要使用 Markdown。\n\nbounds 使用 0~1 归一化坐标，相对于整张图片左上角。\n\nconfidence 使用 0~1，表示你对该卡片边界框的把握。\n\n必须框住完整可点击信息模块/卡片，不要只框图标、编号、标题、VS 圆点、关键词小列或局部文本。\n\n如果图像把一个语义模块拆成左右两块或含有对比中轴，请优先返回最接近 plannedBounds 的完整可点击区域。\n\n每个 bounds 的 width 和 height 都应不小于 0.12，模块之间不要重叠，并保持在安全边距内。\n\n如果某个模块没有独立可辨识卡片，也必须返回最接近的卡片区域并降低 confidence。\n\n图片地址：https://img.pinest.xyz/pmg/images/2026/06/24/1782285308_24c36c576f2c891ea9056d4796f32411.png\n\n图片尺寸：3840x2160\n\n布局族：grid\n\n需要定位的模块：\n\n[\n  {\n    \"moduleId\": \"module_1\",\n    \"label\": \"西湖水域\",\n    \"order\": 1,\n    \"text\": \"西湖水域\",\n    \"regionKind\": \"water\",\n    \"regionPrompt\": \"西湖中央大面积湖水区域，包含湖面、游船、水波和倒影\",\n    \"visualEvidence\": [\n      \"开阔湖面\",\n      \"游船或水波\",\n      \"周边堤岸形成边界\"\n    ],\n    \"maskPolicy\": \"full-region\",\n    \"spatialHint\": \"west\",\n    \"locatorQueries\": [\n      \"西湖中央湖面\",\n      \"大面积水域和游船\",\n      \"lake water area\"\n    ],\n    \"componentHints\": [],\n    \"plannedBounds\": {\n      \"x\": 0.34,\n      \"y\": 0.3,\n      \"width\": 0.32,\n      \"height\": 0.32\n    }\n  },\n  {\n    \"moduleId\": \"module_2\",\n    \"label\": \"白堤断桥\",\n    \"order\": 2,\n    \"text\": \"白堤断桥\",\n    \"regionKind\": \"route\",\n    \"regionPrompt\": \"西湖北侧的白堤和断桥，长堤、桥、柳树、湖岸线组成的线性区域\",\n    \"visualEvidence\": [\n      \"北侧长堤\",\n      \"断桥\",\n      \"柳树和湖岸线\"\n    ],\n    \"maskPolicy\": \"route\",\n    \"spatialHint\": \"north\",\n    \"locatorQueries\": [\n      \"白堤断桥完整路线\",\n      \"north causeway bridge\",\n      \"西湖北岸长堤\"\n    ],\n    \"componentHints\": [],\n    \"plannedBounds\": {\n      \"x\": 0.3,\n      \"y\": 0.16,\n      \"width\": 0.38,\n      \"height\": 0.12\n    }\n  },\n  {\n    \"moduleId\": \"module_3\",\n    \"label\": \"苏堤春晓\",\n    \"order\": 3,\n    \"text\": \"苏堤春晓\",\n    \"regionKind\": \"route\",\n    \"regionPrompt\": \"纵贯西湖的苏堤，堤路、桥、柳树和两侧湖水形成的长条区域\",\n    \"visualEvidence\": [\n      \"纵向堤路\",\n      \"多座桥或桥洞\",\n      \"两侧湖水\"\n    ],\n    \"maskPolicy\": \"route\",\n    \"spatialHint\": \"west\",\n    \"locatorQueries\": [\n      \"苏堤春晓纵向堤路\",\n      \"Su Causeway route\",\n      \"穿过湖面的长堤\"\n    ],\n    \"componentHints\": [],\n    \"plannedBounds\": {\n      \"x\": 0.16,\n      \"y\": 0.34,\n      \"width\": 0.13,\n      \"height\": 0.36\n    }\n  },\n  {\n    \"moduleId\": \"module_4\",\n    \"label\": \"三潭印月\",\n    \"order\": 4,\n    \"text\": \"三潭印月\",\n    \"regionKind\": \"landmark\",\n    \"regionPrompt\": \"西湖湖心附近的三潭印月，小岛、三座石塔和周围水面\",\n    \"visualEvidence\": [\n      \"湖心小岛\",\n      \"三座石塔\",\n      \"环绕水面\"\n    ],\n    \"maskPolicy\": \"subject\",\n    \"spatialHint\": \"center\",\n    \"locatorQueries\": [\n      \"三潭印月湖心岛和石塔\",\n      \"three pools mirroring the moon\",\n      \"西湖中央小岛\"\n    ],\n    \"componentHints\": [],\n    \"plannedBounds\": {\n      \"x\": 0.45,\n      \"y\": 0.47,\n      \"width\": 0.17,\n      \"height\": 0.17\n    }\n  },\n  {\n    \"moduleId\": \"module_5\",\n    \"label\": \"雷峰塔\",\n    \"order\": 5,\n    \"text\": \"雷峰塔\",\n    \"regionKind\": \"building\",\n    \"regionPrompt\": \"西湖南岸的雷峰塔，塔身、山坡、夕照和湖面倒影组成的区域\",\n    \"visualEvidence\": [\n      \"南岸塔身\",\n      \"山坡或夕照\",\n      \"湖面倒影\"\n    ],\n    \"maskPolicy\": \"subject\",\n    \"spatialHint\": \"south\",\n    \"locatorQueries\": [\n      \"雷峰塔南岸塔影\",\n      \"Leifeng Pagoda\",\n      \"西湖南岸塔\"\n    ],\n    \"componentHints\": [],\n    \"plannedBounds\": {\n      \"x\": 0.64,\n      \"y\": 0.73,\n      \"width\": 0.18,\n      \"height\": 0.13\n    }\n  },\n  {\n    \"moduleId\": \"module_6\",\n    \"label\": \"孤山\",\n    \"order\": 6,\n    \"text\": \"孤山\",\n    \"regionKind\": \"landmark\",\n    \"regionPrompt\": \"西湖北侧孤山，山体、湖岸、亭台或文化建筑形成的岛状地标区域\",\n    \"visualEvidence\": [\n      \"北岸山岛\",\n      \"湖岸边界\",\n      \"亭台或文化建筑\"\n    ],\n    \"maskPolicy\": \"full-region\",\n    \"spatialHint\": \"northwest\",\n    \"locatorQueries\": [\n      \"孤山完整山岛区域\",\n      \"Gushan hill island\",\n      \"西湖北侧孤山\"\n    ],\n    \"componentHints\": [],\n    \"plannedBounds\": {\n      \"x\": 0.16,\n      \"y\": 0.19,\n      \"width\": 0.12,\n      \"height\": 0.13\n    }\n  },\n  {\n    \"moduleId\": \"module_7\",\n    \"label\": \"宝石山\",\n    \"order\": 7,\n    \"text\": \"宝石山\",\n    \"regionKind\": \"mountain\",\n    \"regionPrompt\": \"西湖北岸宝石山，山脊、保俶塔、林木和城市边缘组成的高处区域\",\n    \"visualEvidence\": [\n      \"北岸山脊\",\n      \"保俶塔或高塔\",\n      \"林木轮廓\"\n    ],\n    \"maskPolicy\": \"full-region\",\n    \"spatialHint\": \"northeast\",\n    \"locatorQueries\": [\n      \"宝石山和保俶塔\",\n      \"Baoshi Hill ridge\",\n      \"西湖北岸山脊\"\n    ],\n    \"componentHints\": [],\n    \"plannedBounds\": {\n      \"x\": 0.7,\n      \"y\": 0.18,\n      \"width\": 0.16,\n      \"height\": 0.14\n    }\n  },\n  {\n    \"moduleId\": \"module_8\",\n    \"label\": \"曲院风荷\",\n    \"order\": 8,\n    \"text\": \"曲院风荷\",\n    \"regionKind\": \"landmark\",\n    \"regionPrompt\": \"西湖北西侧曲院风荷，荷塘、曲桥、近岸植物和水面形成的景区区域\",\n    \"visualEvidence\": [\n      \"荷叶或荷花\",\n      \"曲桥\",\n      \"近岸园林\"\n    ],\n    \"maskPolicy\": \"full-region\",\n    \"spatialHint\": \"northwest\",\n    \"locatorQueries\": [\n      \"曲院风荷荷塘区域\",\n      \"lotus pond and curved bridge\",\n      \"西湖荷花景区\"\n    ],\n    \"componentHints\": [],\n    \"plannedBounds\": {\n      \"x\": 0.04,\n      \"y\": 0.41,\n      \"width\": 0.18,\n      \"height\": 0.25\n    }\n  },\n  {\n    \"moduleId\": \"module_9\",\n    \"label\": \"柳浪闻莺\",\n    \"order\": 9,\n    \"text\": \"柳浪闻莺\",\n    \"regionKind\": \"landmark\",\n    \"regionPrompt\": \"西湖南岸柳浪闻莺，柳树、园路、湖岸和鸟鸣意象组成的近岸景区\",\n    \"visualEvidence\": [\n      \"南岸柳树\",\n      \"园路\",\n      \"湖岸近景\"\n    ],\n    \"maskPolicy\": \"full-region\",\n    \"spatialHint\": \"southeast\",\n    \"locatorQueries\": [\n      \"柳浪闻莺南岸柳林\",\n      \"willow waves and orioles\",\n      \"西湖南岸园林\"\n    ],\n    \"componentHints\": [],\n    \"plannedBounds\": {\n      \"x\": 0.62,\n      \"y\": 0.54,\n      \"width\": 0.18,\n      \"height\": 0.14\n    }\n  }\n]\n\n返回格式：\n\n{\n  \"modules\": [\n    {\n      \"moduleId\": \"module_1\",\n      \"label\": \"西湖水域\",\n      \"bounds\": {\n        \"x\": 0.1,\n        \"y\": 0.2,\n        \"width\": 0.2,\n        \"height\": 0.2\n      },\n      \"confidence\": 0.9\n    },\n    {\n      \"moduleId\": \"module_2\",\n      \"label\": \"白堤断桥\",\n      \"bounds\": {\n        \"x\": 0.1,\n        \"y\": 0.2,\n        \"width\": 0.2,\n        \"height\": 0.2\n      },\n      \"confidence\": 0.9\n    },\n    {\n      \"moduleId\": \"module_3\",\n      \"label\": \"苏堤春晓\",\n      \"bounds\": {\n        \"x\": 0.1,\n        \"y\": 0.2,\n        \"width\": 0.2,\n        \"height\": 0.2\n      },\n      \"confidence\": 0.9\n    },\n    {\n      \"moduleId\": \"module_4\",\n      \"label\": \"三潭印月\",\n      \"bounds\": {\n        \"x\": 0.1,\n        \"y\": 0.2,\n        \"width\": 0.2,\n        \"height\": 0.2\n      },\n      \"confidence\": 0.9\n    },\n    {\n      \"moduleId\": \"module_5\",\n      \"label\": \"雷峰塔\",\n      \"bounds\": {\n        \"x\": 0.1,\n        \"y\": 0.2,\n        \"width\": 0.2,\n        \"height\": 0.2\n      },\n      \"confidence\": 0.9\n    },\n    {\n      \"moduleId\": \"module_6\",\n      \"label\": \"孤山\",\n      \"bounds\": {\n        \"x\": 0.1,\n        \"y\": 0.2,\n        \"width\": 0.2,\n        \"height\": 0.2\n      },\n      \"confidence\": 0.9\n    },\n    {\n      \"moduleId\": \"module_7\",\n      \"label\": \"宝石山\",\n      \"bounds\": {\n        \"x\": 0.1,\n        \"y\": 0.2,\n        \"width\": 0.2,\n        \"height\": 0.2\n      },\n      \"confidence\": 0.9\n    },\n    {\n      \"moduleId\": \"module_8\",\n      \"label\": \"曲院风荷\",\n      \"bounds\": {\n        \"x\": 0.1,\n        \"y\": 0.2,\n        \"width\": 0.2,\n        \"height\": 0.2\n      },\n      \"confidence\": 0.9\n    },\n    {\n      \"moduleId\": \"module_9\",\n      \"label\": \"柳浪闻莺\",\n      \"bounds\": {\n        \"x\": 0.1,\n        \"y\": 0.2,\n        \"width\": 0.2,\n        \"height\": 0.2\n      },\n      \"confidence\": 0.9\n    }\n  ]\n}",
+      "response": "{\"provider\":\"locateanything\",\"effectiveProvider\":\"mimo-vision\",\"providerChain\":[\"locateanything\",\"mimo-vision\",\"sam3\"],\"modules\":[{\"moduleId\":\"module_1\",\"label\":\"西湖水域\",\"matchedText\":\"The candidate covers the central open water area of West Lake, including visible boats and water ripples, matching the target 'West Lake water area'.\",\"bounds\":{\"x\":0.208,\"y\":0.202,\"width\":0.624,\"height\":0.576},\"confidence\":0.9,\"source\":\"mimo-vision\",\"answer\":\"\",\"strategy\":\"remote-semantic-verified\",\"phraseKind\":\"\",\"candidateScore\":null,\"candidateDiagnostics\":null,\"regionKind\":\"water\",\"targetDescription\":\"label: 西湖水域\\nkind: water\\nmask policy: full-region\\nrough position: west\\nvisual target: 西湖中央大面积湖水区域，包含湖面、游船、水波和倒影\\nmust-see evidence: 开阔湖面; 游船或水波; 周边堤岸形成边界\\nalternate locate queries: 西湖中央湖面; 大面积水域和游船; lake water area\\nvisible text clue: 西湖水域\\nmeaning: 西湖水域是整张地图的空间中心，把白堤、苏堤、湖心岛、南岸塔影和北岸山体组织到同一个视野里。水面不是空白背景，而是游览节奏和方向感的核心：堤桥切分湖区，游船连接岛屿，远山倒影提供层次。从岸边、堤上和船上看西湖，会得到完全不同的空间感——湖面开阔处适合远眺，近岸水面则更适合观察柳影、荷叶和船行路线。\\nsource: 一张西湖游览导览图，画在一张完整旅游地图上，适合做成一张手绘导览地图：画面应把核心景区、主要游览路线、交通入口、住宿或补给点、自然地貌和观景关系放在同一张图中。不同地理区域分别承担定位、分流、观景、停留或补给作用；理解时要结合它们的位置、典型风貌、游玩价值、时间安排和注意事项。地\",\"visualEvidence\":[\"开阔湖面\",\"游船或水波\",\"周边堤岸形成边界\"],\"maskPolicy\":\"full-region\",\"spatialHint\":\"west\",\"locatorQueries\":[\"西湖中央湖面\",\"大面积水域和游船\",\"lake water area\"],\"componentHints\":[],\"components\":[],\"cropWindow\":null,\"rawBounds\":{\"x\":0.26,\"y\":0.25,\"width\":0.52,\"height\":0.48},\"boundsExpansion\":{\"strategy\":\"semantic-region-pad\",\"padX\":0.1,\"padY\":0.1,\"from\":{\"x\":0.26,\"y\":0.25,\"width\":0.52,\"height\":0.48},\"to\":{\"x\":0.208,\"y\":0.202,\"width\":0.624,\"height\":0.576}}},{\"moduleId\":\"module_2\",\"label\":\"白堤断桥\",\"matchedText\":\"The candidate covers the linear route of Bai Causeway and Broken Bridge, including the causeway, bridge, willow trees, and lake bank, as specified in the target.\",\"bounds\":{\"x\":0.3229,\"y\":0.1132,\"width\":0.4142,\"height\":0.1536},\"confidence\":0.85,\"source\":\"mimo-vision\",\"answer\":\"\",\"strategy\":\"remote-semantic-verified\",\"phraseKind\":\"\",\"candidateScore\":null,\"candidateDiagnostics\":null,\"regionKind\":\"route\",\"targetDescription\":\"label: 白堤断桥\\nkind: route\\nmask policy: route\\nrough position: north\\nvisual target: 西湖北侧的白堤和断桥，长堤、桥、柳树、湖岸线组成的线性区域\\nmust-see evidence: 北侧长堤; 断桥; 柳树和湖岸线\\nalternate locate queries: 白堤断桥完整路线; north causeway bridge; 西湖北岸长堤\\nvisible text clue: 白堤断桥\\nmeaning: 白堤和断桥位于西湖北岸，是一条由堤岸、桥、柳树和湖面边界连成的完整横向游线，也是进入湖区的诗意入口：一边靠近历史街区和孤山，一边打开湖面视线。这里更适合慢行观景，桥、堤、柳共同形成可识别的线性地理区域。从这里能看见孤山、宝石山轮廓与远处湖心的视线层次，不同季节的桥面与柳岸观感差异明显——春天柳色嫩绿，夏秋桥面人多喧闹，冬日断桥常残雪相伴。\\nsource: 图不应做成流程图，而应通过路线、地标、图例、房屋或索道图标等可见元素表达空间关系。\",\"visualEvidence\":[\"北侧长堤\",\"断桥\",\"柳树和湖岸线\"],\"maskPolicy\":\"route\",\"spatialHint\":\"north\",\"locatorQueries\":[\"白堤断桥完整路线\",\"north causeway bridge\",\"西湖北岸长堤\"],\"componentHints\":[],\"components\":[],\"cropWindow\":null,\"rawBounds\":{\"x\":0.34,\"y\":0.13,\"width\":0.38,\"height\":0.12},\"boundsExpansion\":{\"strategy\":\"route-context-pad\",\"padX\":0.045,\"padY\":0.14,\"from\":{\"x\":0.34,\"y\":0.13,\"width\":0.38,\"height\":0.12},\"to\":{\"x\":0.3229,\"y\":0.1132,\"width\":0.4142,\"height\":0.1536}}},{\"moduleId\":\"module_3\",\"label\":\"苏堤春晓\",\"matchedText\":\"The candidate covers the longitudinal Su Causeway route, including the causeway path, multiple bridges, and the willow trees lining it, matching the target description.\",\"bounds\":{\"x\":0.6976,\"y\":0.3,\"width\":0.2048,\"height\":0.42},\"confidence\":0.85,\"source\":\"mimo-vision\",\"answer\":\"\",\"strategy\":\"remote-semantic-verified\",\"phraseKind\":\"\",\"candidateScore\":null,\"candidateDiagnostics\":null,\"regionKind\":\"route\",\"targetDescription\":\"label: 苏堤春晓\\nkind: route\\nmask policy: route\\nrough position: west\\nvisual target: 纵贯西湖的苏堤，堤路、桥、柳树和两侧湖水形成的长条区域\\nmust-see evidence: 纵向堤路; 多座桥或桥洞; 两侧湖水\\nalternate locate queries: 苏堤春晓纵向堤路; Su Causeway route; 穿过湖面的长堤\\nvisible text clue: 苏堤春晓\\nmeaning: 苏堤是一条贯穿西湖南北的长堤，堤路、拱桥、垂柳和两侧湖面共同形成连续的游览轴线。它和白堤不同，更像一条穿湖而过的绿色长廊，行走时会不断切换左侧、右侧和远山视野。春日柳色、桥影、湖风和清晨光线是这里的核心风貌；规划游线时，它适合承担纵向穿越和慢行观景的功能，也能解释为什么西湖不是一个单一湖面，而是被堤桥分割成多层空间。\\nsource: 纵贯湖面的堤路\",\"visualEvidence\":[\"纵向堤路\",\"多座桥或桥洞\",\"两侧湖水\"],\"maskPolicy\":\"route\",\"spatialHint\":\"west\",\"locatorQueries\":[\"苏堤春晓纵向堤路\",\"Su Causeway route\",\"穿过湖面的长堤\"],\"componentHints\":[],\"components\":[],\"cropWindow\":null,\"rawBounds\":{\"x\":0.72,\"y\":0.22,\"width\":0.16,\"height\":0.58},\"boundsExpansion\":{\"strategy\":\"route-context-pad\",\"padX\":0.14,\"padY\":0.045,\"from\":{\"x\":0.72,\"y\":0.22,\"width\":0.16,\"height\":0.58},\"to\":{\"x\":0.6976,\"y\":0.3,\"width\":0.2048,\"height\":0.42}}},{\"moduleId\":\"module_4\",\"label\":\"三潭印月\",\"matchedText\":\"The candidate accurately frames the lake island, three stone pagodas, and the surrounding water, which is the core visual of 'Three Pools Mirroring the Moon'.\",\"bounds\":{\"x\":0.4495,\"y\":0.4388,\"width\":0.171,\"height\":0.1824},\"confidence\":0.9,\"source\":\"mimo-vision\",\"answer\":\"\",\"strategy\":\"remote-semantic-verified\",\"phraseKind\":\"\",\"candidateScore\":null,\"candidateDiagnostics\":null,\"regionKind\":\"landmark\",\"targetDescription\":\"label: 三潭印月\\nkind: landmark\\nmask policy: subject\\nrough position: center\\nvisual target: 西湖湖心附近的三潭印月，小岛、三座石塔和周围水面\\nmust-see evidence: 湖心小岛; 三座石塔; 环绕水面\\nalternate locate queries: 三潭印月湖心岛和石塔; three pools mirroring the moon; 西湖中央小岛\\nvisible text clue: 三潭印月\\nmeaning: 三潭印月位于湖心附近，由小岛、水中石塔和周围水面共同构成。它面积不必最大，但识别度很高，因为三座石塔、月影意象和湖面留白形成了西湖最典型的精致焦点。它与岸边景点不同，体验更依赖船行距离、观看角度和水面氛围；石塔是视觉锚点，岛屿提供停留空间，周围湖水则让画面保持安静和层次。作为热点时，它适合呈现局部风貌，而不是被大面积湖面吞掉。\\nsource: 湖心岛与石塔\",\"visualEvidence\":[\"湖心小岛\",\"三座石塔\",\"环绕水面\"],\"maskPolicy\":\"subject\",\"spatialHint\":\"center\",\"locatorQueries\":[\"三潭印月湖心岛和石塔\",\"three pools mirroring the moon\",\"西湖中央小岛\"],\"componentHints\":[],\"components\":[],\"cropWindow\":null,\"rawBounds\":{\"x\":0.46,\"y\":0.45,\"width\":0.15,\"height\":0.16},\"boundsExpansion\":{\"strategy\":\"subject-pad\",\"padX\":0.07,\"padY\":0.07,\"from\":{\"x\":0.46,\"y\":0.45,\"width\":0.15,\"height\":0.16},\"to\":{\"x\":0.4495,\"y\":0.4388,\"width\":0.171,\"height\":0.1824}}},{\"moduleId\":\"module_5\",\"label\":\"雷峰塔\",\"matchedText\":\"The candidate covers the Leifeng Pagoda on the southern bank, including the tower body and the hill slope, fulfilling the target's requirement for the building landmark.\",\"bounds\":{\"x\":0.1995,\"y\":0.529,\"width\":0.171,\"height\":0.342},\"confidence\":0.85,\"source\":\"mimo-vision\",\"answer\":\"\",\"strategy\":\"remote-semantic-verified\",\"phraseKind\":\"\",\"candidateScore\":null,\"candidateDiagnostics\":null,\"regionKind\":\"building\",\"targetDescription\":\"label: 雷峰塔\\nkind: building\\nmask policy: subject\\nrough position: south\\nvisual target: 西湖南岸的雷峰塔，塔身、山坡、夕照和湖面倒影组成的区域\\nmust-see evidence: 南岸塔身; 山坡或夕照; 湖面倒影\\nalternate locate queries: 雷峰塔南岸塔影; Leifeng Pagoda; 西湖南岸塔\\nvisible text clue: 雷峰塔\\nmeaning: 雷峰塔位于西湖南岸偏高处，与山体、夕照和湖面倒影一起构成南岸的垂直视觉锚点。它不只是建筑标志，更是南岸天际线、历史传说和远眺视角的集中体现，也能帮助辨认湖面南北方向。从湖面看，雷峰塔在山体背景上特别突出；从南岸看湖，则能把水域、山体和城市边缘连成一片。游览时通常和南岸的园景安排在一起，黄昏前后光线最好。\\nsource: 南岸塔影与山色\",\"visualEvidence\":[\"南岸塔身\",\"山坡或夕照\",\"湖面倒影\"],\"maskPolicy\":\"subject\",\"spatialHint\":\"south\",\"locatorQueries\":[\"雷峰塔南岸塔影\",\"Leifeng Pagoda\",\"西湖南岸塔\"],\"componentHints\":[],\"components\":[],\"cropWindow\":null,\"rawBounds\":{\"x\":0.21,\"y\":0.55,\"width\":0.15,\"height\":0.3},\"boundsExpansion\":{\"strategy\":\"subject-pad\",\"padX\":0.07,\"padY\":0.07,\"from\":{\"x\":0.21,\"y\":0.55,\"width\":0.15,\"height\":0.3},\"to\":{\"x\":0.1995,\"y\":0.529,\"width\":0.171,\"height\":0.342}}},{\"moduleId\":\"module_6\",\"label\":\"孤山\",\"matchedText\":\"The candidate covers the island-like landmass of Gushan, including the hill, shoreline, and buildings, matching the target's description of the landmark region.\",\"bounds\":{\"x\":0.258,\"y\":0,\"width\":0.264,\"height\":0.264},\"confidence\":0.85,\"source\":\"mimo-vision\",\"answer\":\"\",\"strategy\":\"remote-semantic-verified\",\"phraseKind\":\"\",\"candidateScore\":null,\"candidateDiagnostics\":null,\"regionKind\":\"landmark\",\"targetDescription\":\"label: 孤山\\nkind: landmark\\nmask policy: full-region\\nrough position: northwest\\nvisual target: 西湖北侧孤山，山体、湖岸、亭台或文化建筑形成的岛状地标区域\\nmust-see evidence: 北岸山岛; 湖岸边界; 亭台或文化建筑\\nalternate locate queries: 孤山完整山岛区域; Gushan hill island; 西湖北侧孤山\\nvisible text clue: 孤山\\nmeaning: 孤山位于西湖北侧、紧邻白堤，是一座小型山岛，山体不高但聚集了亭台、园林和文化建筑。它在西湖里承担北岸地形和人文气质的双重作用：一面延续白堤断桥的游线，另一面把湖面从单纯水域转成有山、有岸、有历史层次的空间。从孤山步行登高能眺望湖面，沿岸的园林又适合静坐停留——它本身是一片可以慢慢走的地理区域，而不只是地图上的一个小标记。\\nsource: 北岸山岛与人文点\",\"visualEvidence\":[\"北岸山岛\",\"湖岸边界\",\"亭台或文化建筑\"],\"maskPolicy\":\"full-region\",\"spatialHint\":\"northwest\",\"locatorQueries\":[\"孤山完整山岛区域\",\"Gushan hill island\",\"西湖北侧孤山\"],\"componentHints\":[],\"components\":[],\"cropWindow\":null,\"rawBounds\":{\"x\":0.28,\"y\":0.02,\"width\":0.22,\"height\":0.22},\"boundsExpansion\":{\"strategy\":\"semantic-region-pad\",\"padX\":0.1,\"padY\":0.1,\"from\":{\"x\":0.28,\"y\":0.02,\"width\":0.22,\"height\":0.22},\"to\":{\"x\":0.258,\"y\":0,\"width\":0.264,\"height\":0.264}}},{\"moduleId\":\"module_7\",\"label\":\"宝石山\",\"matchedText\":\"The candidate covers the ridge of Baoshi Hill, including the visible Baochu Pagoda at the top and the surrounding forest, as required by the target.\",\"bounds\":{\"x\":0.729,\"y\":0,\"width\":0.252,\"height\":0.264},\"confidence\":0.85,\"source\":\"mimo-vision\",\"answer\":\"\",\"strategy\":\"remote-semantic-verified\",\"phraseKind\":\"\",\"candidateScore\":null,\"candidateDiagnostics\":null,\"regionKind\":\"mountain\",\"targetDescription\":\"label: 宝石山\\nkind: mountain\\nmask policy: full-region\\nrough position: northeast\\nvisual target: 西湖北岸宝石山，山脊、保俶塔、林木和城市边缘组成的高处区域\\nmust-see evidence: 北岸山脊; 保俶塔或高塔; 林木轮廓\\nalternate locate queries: 宝石山和保俶塔; Baoshi Hill ridge; 西湖北岸山脊\\nvisible text clue: 宝石山\\nmeaning: 宝石山位于西湖北岸偏东北方向，山脊、林木和山顶的保俶塔共同构成北岸的高处地标。它与雷峰塔隔湖相望——一个偏北，一个偏南，共同给西湖提供纵深和方向感。宝石山不是孤立的一座塔，而是一段连续的山体背景，把平面的湖区扩展成有山、有岸、有城市边缘的环湖山水格局。从山上往下看，能把湖面、城市天际线和远处群山一并收入视野。\\nsource: 北岸山脊与保俶塔\",\"visualEvidence\":[\"北岸山脊\",\"保俶塔或高塔\",\"林木轮廓\"],\"maskPolicy\":\"full-region\",\"spatialHint\":\"northeast\",\"locatorQueries\":[\"宝石山和保俶塔\",\"Baoshi Hill ridge\",\"西湖北岸山脊\"],\"componentHints\":[],\"components\":[],\"cropWindow\":null,\"rawBounds\":{\"x\":0.75,\"y\":0.01,\"width\":0.21,\"height\":0.22},\"boundsExpansion\":{\"strategy\":\"semantic-region-pad\",\"padX\":0.1,\"padY\":0.1,\"from\":{\"x\":0.75,\"y\":0.01,\"width\":0.21,\"height\":0.22},\"to\":{\"x\":0.729,\"y\":0,\"width\":0.252,\"height\":0.264}}},{\"moduleId\":\"module_8\",\"label\":\"曲院风荷\",\"matchedText\":\"The candidate covers the lotus pond area with the curved bridge, lotus plants, and shoreline greenery, matching the 'Lotus in the Breeze at Crooked Courtyard' scenic region.\",\"bounds\":{\"x\":0,\"y\":0.345,\"width\":0.264,\"height\":0.42},\"confidence\":0.85,\"source\":\"mimo-vision\",\"answer\":\"\",\"strategy\":\"remote-semantic-verified\",\"phraseKind\":\"\",\"candidateScore\":null,\"candidateDiagnostics\":null,\"regionKind\":\"landmark\",\"targetDescription\":\"label: 曲院风荷\\nkind: landmark\\nmask policy: full-region\\nrough position: northwest\\nvisual target: 西湖北西侧曲院风荷，荷塘、曲桥、近岸植物和水面形成的景区区域\\nmust-see evidence: 荷叶或荷花; 曲桥; 近岸园林\\nalternate locate queries: 曲院风荷荷塘区域; lotus pond and curved bridge; 西湖荷花景区\\nvisible text clue: 曲院风荷\\nmeaning: 曲院风荷位于西湖西北侧或近岸位置，是一片由荷塘、水面、曲桥和岸边植物组成的园林区域。它和普通湖岸最大的不同在于：重点不是开阔水面，而是夏季的荷景、近岸停留和园林路径——荷叶、桥线和岸边树影共同形成一个紧凑、可识别的小尺度环境。夏季和清晨最能体现风荷的层次，是从大湖面切换到细腻水生植物景观的过渡带。\\nsource: 荷塘、曲桥、夏景\",\"visualEvidence\":[\"荷叶或荷花\",\"曲桥\",\"近岸园林\"],\"maskPolicy\":\"full-region\",\"spatialHint\":\"northwest\",\"locatorQueries\":[\"曲院风荷荷塘区域\",\"lotus pond and curved bridge\",\"西湖荷花景区\"],\"componentHints\":[],\"components\":[],\"cropWindow\":null,\"rawBounds\":{\"x\":0.02,\"y\":0.38,\"width\":0.22,\"height\":0.35},\"boundsExpansion\":{\"strategy\":\"semantic-region-pad\",\"padX\":0.1,\"padY\":0.1,\"from\":{\"x\":0.02,\"y\":0.38,\"width\":0.22,\"height\":0.35},\"to\":{\"x\":0,\"y\":0.345,\"width\":0.264,\"height\":0.42}}},{\"moduleId\":\"module_9\",\"label\":\"柳浪闻莺\",\"matchedText\":\"The candidate covers the willow garden shoreline on the southeast bank, including the willow trees, garden paths, and the near-water landscape, as specified in the target.\",\"bounds\":{\"x\":0.542,\"y\":0.496,\"width\":0.456,\"height\":0.504},\"confidence\":0.85,\"source\":\"mimo-vision\",\"answer\":\"\",\"strategy\":\"remote-semantic-verified\",\"phraseKind\":\"\",\"candidateScore\":null,\"candidateDiagnostics\":null,\"regionKind\":\"landmark\",\"targetDescription\":\"label: 柳浪闻莺\\nkind: landmark\\nmask policy: full-region\\nrough position: southeast\\nvisual target: 西湖南岸柳浪闻莺，柳树、园路、湖岸和鸟鸣意象组成的近岸景区\\nmust-see evidence: 南岸柳树; 园路; 湖岸近景\\nalternate locate queries: 柳浪闻莺南岸柳林; willow waves and orioles; 西湖南岸园林\\nvisible text clue: 柳浪闻莺\\nmeaning: 柳浪闻莺位于西湖南岸或东南岸近水园林中，柳树、园路、湖岸和鸟鸣组成柔和的岸线区域。它与雷峰塔这类高耸地标完全不同——重点不是远眺，而是贴近湖岸的步行体验、春日柳色和园林声景。这片区域提醒人们南岸并不只有塔和远山，也有适合慢慢穿行、拍摄近景和感受季节变化的低矮景观带。柳树、岸线和游步道形成一个连续的环境，春夏之际尤其有声音和颜色的层次感。\\nsource: 南岸柳林与园景\",\"visualEvidence\":[\"南岸柳树\",\"园路\",\"湖岸近景\"],\"maskPolicy\":\"full-region\",\"spatialHint\":\"southeast\",\"locatorQueries\":[\"柳浪闻莺南岸柳林\",\"willow waves and orioles\",\"西湖南岸园林\"],\"componentHints\":[],\"components\":[],\"cropWindow\":null,\"rawBounds\":{\"x\":0.58,\"y\":0.55,\"width\":0.38,\"height\":0.42},\"boundsExpansion\":{\"strategy\":\"semantic-region-pad\",\"padX\":0.1,\"padY\":0.1,\"from\":{\"x\":0.58,\"y\":0.55,\"width\":0.38,\"height\":0.42},\"to\":{\"x\":0.542,\"y\":0.496,\"width\":0.456,\"height\":0.504}}}],\"locateAnythingRaw\":null,\"acceptedModules\":[],\"acceptedLocateAnythingModules\":[],\"acceptedLayoutGuidedModules\":[],\"acceptedMimoVisionModules\":[\"module_1\",\"module_2\",\"module_3\",\"module_4\",\"module_5\",\"module_6\",\"module_7\",\"module_8\",\"module_9\"],\"acceptedLocalOcrModules\":[],\"rejectedModules\":[],\"fallbackModules\":[],\"sourceCounts\":{\"mimo-vision\":9},\"warnings\":[\"Local OCR image exceeds 8388608 bytes\",\"sam3 refine failed: Local OCR image exceeds 8388608 bytes\"]}",
+      "alignments": [
+        {
+          "moduleId": "module_1",
+          "label": "西湖水域",
+          "bounds": {
+            "x": 0.208,
+            "y": 0.202,
+            "width": 0.624,
+            "height": 0.576
+          },
+          "rawBounds": {
+            "x": 0.26,
+            "y": 0.25,
+            "width": 0.52,
+            "height": 0.48
+          },
+          "boundsExpansion": {
+            "strategy": "semantic-region-pad",
+            "padX": 0.1,
+            "padY": 0.1,
+            "from": {
+              "x": 0.26,
+              "y": 0.25,
+              "width": 0.52,
+              "height": 0.48
+            },
+            "to": {
+              "x": 0.208,
+              "y": 0.202,
+              "width": 0.624,
+              "height": 0.576
+            }
+          },
+          "confidence": 0.9,
+          "source": "mimo-vision",
+          "matchedText": "The candidate covers the central open water area of West Lake, including visible boats and water ripples, matching the target 'West Lake water area'.",
+          "mask": null
+        },
+        {
+          "moduleId": "module_2",
+          "label": "白堤断桥",
+          "bounds": {
+            "x": 0.3229,
+            "y": 0.1132,
+            "width": 0.4142,
+            "height": 0.1536
+          },
+          "rawBounds": {
+            "x": 0.34,
+            "y": 0.13,
+            "width": 0.38,
+            "height": 0.12
+          },
+          "boundsExpansion": {
+            "strategy": "route-context-pad",
+            "padX": 0.045,
+            "padY": 0.14,
+            "from": {
+              "x": 0.34,
+              "y": 0.13,
+              "width": 0.38,
+              "height": 0.12
+            },
+            "to": {
+              "x": 0.3229,
+              "y": 0.1132,
+              "width": 0.4142,
+              "height": 0.1536
+            }
+          },
+          "confidence": 0.85,
+          "source": "mimo-vision",
+          "matchedText": "The candidate covers the linear route of Bai Causeway and Broken Bridge, including the causeway, bridge, willow trees, and lake bank, as specified in the target.",
+          "mask": null
+        },
+        {
+          "moduleId": "module_3",
+          "label": "苏堤春晓",
+          "bounds": {
+            "x": 0.6976,
+            "y": 0.3,
+            "width": 0.2048,
+            "height": 0.42
+          },
+          "rawBounds": {
+            "x": 0.72,
+            "y": 0.22,
+            "width": 0.16,
+            "height": 0.58
+          },
+          "boundsExpansion": {
+            "strategy": "route-context-pad",
+            "padX": 0.14,
+            "padY": 0.045,
+            "from": {
+              "x": 0.72,
+              "y": 0.22,
+              "width": 0.16,
+              "height": 0.58
+            },
+            "to": {
+              "x": 0.6976,
+              "y": 0.3,
+              "width": 0.2048,
+              "height": 0.42
+            }
+          },
+          "confidence": 0.85,
+          "source": "mimo-vision",
+          "matchedText": "The candidate covers the longitudinal Su Causeway route, including the causeway path, multiple bridges, and the willow trees lining it, matching the target description.",
+          "mask": null
+        },
+        {
+          "moduleId": "module_4",
+          "label": "三潭印月",
+          "bounds": {
+            "x": 0.4495,
+            "y": 0.4388,
+            "width": 0.171,
+            "height": 0.1824
+          },
+          "rawBounds": {
+            "x": 0.46,
+            "y": 0.45,
+            "width": 0.15,
+            "height": 0.16
+          },
+          "boundsExpansion": {
+            "strategy": "subject-pad",
+            "padX": 0.07,
+            "padY": 0.07,
+            "from": {
+              "x": 0.46,
+              "y": 0.45,
+              "width": 0.15,
+              "height": 0.16
+            },
+            "to": {
+              "x": 0.4495,
+              "y": 0.4388,
+              "width": 0.171,
+              "height": 0.1824
+            }
+          },
+          "confidence": 0.9,
+          "source": "mimo-vision",
+          "matchedText": "The candidate accurately frames the lake island, three stone pagodas, and the surrounding water, which is the core visual of 'Three Pools Mirroring the Moon'.",
+          "mask": null
+        },
+        {
+          "moduleId": "module_5",
+          "label": "雷峰塔",
+          "bounds": {
+            "x": 0.1995,
+            "y": 0.529,
+            "width": 0.171,
+            "height": 0.342
+          },
+          "rawBounds": {
+            "x": 0.21,
+            "y": 0.55,
+            "width": 0.15,
+            "height": 0.3
+          },
+          "boundsExpansion": {
+            "strategy": "subject-pad",
+            "padX": 0.07,
+            "padY": 0.07,
+            "from": {
+              "x": 0.21,
+              "y": 0.55,
+              "width": 0.15,
+              "height": 0.3
+            },
+            "to": {
+              "x": 0.1995,
+              "y": 0.529,
+              "width": 0.171,
+              "height": 0.342
+            }
+          },
+          "confidence": 0.85,
+          "source": "mimo-vision",
+          "matchedText": "The candidate covers the Leifeng Pagoda on the southern bank, including the tower body and the hill slope, fulfilling the target's requirement for the building landmark.",
+          "mask": null
+        },
+        {
+          "moduleId": "module_6",
+          "label": "孤山",
+          "bounds": {
+            "x": 0.258,
+            "y": 0,
+            "width": 0.264,
+            "height": 0.264
+          },
+          "rawBounds": {
+            "x": 0.28,
+            "y": 0.02,
+            "width": 0.22,
+            "height": 0.22
+          },
+          "boundsExpansion": {
+            "strategy": "semantic-region-pad",
+            "padX": 0.1,
+            "padY": 0.1,
+            "from": {
+              "x": 0.28,
+              "y": 0.02,
+              "width": 0.22,
+              "height": 0.22
+            },
+            "to": {
+              "x": 0.258,
+              "y": 0,
+              "width": 0.264,
+              "height": 0.264
+            }
+          },
+          "confidence": 0.85,
+          "source": "mimo-vision",
+          "matchedText": "The candidate covers the island-like landmass of Gushan, including the hill, shoreline, and buildings, matching the target's description of the landmark region.",
+          "mask": null
+        },
+        {
+          "moduleId": "module_7",
+          "label": "宝石山",
+          "bounds": {
+            "x": 0.729,
+            "y": 0,
+            "width": 0.252,
+            "height": 0.264
+          },
+          "rawBounds": {
+            "x": 0.75,
+            "y": 0.01,
+            "width": 0.21,
+            "height": 0.22
+          },
+          "boundsExpansion": {
+            "strategy": "semantic-region-pad",
+            "padX": 0.1,
+            "padY": 0.1,
+            "from": {
+              "x": 0.75,
+              "y": 0.01,
+              "width": 0.21,
+              "height": 0.22
+            },
+            "to": {
+              "x": 0.729,
+              "y": 0,
+              "width": 0.252,
+              "height": 0.264
+            }
+          },
+          "confidence": 0.85,
+          "source": "mimo-vision",
+          "matchedText": "The candidate covers the ridge of Baoshi Hill, including the visible Baochu Pagoda at the top and the surrounding forest, as required by the target.",
+          "mask": null
+        },
+        {
+          "moduleId": "module_8",
+          "label": "曲院风荷",
+          "bounds": {
+            "x": 0,
+            "y": 0.345,
+            "width": 0.264,
+            "height": 0.42
+          },
+          "rawBounds": {
+            "x": 0.02,
+            "y": 0.38,
+            "width": 0.22,
+            "height": 0.35
+          },
+          "boundsExpansion": {
+            "strategy": "semantic-region-pad",
+            "padX": 0.1,
+            "padY": 0.1,
+            "from": {
+              "x": 0.02,
+              "y": 0.38,
+              "width": 0.22,
+              "height": 0.35
+            },
+            "to": {
+              "x": 0,
+              "y": 0.345,
+              "width": 0.264,
+              "height": 0.42
+            }
+          },
+          "confidence": 0.85,
+          "source": "mimo-vision",
+          "matchedText": "The candidate covers the lotus pond area with the curved bridge, lotus plants, and shoreline greenery, matching the 'Lotus in the Breeze at Crooked Courtyard' scenic region.",
+          "mask": null
+        },
+        {
+          "moduleId": "module_9",
+          "label": "柳浪闻莺",
+          "bounds": {
+            "x": 0.542,
+            "y": 0.496,
+            "width": 0.456,
+            "height": 0.504
+          },
+          "rawBounds": {
+            "x": 0.58,
+            "y": 0.55,
+            "width": 0.38,
+            "height": 0.42
+          },
+          "boundsExpansion": {
+            "strategy": "semantic-region-pad",
+            "padX": 0.1,
+            "padY": 0.1,
+            "from": {
+              "x": 0.58,
+              "y": 0.55,
+              "width": 0.38,
+              "height": 0.42
+            },
+            "to": {
+              "x": 0.542,
+              "y": 0.496,
+              "width": 0.456,
+              "height": 0.504
+            }
+          },
+          "confidence": 0.85,
+          "source": "mimo-vision",
+          "matchedText": "The candidate covers the willow garden shoreline on the southeast bank, including the willow trees, garden paths, and the near-water landscape, as specified in the target.",
+          "mask": null
+        }
+      ],
+      "providerChain": [
+        "locateanything",
+        "mimo-vision",
+        "sam3"
+      ],
+      "effectiveProvider": "mimo-vision",
+      "sourceCounts": {
+        "mimo-vision": 9
+      },
+      "locateAnythingRaw": null,
+      "sam3Raw": null,
+      "fallbackModules": [],
+      "acceptedLocateAnythingModules": [],
+      "acceptedLocalOcrModules": [],
+      "acceptedSam3Modules": [],
+      "rejectedSam3Modules": [],
+      "warnings": [
+        "Local OCR image exceeds 8388608 bytes",
+        "sam3 refine failed: Local OCR image exceeds 8388608 bytes"
+      ],
+      "layoutProvider": "vision",
+      "acceptedModules": [
+        "module_1",
+        "module_2",
+        "module_3",
+        "module_4",
+        "module_5",
+        "module_6",
+        "module_7",
+        "module_8",
+        "module_9"
+      ],
+      "rejectedModules": [],
+      "originalValidationErrors": [],
+      "displayDiagnostics": {
+        "imageWidth": 3840,
+        "imageHeight": 2160,
+        "moduleRegions": [
+          {
+            "hotspotId": "module_1",
+            "alignedBy": "mimo-vision",
+            "bounds": {
+              "x": 0.208,
+              "y": 0.202,
+              "width": 0.624,
+              "height": 0.576
+            },
+            "mask": null
+          },
+          {
+            "hotspotId": "module_2",
+            "alignedBy": "mimo-vision",
+            "bounds": {
+              "x": 0.3229,
+              "y": 0.1132,
+              "width": 0.4142,
+              "height": 0.1536
+            },
+            "mask": null
+          },
+          {
+            "hotspotId": "module_3",
+            "alignedBy": "mimo-vision",
+            "bounds": {
+              "x": 0.6976,
+              "y": 0.3,
+              "width": 0.2048,
+              "height": 0.42
+            },
+            "mask": null
+          },
+          {
+            "hotspotId": "module_4",
+            "alignedBy": "mimo-vision",
+            "bounds": {
+              "x": 0.4495,
+              "y": 0.4388,
+              "width": 0.171,
+              "height": 0.1824
+            },
+            "mask": null
+          },
+          {
+            "hotspotId": "module_5",
+            "alignedBy": "mimo-vision",
+            "bounds": {
+              "x": 0.1995,
+              "y": 0.529,
+              "width": 0.171,
+              "height": 0.342
+            },
+            "mask": null
+          },
+          {
+            "hotspotId": "module_6",
+            "alignedBy": "mimo-vision",
+            "bounds": {
+              "x": 0.258,
+              "y": 0.035,
+              "width": 0.264,
+              "height": 0.264
+            },
+            "mask": null
+          },
+          {
+            "hotspotId": "module_7",
+            "alignedBy": "mimo-vision",
+            "bounds": {
+              "x": 0.713,
+              "y": 0.035,
+              "width": 0.252,
+              "height": 0.264
+            },
+            "mask": null
+          },
+          {
+            "hotspotId": "module_8",
+            "alignedBy": "mimo-vision",
+            "bounds": {
+              "x": 0.035,
+              "y": 0.345,
+              "width": 0.264,
+              "height": 0.42
+            },
+            "mask": null
+          },
+          {
+            "hotspotId": "module_9",
+            "alignedBy": "mimo-vision",
+            "bounds": {
+              "x": 0.509,
+              "y": 0.461,
+              "width": 0.456,
+              "height": 0.504
+            },
+            "mask": null
+          }
+        ]
+      },
+      "hitTest": {
+        "ok": true,
+        "modules": [
+          {
+            "moduleId": "module_1",
+            "ok": true,
+            "topModuleId": "module_1",
+            "center": {
+              "x": 0.52,
+              "y": 0.49
+            },
+            "clickablePoint": {
+              "x": 0.32032,
+              "y": 0.49
+            }
+          },
+          {
+            "moduleId": "module_2",
+            "ok": true,
+            "topModuleId": "module_2",
+            "center": {
+              "x": 0.53,
+              "y": 0.19
+            },
+            "clickablePoint": {
+              "x": 0.53,
+              "y": 0.19
+            }
+          },
+          {
+            "moduleId": "module_3",
+            "ok": true,
+            "topModuleId": "module_3",
+            "center": {
+              "x": 0.8,
+              "y": 0.51
+            },
+            "clickablePoint": {
+              "x": 0.8,
+              "y": 0.51
+            }
+          },
+          {
+            "moduleId": "module_4",
+            "ok": true,
+            "topModuleId": "module_4",
+            "center": {
+              "x": 0.535,
+              "y": 0.53
+            },
+            "clickablePoint": {
+              "x": 0.535,
+              "y": 0.53
+            }
+          },
+          {
+            "moduleId": "module_5",
+            "ok": true,
+            "topModuleId": "module_5",
+            "center": {
+              "x": 0.28500000000000003,
+              "y": 0.7000000000000001
+            },
+            "clickablePoint": {
+              "x": 0.28500000000000003,
+              "y": 0.7000000000000001
+            }
+          },
+          {
+            "moduleId": "module_6",
+            "ok": true,
+            "topModuleId": "module_6",
+            "center": {
+              "x": 0.39,
+              "y": 0.17624
+            },
+            "clickablePoint": {
+              "x": 0.2996064,
+              "y": 0.0858464
+            }
+          },
+          {
+            "moduleId": "module_7",
+            "ok": true,
+            "topModuleId": "module_7",
+            "center": {
+              "x": 0.8213599999999999,
+              "y": 0.18548000000000003
+            },
+            "clickablePoint": {
+              "x": 0.8213599999999999,
+              "y": 0.18548000000000003
+            }
+          },
+          {
+            "moduleId": "module_8",
+            "ok": true,
+            "topModuleId": "module_8",
+            "center": {
+              "x": 0.17624,
+              "y": 0.5549999999999999
+            },
+            "clickablePoint": {
+              "x": 0.17624,
+              "y": 0.5549999999999999
+            }
+          },
+          {
+            "moduleId": "module_9",
+            "ok": true,
+            "topModuleId": "module_9",
+            "center": {
+              "x": 0.7210399999999999,
+              "y": 0.7130000000000001
+            },
+            "clickablePoint": {
+              "x": 0.7210399999999999,
+              "y": 0.7130000000000001
+            }
+          }
+        ]
+      },
+      "visualQa": {
+        "provider": "limited-local",
+        "ok": false,
+        "title": "西湖手绘导览地图",
+        "moduleCount": 9,
+        "hotspotCount": 9,
+        "maskCoverage": 0,
+        "hitTestOk": true,
+        "warnings": [
+          "semantic_mask_coverage_low"
+        ]
+      },
+      "zIndexAdjustments": [
+        {
+          "moduleId": "module_2",
+          "diagnostics": [
+            "expanded_visual_module_bounds"
+          ],
+          "zIndex": 7
+        },
+        {
+          "moduleId": "module_3",
+          "diagnostics": [
+            "expanded_visual_module_bounds"
+          ],
+          "zIndex": 7
+        },
+        {
+          "moduleId": "module_4",
+          "diagnostics": [
+            "expanded_visual_module_bounds",
+            "center_was_covered_by:module_9"
+          ],
+          "zIndex": 7
+        },
+        {
+          "moduleId": "module_5",
+          "diagnostics": [
+            "expanded_visual_module_bounds",
+            "center_was_covered_by:module_8"
+          ],
+          "zIndex": 7
+        },
+        {
+          "moduleId": "module_6",
+          "diagnostics": [
+            "expanded_visual_module_bounds"
+          ],
+          "zIndex": 6
+        },
+        {
+          "moduleId": "module_7",
+          "diagnostics": [
+            "expanded_visual_module_bounds"
+          ],
+          "zIndex": 1
+        },
+        {
+          "moduleId": "module_8",
+          "diagnostics": [
+            "expanded_visual_module_bounds"
+          ],
+          "zIndex": 6
+        },
+        {
+          "moduleId": "module_9",
+          "diagnostics": [
+            "expanded_visual_module_bounds"
+          ],
+          "zIndex": 6
+        }
+      ],
+      "zIndexRepair": [],
+      "qualityWarnings": [
+        "topic_mismatch"
+      ]
+    },
+    "textModelUsed": "mimo-v2.5-pro",
+    "textModelFallbackReason": "",
+    "visualQualityRaw": {
+      "provider": "limited-local",
+      "ok": false,
+      "title": "西湖手绘导览地图",
+      "moduleCount": 9,
+      "hotspotCount": 9,
+      "maskCoverage": 0,
+      "hitTestOk": true,
+      "warnings": [
+        "semantic_mask_coverage_low"
+      ]
+    },
+    "visualQualityWarnings": [
+      "semantic_mask_coverage_low"
+    ],
+    "pinnedAt": null,
+    "createdAt": "2026-06-24T07:17:44.989Z",
+    "updatedAt": "2026-06-24T07:17:44.993Z",
+    "visualSpec": {
+      "title": "西湖手绘导览地图",
+      "language": "zh-CN",
+      "visualMode": "map",
+      "summary": "以西湖水面为中心，把堤桥、湖心岛、南北岸山体和典型景点拆成可点击地理区域。",
+      "relationType": "hierarchy",
+      "visualComposition": {
+        "compositionType": "hand-drawn-map",
+        "layoutVariant": "map",
+        "visualFocus": "西湖水面与环湖十景地标",
+        "primaryModules": [
+          "module_1",
+          "module_2",
+          "module_3",
+          "module_4"
+        ],
+        "secondaryModules": [
+          "module_5",
+          "module_6",
+          "module_7",
+          "module_8",
+          "module_9"
+        ],
+        "densityStrategy": "用湖面、堤桥、岛屿、山体、塔影、荷塘和南岸园景组织画面，避免流程图卡片和编号模块。",
+        "moduleCountReason": "西湖地图需要覆盖多个真实地理点位，9 个区域比固定 5 或 6 块更符合可交互导览。"
+      },
+      "auxiliaryModules": [],
+      "modules": [
+        {
+          "id": "module_1",
+          "title": "西湖水域",
+          "imageText": "西湖水域",
+          "detail": "西湖水域是整张地图的空间中心，把白堤、苏堤、湖心岛、南岸塔影和北岸山体组织到同一个视野里。水面不是空白背景，而是游览节奏和方向感的核心：堤桥切分湖区，游船连接岛屿，远山倒影提供层次。从岸边、堤上和船上看西湖，会得到完全不同的空间感——湖面开阔处适合远眺，近岸水面则更适合观察柳影、荷叶和船行路线。",
+          "sourceExcerpt": "一张西湖游览导览图，画在一张完整旅游地图上，适合做成一张手绘导览地图：画面应把核心景区、主要游览路线、交通入口、住宿或补给点、自然地貌和观景关系放在同一张图中。不同地理区域分别承担定位、分流、观景、停留或补给作用；理解时要结合它们的位置、典型风貌、游玩价值、时间安排和注意事项。地",
+          "iconHint": "data",
+          "regionKind": "water",
+          "regionPrompt": "西湖中央大面积湖水区域，包含湖面、游船、水波和倒影",
+          "maskPolicy": "full-region",
+          "visualEvidence": [
+            "开阔湖面",
+            "游船或水波",
+            "周边堤岸形成边界"
+          ],
+          "locatorQueries": [
+            "西湖中央湖面",
+            "大面积水域和游船",
+            "lake water area"
+          ],
+          "spatialHint": "west",
+          "componentHints": [],
+          "imageTitle": "西湖水域",
+          "textBudget": {
+            "titleLineChars": 10,
+            "titleMaxLines": 2,
+            "titleMaxChars": 20,
+            "imageTextLineChars": 16,
+            "imageTextMaxLines": 2,
+            "imageTextMaxChars": 32
+          }
+        },
+        {
+          "id": "module_2",
+          "title": "白堤断桥",
+          "imageText": "白堤断桥",
+          "detail": "白堤和断桥位于西湖北岸，是一条由堤岸、桥、柳树和湖面边界连成的完整横向游线，也是进入湖区的诗意入口：一边靠近历史街区和孤山，一边打开湖面视线。这里更适合慢行观景，桥、堤、柳共同形成可识别的线性地理区域。从这里能看见孤山、宝石山轮廓与远处湖心的视线层次，不同季节的桥面与柳岸观感差异明显——春天柳色嫩绿，夏秋桥面人多喧闹，冬日断桥常残雪相伴。",
+          "sourceExcerpt": "图不应做成流程图，而应通过路线、地标、图例、房屋或索道图标等可见元素表达空间关系。",
+          "iconHint": "route",
+          "regionKind": "route",
+          "regionPrompt": "西湖北侧的白堤和断桥，长堤、桥、柳树、湖岸线组成的线性区域",
+          "maskPolicy": "route",
+          "spatialHint": "north",
+          "visualEvidence": [
+            "北侧长堤",
+            "断桥",
+            "柳树和湖岸线"
+          ],
+          "locatorQueries": [
+            "白堤断桥完整路线",
+            "north causeway bridge",
+            "西湖北岸长堤"
+          ],
+          "componentHints": [],
+          "imageTitle": "白堤断桥",
+          "textBudget": {
+            "titleLineChars": 10,
+            "titleMaxLines": 1,
+            "titleMaxChars": 10,
+            "imageTextLineChars": 16,
+            "imageTextMaxLines": 1,
+            "imageTextMaxChars": 16
+          }
+        },
+        {
+          "id": "module_3",
+          "title": "苏堤春晓",
+          "imageText": "苏堤春晓",
+          "detail": "苏堤是一条贯穿西湖南北的长堤，堤路、拱桥、垂柳和两侧湖面共同形成连续的游览轴线。它和白堤不同，更像一条穿湖而过的绿色长廊，行走时会不断切换左侧、右侧和远山视野。春日柳色、桥影、湖风和清晨光线是这里的核心风貌；规划游线时，它适合承担纵向穿越和慢行观景的功能，也能解释为什么西湖不是一个单一湖面，而是被堤桥分割成多层空间。",
+          "sourceExcerpt": "纵贯湖面的堤路",
+          "iconHint": "timeline",
+          "regionKind": "route",
+          "regionPrompt": "纵贯西湖的苏堤，堤路、桥、柳树和两侧湖水形成的长条区域",
+          "maskPolicy": "route",
+          "spatialHint": "west",
+          "visualEvidence": [
+            "纵向堤路",
+            "多座桥或桥洞",
+            "两侧湖水"
+          ],
+          "locatorQueries": [
+            "苏堤春晓纵向堤路",
+            "Su Causeway route",
+            "穿过湖面的长堤"
+          ],
+          "componentHints": [],
+          "imageTitle": "苏堤春晓",
+          "textBudget": {
+            "titleLineChars": 4,
+            "titleMaxLines": 2,
+            "titleMaxChars": 8,
+            "imageTextLineChars": 7,
+            "imageTextMaxLines": 2,
+            "imageTextMaxChars": 14
+          }
+        },
+        {
+          "id": "module_4",
+          "title": "三潭印月",
+          "imageText": "三潭印月",
+          "detail": "三潭印月位于湖心附近，由小岛、水中石塔和周围水面共同构成。它面积不必最大，但识别度很高，因为三座石塔、月影意象和湖面留白形成了西湖最典型的精致焦点。它与岸边景点不同，体验更依赖船行距离、观看角度和水面氛围；石塔是视觉锚点，岛屿提供停留空间，周围湖水则让画面保持安静和层次。作为热点时，它适合呈现局部风貌，而不是被大面积湖面吞掉。",
+          "sourceExcerpt": "湖心岛与石塔",
+          "iconHint": "target",
+          "regionKind": "landmark",
+          "regionPrompt": "西湖湖心附近的三潭印月，小岛、三座石塔和周围水面",
+          "maskPolicy": "subject",
+          "spatialHint": "center",
+          "visualEvidence": [
+            "湖心小岛",
+            "三座石塔",
+            "环绕水面"
+          ],
+          "locatorQueries": [
+            "三潭印月湖心岛和石塔",
+            "three pools mirroring the moon",
+            "西湖中央小岛"
+          ],
+          "componentHints": [],
+          "imageTitle": "三潭印月",
+          "textBudget": {
+            "titleLineChars": 5,
+            "titleMaxLines": 1,
+            "titleMaxChars": 5,
+            "imageTextLineChars": 10,
+            "imageTextMaxLines": 1,
+            "imageTextMaxChars": 10
+          }
+        },
+        {
+          "id": "module_5",
+          "title": "雷峰塔",
+          "imageText": "雷峰塔",
+          "detail": "雷峰塔位于西湖南岸偏高处，与山体、夕照和湖面倒影一起构成南岸的垂直视觉锚点。它不只是建筑标志，更是南岸天际线、历史传说和远眺视角的集中体现，也能帮助辨认湖面南北方向。从湖面看，雷峰塔在山体背景上特别突出；从南岸看湖，则能把水域、山体和城市边缘连成一片。游览时通常和南岸的园景安排在一起，黄昏前后光线最好。",
+          "sourceExcerpt": "南岸塔影与山色",
+          "iconHint": "idea",
+          "regionKind": "building",
+          "regionPrompt": "西湖南岸的雷峰塔，塔身、山坡、夕照和湖面倒影组成的区域",
+          "maskPolicy": "subject",
+          "spatialHint": "south",
+          "visualEvidence": [
+            "南岸塔身",
+            "山坡或夕照",
+            "湖面倒影"
+          ],
+          "locatorQueries": [
+            "雷峰塔南岸塔影",
+            "Leifeng Pagoda",
+            "西湖南岸塔"
+          ],
+          "componentHints": [],
+          "imageTitle": "雷峰塔",
+          "textBudget": {
+            "titleLineChars": 6,
+            "titleMaxLines": 1,
+            "titleMaxChars": 6,
+            "imageTextLineChars": 11,
+            "imageTextMaxLines": 1,
+            "imageTextMaxChars": 11
+          }
+        },
+        {
+          "id": "module_6",
+          "title": "孤山",
+          "imageText": "孤山",
+          "detail": "孤山位于西湖北侧、紧邻白堤，是一座小型山岛，山体不高但聚集了亭台、园林和文化建筑。它在西湖里承担北岸地形和人文气质的双重作用：一面延续白堤断桥的游线，另一面把湖面从单纯水域转成有山、有岸、有历史层次的空间。从孤山步行登高能眺望湖面，沿岸的园林又适合静坐停留——它本身是一片可以慢慢走的地理区域，而不只是地图上的一个小标记。",
+          "sourceExcerpt": "北岸山岛与人文点",
+          "iconHint": "nodes",
+          "regionKind": "landmark",
+          "regionPrompt": "西湖北侧孤山，山体、湖岸、亭台或文化建筑形成的岛状地标区域",
+          "maskPolicy": "full-region",
+          "spatialHint": "northwest",
+          "visualEvidence": [
+            "北岸山岛",
+            "湖岸边界",
+            "亭台或文化建筑"
+          ],
+          "locatorQueries": [
+            "孤山完整山岛区域",
+            "Gushan hill island",
+            "西湖北侧孤山"
+          ],
+          "componentHints": [],
+          "imageTitle": "孤山",
+          "textBudget": {
+            "titleLineChars": 4,
+            "titleMaxLines": 1,
+            "titleMaxChars": 4,
+            "imageTextLineChars": 6,
+            "imageTextMaxLines": 1,
+            "imageTextMaxChars": 6
+          }
+        },
+        {
+          "id": "module_7",
+          "title": "宝石山",
+          "imageText": "宝石山",
+          "detail": "宝石山位于西湖北岸偏东北方向，山脊、林木和山顶的保俶塔共同构成北岸的高处地标。它与雷峰塔隔湖相望——一个偏北，一个偏南，共同给西湖提供纵深和方向感。宝石山不是孤立的一座塔，而是一段连续的山体背景，把平面的湖区扩展成有山、有岸、有城市边缘的环湖山水格局。从山上往下看，能把湖面、城市天际线和远处群山一并收入视野。",
+          "sourceExcerpt": "北岸山脊与保俶塔",
+          "iconHint": "summary",
+          "regionKind": "mountain",
+          "regionPrompt": "西湖北岸宝石山，山脊、保俶塔、林木和城市边缘组成的高处区域",
+          "maskPolicy": "full-region",
+          "spatialHint": "northeast",
+          "visualEvidence": [
+            "北岸山脊",
+            "保俶塔或高塔",
+            "林木轮廓"
+          ],
+          "locatorQueries": [
+            "宝石山和保俶塔",
+            "Baoshi Hill ridge",
+            "西湖北岸山脊"
+          ],
+          "componentHints": [],
+          "imageTitle": "宝石山",
+          "textBudget": {
+            "titleLineChars": 5,
+            "titleMaxLines": 1,
+            "titleMaxChars": 5,
+            "imageTextLineChars": 10,
+            "imageTextMaxLines": 1,
+            "imageTextMaxChars": 10
+          }
+        },
+        {
+          "id": "module_8",
+          "title": "曲院风荷",
+          "imageText": "曲院风荷",
+          "detail": "曲院风荷位于西湖西北侧或近岸位置，是一片由荷塘、水面、曲桥和岸边植物组成的园林区域。它和普通湖岸最大的不同在于：重点不是开阔水面，而是夏季的荷景、近岸停留和园林路径——荷叶、桥线和岸边树影共同形成一个紧凑、可识别的小尺度环境。夏季和清晨最能体现风荷的层次，是从大湖面切换到细腻水生植物景观的过渡带。",
+          "sourceExcerpt": "荷塘、曲桥、夏景",
+          "iconHint": "risk",
+          "regionKind": "landmark",
+          "regionPrompt": "西湖北西侧曲院风荷，荷塘、曲桥、近岸植物和水面形成的景区区域",
+          "maskPolicy": "full-region",
+          "spatialHint": "northwest",
+          "visualEvidence": [
+            "荷叶或荷花",
+            "曲桥",
+            "近岸园林"
+          ],
+          "locatorQueries": [
+            "曲院风荷荷塘区域",
+            "lotus pond and curved bridge",
+            "西湖荷花景区"
+          ],
+          "componentHints": [],
+          "imageTitle": "曲院风荷",
+          "textBudget": {
+            "titleLineChars": 6,
+            "titleMaxLines": 2,
+            "titleMaxChars": 12,
+            "imageTextLineChars": 11,
+            "imageTextMaxLines": 2,
+            "imageTextMaxChars": 22
+          }
+        },
+        {
+          "id": "module_9",
+          "title": "柳浪闻莺",
+          "imageText": "柳浪闻莺",
+          "detail": "柳浪闻莺位于西湖南岸或东南岸近水园林中，柳树、园路、湖岸和鸟鸣组成柔和的岸线区域。它与雷峰塔这类高耸地标完全不同——重点不是远眺，而是贴近湖岸的步行体验、春日柳色和园林声景。这片区域提醒人们南岸并不只有塔和远山，也有适合慢慢穿行、拍摄近景和感受季节变化的低矮景观带。柳树、岸线和游步道形成一个连续的环境，春夏之际尤其有声音和颜色的层次感。",
+          "sourceExcerpt": "南岸柳林与园景",
+          "iconHint": "source",
+          "regionKind": "landmark",
+          "regionPrompt": "西湖南岸柳浪闻莺，柳树、园路、湖岸和鸟鸣意象组成的近岸景区",
+          "maskPolicy": "full-region",
+          "spatialHint": "southeast",
+          "visualEvidence": [
+            "南岸柳树",
+            "园路",
+            "湖岸近景"
+          ],
+          "locatorQueries": [
+            "柳浪闻莺南岸柳林",
+            "willow waves and orioles",
+            "西湖南岸园林"
+          ],
+          "componentHints": [],
+          "imageTitle": "柳浪闻莺",
+          "textBudget": {
+            "titleLineChars": 6,
+            "titleMaxLines": 1,
+            "titleMaxChars": 6,
+            "imageTextLineChars": 11,
+            "imageTextMaxLines": 1,
+            "imageTextMaxChars": 11
+          }
+        }
+      ],
+      "qualityWarnings": [
+        "topic_mismatch"
+      ],
+      "textModelUsed": "mimo-v2.5-pro",
+      "textModelFallbackReason": ""
+    }
+  }
+}

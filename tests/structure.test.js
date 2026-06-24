@@ -85,6 +85,44 @@ function main() {
   assert.ok(sceneTargets.modules[0].locatorQueries.some((item) => /object\/person plus attached label/.test(item)));
   assert.strictEqual(sceneTargets.modules[1].maskPolicy, "subject");
 
+  const contaminatedSceneDetail = normalizeVisualSpec(
+    {
+      visualMode: "scene",
+      title: "博物馆场景",
+      summary: "博物馆里有展品、观众和导览机器人。",
+      relationType: "hierarchy",
+      modules: [
+        {
+          title: "展品",
+          imageText: "恐龙骨架",
+          detail:
+            "展品是场景里一个独立的对象或区域。它有自己的轮廓、用途和与人或其他物体之间的关系：用户进入这个场景时，会下意识把它当作一个可以走近、操作或观察的目标。它的位置和样貌决定了它在场景里的角色——是焦点、辅助、还是背景里的一处细节——也影响周围其他元素的安排。",
+          regionKind: "object"
+        },
+        {
+          title: "观众",
+          imageText: "参观人群",
+          detail: "观众围绕展柜停留并观察展品细节。",
+          regionKind: "person"
+        },
+        {
+          title: "导览机器人",
+          imageText: "互动讲解",
+          detail: "导览机器人在展厅中为观众讲解展品。",
+          regionKind: "object-with-label"
+        }
+      ]
+    },
+    "画一幅博物馆场景插画，展示大厅、展品、观众和导览机器人",
+    "核心展品是一具恐龙骨架，摆在展厅中央，是观众最容易停留观察的对象。观众围绕展柜移动，导览机器人负责把视线带到骨架、说明牌和互动屏幕上。"
+  );
+  const exhibitDetail = contaminatedSceneDetail.modules.find((module) => /展品/.test(module.title || module.imageText || ""));
+  assert.ok(exhibitDetail, "expected a normalized exhibit module");
+  assert.doesNotMatch(exhibitDetail.detail, /独立的对象或区域/);
+  assert.doesNotMatch(exhibitDetail.detail, /下意识把它当作/);
+  assert.match(exhibitDetail.detail, /恐龙骨架/);
+  assert.match(exhibitDetail.detail, /主要展示目标|视线锚点/);
+
   const crossSectionScene = buildMockSpec(
     "用横切面剖视图展示智能仓库，点击机器人、货架、传感器、控制台可以看详情",
     "智能仓库横切面 机器人 货架 传感器 控制台".repeat(20)
@@ -394,8 +432,9 @@ function main() {
     "自动化交易 Agent 由行情感知、策略规划、记忆状态、交易工具调用、风控校验和执行反馈组成。系统需要先读取市场数据和账户约束，再规划交易动作，最后根据成交和风险结果迭代。".repeat(10)
   );
   const tradingAgentText = JSON.stringify(tradingAgentMock);
+  assert.strictEqual(tradingAgentMock.title, "自动化交易 Agent 工作流");
   assert.strictEqual(tradingAgentMock.visualComposition.layoutVariant, "swimlane-flow");
-  assert.match(tradingAgentText, /感知输入|任务规划|记忆与状态|工具调用|反馈迭代/);
+  assert.match(tradingAgentText, /行情感知|策略规划|记忆状态|风控校验|工具执行|反馈迭代/);
   assert.doesNotMatch(tradingAgentText, /背景基础|当前现状|核心驱动|主要挑战|未来趋势/);
   assert.doesNotMatch(tradingAgentText, /技术成熟|成本下降|短期加速器|长期基础条件/);
 
@@ -457,6 +496,13 @@ function main() {
     campusMapMock.modules.map((module) => module.title),
     ["图书馆", "体育馆", "学生宿舍", "食堂", "湖边草坪", "校史馆"]
   );
+
+  const campusHandDrawnPrefixMock = buildMockSpec(
+    "手绘一张大学校园导览地图，画在一张图上，不要流程图，包含教学楼、图书馆、食堂、宿舍区、操场、校门和主路线，点击区域后解释用途和风貌",
+    "campus map".repeat(40)
+  );
+  assert.strictEqual(campusHandDrawnPrefixMock.title, "大学校园导览地图");
+  assert.doesNotMatch(campusHandDrawnPrefixMock.title, /手绘一张|画在一张图上|点击|解释用途/);
 
   const sleepLampPosterMock = buildMockSpec(
     "设计一张智能睡眠灯产品海报，需要展示灯体、柔和光晕、手机 app 界面、卧室场景、睡眠数据、一句标语",
@@ -812,6 +858,8 @@ function main() {
   testSanitizeModuleTitleRejectsPunctuationOnly();
   testHotspotDetailsAreUserFacingNotMetaInstructions();
   testInferVisualModeClassifiesCommonCases();
+  testMapExplicitTargetsIgnoreInstructionPhrases();
+  testCampusMapDoesNotTreatClickInstructionAsTarget();
 
   console.log("structure.test.js passed");
 }
@@ -851,6 +899,62 @@ function testInferVisualModeClassifiesCommonCases() {
       `inferVisualMode misclassified: "${q}" => ${got} (expected ${expected})`
     );
   }
+}
+
+function testMapExplicitTargetsIgnoreInstructionPhrases() {
+  const question =
+    "画一张机场航站楼指引图：值机柜台、安检、候机区、登机口、行李提取、地铁出租车接驳，要求每个区域都可以点击查看说明。";
+  const spec = buildMockSpec(question, question);
+  const titles = spec.modules.map((module) => module.title);
+  assert.deepStrictEqual(titles, ["值机柜台", "安检", "候机区", "登机口", "行李提取", "地铁出租车接驳"]);
+  assert.doesNotMatch(JSON.stringify(titles), /查看说明|要求|详情|每个区域/);
+
+  const normalized = normalizeVisualSpec(
+    {
+      title: "机场航站楼指引图",
+      summary: "机场导览",
+      relationType: "hierarchy",
+      visualMode: "map",
+      visualComposition: { compositionType: "hand-drawn-map", layoutVariant: "map" },
+      modules: [
+        { title: "查看说明", imageText: "查看说明", detail: "查看说明", regionPrompt: "查看说明" },
+        { title: "值机柜台", imageText: "值机柜台", detail: "值机柜台区域说明" },
+        { title: "安检", imageText: "安检", detail: "安检区域说明" },
+        { title: "候机区", imageText: "候机区", detail: "候机区说明" },
+        { title: "要求", imageText: "要求", detail: "要求每个区域可以点击", regionPrompt: "要求" }
+      ]
+    },
+    question,
+    question
+  );
+  const normalizedTitles = normalized.modules.map((module) => module.title);
+  assert.doesNotMatch(JSON.stringify(normalizedTitles), /查看说明|要求/);
+  for (const expected of ["值机柜台", "安检", "候机区", "登机口", "行李提取", "地铁出租车接驳"]) {
+    assert.ok(normalizedTitles.includes(expected), `missing explicit target after repair: ${expected}`);
+  }
+
+  const contaminatedRaw =
+    "围绕“画一张机场航站楼接驳指引图：值机柜台、安检、候机区、登机口、行李提取、地铁出租车接驳，需要每个区域都可以点击查看说明”，需要先给出直接回答，再拆成若干可视化模块。每个模块应对应一个真实概念、对象、步骤或区域，并在详情中说明机制、影响、例子和注意事项。";
+  const cleaned = normalizeVisualSpec(
+    {
+      title: "机场航站楼接驳指引图",
+      summary: "机场导览",
+      relationType: "hierarchy",
+      visualMode: "map",
+      visualComposition: { compositionType: "hand-drawn-map", layoutVariant: "map" },
+      modules: [
+        { title: "值机柜台", imageText: "值机柜台", detail: contaminatedRaw, sourceExcerpt: contaminatedRaw },
+        { title: "安检", imageText: "安检", detail: contaminatedRaw, sourceExcerpt: contaminatedRaw },
+        { title: "行李提取", imageText: "行李提取", detail: contaminatedRaw, sourceExcerpt: contaminatedRaw }
+      ]
+    },
+    "画一张机场航站楼接驳指引图：值机柜台、安检、候机区、登机口、行李提取、地铁出租车接驳，需要每个区域都可以点击查看说明",
+    contaminatedRaw
+  );
+  const cleanedDetailText = cleaned.modules.map((module) => `${module.detail}\n${module.sourceExcerpt}`).join("\n");
+  assert.doesNotMatch(cleanedDetailText, /需要先给出直接回答/);
+  assert.doesNotMatch(cleanedDetailText, /拆成若干可视化模块/);
+  assert.doesNotMatch(cleanedDetailText, /每个区域都可以点击查看说明/);
 }
 
 // Regression: hotspot detail must read as user-facing prose about the named
@@ -1008,6 +1112,21 @@ function testFallbackSpecsDoNotEmitPainterInstructions() {
 // filled from module.regionPrompt. regionPrompt is the visual-locator prompt
 // (image-search vocabulary used by SAM3/LocateAnything) and must not surface
 // in the click-detail panel.
+function testCampusMapDoesNotTreatClickInstructionAsTarget() {
+  const question =
+    "\u624b\u7ed8\u4e00\u5f20\u5927\u5b66\u6821\u56ed\u5bfc\u89c8\u5730\u56fe\uff0c\u753b\u5728\u4e00\u5f20\u56fe\u4e0a\uff0c\u4e0d\u8981\u6d41\u7a0b\u56fe\uff0c\u5305\u542b\u6559\u5b66\u697c\u3001\u56fe\u4e66\u9986\u3001\u98df\u5802\u3001\u5bbf\u820d\u533a\u3001\u64cd\u573a\u3001\u6821\u95e8\u548c\u4e3b\u8def\u7ebf\uff0c\u70b9\u51fb\u533a\u57df\u540e\u89e3\u91ca\u7528\u9014\u548c\u98ce\u8c8c";
+  const spec = buildMockSpec(question, "campus map".repeat(40));
+  const titles = spec.modules.map((module) => module.title);
+  const titleText = JSON.stringify(titles);
+  assert.doesNotMatch(titleText, /\u533a\u57df\u540e|\u89e3\u91ca\u7528\u9014|\u7528\u9014\u548c\u98ce\u8c8c/);
+  assert.match(titleText, /\u6559\u5b66\u697c/);
+  assert.match(titleText, /\u56fe\u4e66\u9986/);
+  assert.match(titleText, /\u6821\u95e8|\u4e3b\u8def\u7ebf/);
+  const averageDetailLength =
+    spec.modules.reduce((sum, module) => sum + String(module.detail || "").length, 0) / spec.modules.length;
+  assert.ok(averageDetailLength >= 85, `campus detail text is too thin: ${averageDetailLength}`);
+}
+
 function testRepairThinMapDetailDoesNotLeakRegionPrompt() {
   const visualPrompt =
     "地图东侧或山体东侧的阳光海岸栈道，包含朝阳、树林、山脊栈道线和'阳光海岸栈道'短标签";

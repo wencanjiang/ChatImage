@@ -79,6 +79,16 @@ def main():
                     {"x": round(mask_bounds["x"] + mask_bounds["width"] * 0.46, 6), "y": round(mask_bounds["y"] + mask_bounds["height"], 6)},
                     {"x": mask_bounds["x"], "y": round(mask_bounds["y"] + mask_bounds["height"] * 0.84, 6)},
                 ]
+            organic_bounds = {
+                "x": max(0, round(mask_bounds["x"] - 0.018, 6)),
+                "y": max(0, round(mask_bounds["y"] - 0.018, 6)),
+                "width": min(1, round(mask_bounds["width"] + 0.036, 6)),
+                "height": min(1, round(mask_bounds["height"] + 0.036, 6)),
+            }
+            if organic_bounds["x"] + organic_bounds["width"] > 1:
+                organic_bounds["width"] = round(1 - organic_bounds["x"], 6)
+            if organic_bounds["y"] + organic_bounds["height"] > 1:
+                organic_bounds["height"] = round(1 - organic_bounds["y"], 6)
             output.append(
                 {
                     "moduleId": module["moduleId"],
@@ -87,6 +97,9 @@ def main():
                     "maskBounds": mask_bounds,
                     "maskImage": "data:image/png;base64,iVBORw0KGgo=",
                     "cutoutImage": "data:image/png;base64,iVBORw0KGgo=",
+                    "organicImage": "data:image/png;base64,iVBORw0KGgo=",
+                    "organicBounds": organic_bounds,
+                    "organicAspectRatio": round(organic_bounds["width"] / max(0.000001, organic_bounds["height"]), 6),
                     "polygon": polygon,
                     "score": score,
                     "maskPixels": 12345,

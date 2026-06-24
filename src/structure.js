@@ -938,7 +938,7 @@
       id,
       title,
       imageText: title.length > 14 ? title.slice(0, 14) : title,
-      detail: buildSemanticTargetDetail(title, visualMode),
+      detail: buildSemanticTargetDetail(title, visualMode, source, regionKind),
       sourceExcerpt: source.slice(index * 140, index * 140 + 180) || source.slice(0, 180),
       iconHint: regionKind === "route" ? "route" : regionKind === "person" ? "user" : regionKind === "legend" || regionKind === "panel" ? "summary" : "target",
       regionKind,
@@ -958,21 +958,69 @@
     };
   }
 
-    function buildSemanticTargetDetail(title, visualMode) {
-      // The detail shown to end users when the LLM did not provide a per-module
-      // explanation. These strings must read like a real, if generic, attempt
-      // to describe the named target — NOT like a meta instruction telling
-      // the system what should be displayed. (Earlier versions wrote things
-      // like "点击后需要说明它在整体空间中的方位…" which leaks the
-      // machine-facing template into the user-facing detail panel.)
-      if (visualMode === "map") {
-        return `${title}是地图中被单独标出的一处区域。它通常位于路径与地标之间的某个节点，附近会有可识别的入口、标志物或路线交汇；如果用户经过这里，可以借助它判断方向、设定停留时间，并在它和相邻区域之间安排顺序。具体的方位、设施和适合时段需要结合出行计划和当时天气，但作为地图上的一个明确节点，它能帮用户把整片区域拆成可执行的几段。`;
-      }
-      if (visualMode === "poster") {
-        return `${title}是海报里的一处独立叙事元素，承担一段视觉论述：它可能代表问题的成因、变化的过程、群体的状态，或者一种期望中的结果。它和海报里其他元素之间形成对照或推进，让海报想表达的主张更具体。把它当作一个能单独成图的小故事去看，比把整张海报当成一句口号更接近设计者的意图。`;
-      }
-      return `${title}是场景里一个独立的对象或区域。它有自己的轮廓、用途和与人或其他物体之间的关系：用户进入这个场景时，会下意识把它当作一个可以走近、操作或观察的目标。它的位置和样貌决定了它在场景里的角色——是焦点、辅助、还是背景里的一处细节——也影响周围其他元素的安排。`;
+  function buildSemanticTargetDetail(title, visualMode, source = "", regionKind = "") {
+    // This is the last-resort text shown in the click detail panel. Keep it
+    // target-specific: a generic visual-locator definition is more confusing
+    // than a shorter but honest role description.
+    const contextual = extractContextualDetailSentence(title, source);
+    const role = buildTargetRoleDetail(title, visualMode, regionKind, source);
+    if (contextual && !isGenericSemanticTargetDetail(contextual)) {
+      return appendDetailSentence(contextual, role);
     }
+    if (visualMode === "map") {
+      return `${title}是地图中的一个定位锚点。它的价值不只是被标出来，而是帮助用户判断自己和周边路线、入口、地标或服务点的关系；规划行程时，可以根据它决定停留、转向、折返或继续前进的顺序。`;
+    }
+    if (visualMode === "poster") {
+      return `${title}承担海报中的一段叙事任务。它把抽象主题落到一个可观察的视觉元素上，并通过姿态、位置、大小或与其他元素的对照，说明问题的成因、变化或结果。`;
+    }
+    return role;
+  }
+
+  function buildTargetRoleDetail(title, visualMode, regionKind, source = "") {
+    const cleanTitle = String(title || "当前区域").trim() || "当前区域";
+    const text = [cleanTitle, regionKind, source].join(" ").toLowerCase();
+    const subject = inferSemanticSceneSubject(source);
+    if (visualMode === "map") {
+      return `${cleanTitle}在地图中承担定位和分流作用。它需要和相邻路线、入口或地标一起理解，才能判断到达顺序、停留价值和下一段路径。`;
+    }
+    if (visualMode === "poster") {
+      return `${cleanTitle}是海报中的独立叙事元素。它通过具体形态、比例和与周围元素的对照，把主题中的一个判断或情绪落到可见画面上。`;
+    }
+    if (/(展品|展项|展柜|装置|骨架|化石|exhibit|display|installation)/i.test(text)) {
+      return `${cleanTitle}是${subject}里的主要展示目标，承担主题表达和视线锚点的作用。观众通常会围绕它停留、观察材质或结构细节，并借助导览、灯光、展柜或周边说明理解它为什么值得被观看。`;
+    }
+    if (/(导览|机器人|助手|讲解|robot|guide|assistant)/i.test(text)) {
+      return `${cleanTitle}负责把观众和展项连接起来。它的姿态、屏幕、指向动作或语音交互会引导视线，也会决定观众是先理解整体路线，还是先靠近某个具体展品。`;
+    }
+    if (/(观众|游客|人群|人物|visitor|audience|people|person)/i.test(text)) {
+      return `${cleanTitle}体现这个场景的使用方式。人物的站位、朝向、停留距离和互动动作能说明哪些内容最吸引注意，也能暴露动线是否拥挤、讲解是否清楚、空间是否适合继续探索。`;
+    }
+    if (/(空间|环境|结构|大厅|动线|路线|通道|space|layout|hall|route|path)/i.test(text)) {
+      return `${cleanTitle}决定场景的组织方式。它把入口、展项、人物和辅助设施连成可移动的路径，影响观众从哪里进入、在哪里停留、怎样把注意力从一个目标转移到下一个目标。`;
+    }
+    if (/(入口|出口|门|标识|指示|sign|entrance|exit|door)/i.test(text)) {
+      return `${cleanTitle}承担方向提示和安全边界的作用。它的位置要和人流方向、墙面或通道关系清楚，用户才能快速判断从哪里进入、离开或转向。`;
+    }
+    if (/(设备|屏幕|传感器|控制|device|screen|sensor|control)/i.test(text)) {
+      return `${cleanTitle}是场景中的功能节点。它通常负责展示状态、接收操作或触发反馈，因此需要结合周围人物、展品和空间位置理解它的用途。`;
+    }
+    return `${cleanTitle}在${subject}中承担一个可单独观察的角色。它的价值来自自身形态、所在位置以及和周围人物、设备或空间边界的关系；整体上，它说明自身为什么出现在画面中，以及它如何影响附近元素的安排。`;
+  }
+
+  function inferSemanticSceneSubject(source) {
+    const subject = compactTitle(extractQuestionSubject(String(source || "")));
+    if (subject && !/^ChatImage/.test(subject) && subject.length <= 12) return subject;
+    return "当前场景";
+  }
+
+  function appendDetailSentence(primary, secondary) {
+    const first = String(primary || "").trim();
+    const second = String(secondary || "").trim();
+    if (!first) return second;
+    if (!second || first.includes(second.slice(0, 18))) return first;
+    const punctuated = /[。！？.!?]$/.test(first) ? first : `${first}。`;
+    return `${punctuated}${second}`;
+  }
 
   function buildSemanticTargetRegionPrompt(title, regionKind, visualMode) {
     if (visualMode === "map") return `${title}的完整地理足迹，包含可见边界、路线或短标签，不只框文字`;
@@ -1078,6 +1126,7 @@
     for (const target of targets || []) {
       const cleaned = sanitizeExplicitTargetLabel(target);
       if (!cleaned) continue;
+      if (isInstructionOnlyTargetLabel(cleaned)) continue;
       const key = normalizeTitleForCompare(cleaned);
       if (!key || seen.has(key)) continue;
       seen.add(key);
@@ -1087,7 +1136,8 @@
   }
 
   function sanitizeExplicitTargetLabel(value) {
-    return stripInstructionTail(value)
+    const cleaned = stripInstructionTail(value)
+      .replace(/^(?:\u533a\u57df|\u5bf9\u8c61|\u76ee\u6807|\u70ed\u70b9)(?:\u540e)?(?:\u89e3\u91ca|\u8bf4\u660e|\u67e5\u770b|\u5c55\u793a)[\s\S]*$/g, "")
       .replace(/^(?:\u8fd9\u4e9b|\u6bcf\u4e2a|\u5404\u4e2a|\u53ef\u89c6|\u660e\u663e|\u5177\u4f53|\u4e3b\u8981)\s*/g, "")
       .replace(/(?:\u90fd)?(?:\u8981)?(?:\u6210\u4e3a)?(?:\u53ef\u70b9\u51fb|\u70b9\u51fb|\u4e92\u52a8)(?:\u5143\u7d20|\u533a\u57df|\u7269\u4f53)?[\s\S]*$/g, "")
       .replace(/(?:\u8fd9\u4e9b)?(?:\u7269\u4f53|\u533a\u57df)?(?:\u90fd)?(?:\u80fd|\u53ef\u4ee5)\u70b9\u51fb[\s\S]*$/g, "")
@@ -1101,15 +1151,43 @@
       .replace(/^[\s，,、；;：:]+|[\s，,、；;：:.。！!？?]+$/g, "")
       .trim()
       .slice(0, 24);
+    return isInstructionOnlyTargetLabel(cleaned) ? "" : cleaned;
   }
 
   function stripInstructionTail(value) {
     return String(value || "")
+      .replace(/(?:[\s，,、；;]+)?(?:\u5e76)?(?:\u4e14)?\u8981\u6c42\s*(?:\u6bcf\u4e2a|\u5404\u4e2a|\u6240\u6709|\u7528\u6237|\u6e38\u5ba2)?[\s\S]*$/g, "")
+      .replace(/(?:[\s，,、；;]+)?(?:\u5e76)?(?:\u4e14)?(?:\u9700\u8981|\u5e94\u8be5)\s*(?:\u6bcf\u4e2a|\u5404\u4e2a|\u6240\u6709|\u7528\u6237|\u6e38\u5ba2)?[\s\S]*$/g, "")
+      .replace(/(?:[\s锛?銆侊紱;]+)?(?:\u70b9\u51fb)?(?:\u533a\u57df|\u5bf9\u8c61|\u76ee\u6807|\u70ed\u70b9)(?:\u540e)?(?:\u89e3\u91ca|\u8bf4\u660e|\u67e5\u770b|\u5c55\u793a)[\s\S]*$/g, "")
       .replace(/(?:\u90fd)?(?:\u8981)?(?:\u6210\u4e3a)?(?:\u53ef\u70b9\u51fb|\u70b9\u51fb|\u4e92\u52a8)[\s\S]*$/g, "")
       .replace(/(?:\u8fd9\u4e9b)?(?:\u7269\u4f53|\u533a\u57df)(?:\u6216\u533a\u57df)?(?:\u90fd)?(?:\u80fd|\u53ef\u4ee5)[\s\S]*$/g, "")
       .replace(/(?:\u6bcf\u4e2a|\u7528\u6237|\u4e0d\u8981\u753b\u6210|\u4e0d\u8981\u6d41\u7a0b\u56fe)[\s\S]*$/g, "")
       .replace(/(?:click|interactive|do not draw|not a flowchart)[\s\S]*$/gi, "")
       .trim();
+  }
+
+  function isInstructionOnlyTargetLabel(value) {
+    const key = normalizeTitleForCompare(value);
+    if (!key) return true;
+    return [
+      "查看说明",
+      "查看详情",
+      "点击查看说明",
+      "点击查看详情",
+      "说明",
+      "详情",
+      "要求",
+      "需求",
+      "可点击",
+      "点击",
+      "交互",
+      "交互区域",
+      "点击区域",
+      "每个区域",
+      "每个目标",
+      "用途和风貌",
+      "解释用途和风貌"
+    ].includes(key);
   }
 
   function inferGenericVisualTitleSafe(question, visualMode) {
@@ -1716,6 +1794,7 @@
   }
 
   function buildAgentWorkflowFallbackSpec(question, rawAnswer) {
+    if (isTradingAgentQuestion(question, rawAnswer)) return buildTradingAgentWorkflowFallbackSpec(question, rawAnswer);
     const source = String(rawAnswer || question || "");
     return {
       title: "大模型 Agent 工作流程",
@@ -1808,6 +1887,119 @@
           visualEvidence: ["feedback loop", "check mark", "iteration arrow"],
           locatorQueries: ["完整的反馈迭代卡片", "feedback iteration module in agent workflow"],
           priority: 5
+        }
+      ]
+    };
+  }
+
+  function buildTradingAgentWorkflowFallbackSpec(question, rawAnswer) {
+    const source = String(rawAnswer || question || "");
+    return {
+      title: "自动化交易 Agent 工作流",
+      language: inferQuestionLanguage(question),
+      visualMode: "infographic",
+      summary: "把自动化交易 Agent 拆成行情感知、策略规划、状态记忆、风控校验、交易执行和反馈迭代。",
+      relationType: "flow",
+      visualComposition: {
+        compositionType: "swimlane-flow",
+        layoutVariant: "swimlane-flow",
+        visualFocus: "从市场数据进入，到风控确认、交易执行、成交反馈再回到策略修正的闭环",
+        primaryModules: ["module_1", "module_2", "module_3"],
+        secondaryModules: ["module_4", "module_5", "module_6"],
+        densityStrategy: "每个模块展示真实交易 Agent 的职责、输入输出和风险边界，图上保留交易语义，不退回通用 Agent 模板。",
+        moduleCountReason: "自动化交易比普通 Agent 多出强风控和交易执行约束，因此拆成六个模块更贴近实际链路。"
+      },
+      auxiliaryModules: [],
+      modules: [
+        {
+          id: "module_1",
+          title: "行情感知",
+          imageText: "读取行情、订单簿、新闻和账户约束",
+          detail:
+            "行情感知负责把价格、成交量、订单簿、新闻事件、宏观数据和账户约束转成 Agent 可理解的状态。它不能只看单一价格点，而要同时识别波动、流动性、滑点风险和数据延迟。这个环节决定后续策略是不是建立在真实市场环境上，若输入噪声过大或数据源不同步，后面的规划会很容易误判。",
+          sourceExcerpt: source.slice(0, 150),
+          iconHint: "data",
+          regionKind: "card",
+          regionPrompt: "trading agent market sensing card with quotes, order book, news, account constraints",
+          maskPolicy: "card",
+          visualEvidence: ["price chart", "order book", "market data feed"],
+          locatorQueries: ["完整的行情感知卡片", "market sensing module in trading agent workflow"],
+          priority: 1
+        },
+        {
+          id: "module_2",
+          title: "策略规划",
+          imageText: "生成信号、仓位和执行计划",
+          detail:
+            "策略规划把行情状态转成可执行意图，例如是否开仓、加仓、减仓、止盈或等待。它需要结合策略规则、模型信号、仓位规模、预期收益和交易成本，而不是简单地把预测结果直接变成下单动作。成熟的交易 Agent 会在这里生成多个候选方案，并标注触发条件、失效条件和需要风控复核的部分。",
+          sourceExcerpt: source.slice(150, 320),
+          iconHint: "layout",
+          regionKind: "card",
+          regionPrompt: "trading strategy planning card with signal, position sizing, execution plan",
+          maskPolicy: "card",
+          visualEvidence: ["strategy node", "position sizing", "decision branch"],
+          locatorQueries: ["完整的策略规划卡片", "strategy planning module in trading agent workflow"],
+          priority: 2
+        },
+        {
+          id: "module_3",
+          title: "记忆状态",
+          imageText: "维护持仓、订单、成交和历史表现",
+          detail:
+            "记忆状态记录当前持仓、挂单、成交回报、资金占用、历史信号表现和近期错误。它让 Agent 知道自己已经做过什么，避免重复下单、忘记撤单或在同一风险敞口上叠加过多仓位。这里的关键是状态一致性：交易系统必须把交易所回报、内部账本和策略判断对齐，否则看似合理的下一步动作可能会造成真实资金风险。",
+          sourceExcerpt: source.slice(320, 500),
+          iconHint: "database",
+          regionKind: "card",
+          regionPrompt: "trading agent memory state card with positions, orders, fills, portfolio state",
+          maskPolicy: "card",
+          visualEvidence: ["portfolio state", "order history", "position memory"],
+          locatorQueries: ["完整的记忆状态卡片", "memory and portfolio state module"],
+          priority: 3
+        },
+        {
+          id: "module_4",
+          title: "风控校验",
+          imageText: "检查敞口、止损、回撤和权限边界",
+          detail:
+            "风控校验是自动化交易 Agent 不能省略的安全闸门。它会检查单笔仓位、总敞口、最大回撤、止损条件、黑名单标的、交易时段、权限边界和异常波动。只要风险条件不满足，系统应拒绝或降级交易动作，而不是让工具调用直接执行。这个模块把“模型认为可交易”和“系统允许交易”明确分开。",
+          sourceExcerpt: source.slice(500, 700),
+          iconHint: "risk",
+          regionKind: "card",
+          regionPrompt: "trading risk control card with exposure, stop loss, drawdown, permission checks",
+          maskPolicy: "card",
+          visualEvidence: ["risk shield", "exposure meter", "stop loss gate"],
+          locatorQueries: ["完整的风控校验卡片", "risk control module in trading agent workflow"],
+          priority: 4
+        },
+        {
+          id: "module_5",
+          title: "工具执行",
+          imageText: "调用交易 API 下单、撤单和查询",
+          detail:
+            "工具执行把通过风控的计划转成真实交易动作，例如调用券商或交易所 API 下单、撤单、查询订单状态、读取成交回报。这里要处理参数精度、价格类型、数量单位、幂等控制、网络失败和接口限频。交易 Agent 的工具调用必须可审计、可回滚或至少可追踪，因为每一次调用都可能产生真实资金后果。",
+          sourceExcerpt: source.slice(700, 900),
+          iconHint: "tool",
+          regionKind: "card",
+          regionPrompt: "trading tool execution card with broker API, order placement, cancel, query",
+          maskPolicy: "card",
+          visualEvidence: ["broker API", "order ticket", "execution log"],
+          locatorQueries: ["完整的工具执行卡片", "broker API execution module"],
+          priority: 5
+        },
+        {
+          id: "module_6",
+          title: "反馈迭代",
+          imageText: "用成交、滑点和盈亏修正下一轮策略",
+          detail:
+            "反馈迭代把成交结果、滑点、拒单原因、盈亏变化和风险告警重新送回 Agent。它会判断策略假设是否失效、执行质量是否变差、是否需要暂停交易或调整参数。这个闭环让自动化交易不只是按规则机械运行，而是能持续校验市场反馈；但反馈也必须有边界，不能因为短期噪声频繁改动策略。",
+          sourceExcerpt: source.slice(900, 1100),
+          iconHint: "refresh",
+          regionKind: "card",
+          regionPrompt: "trading feedback iteration card with fills, slippage, pnl, risk alerts",
+          maskPolicy: "card",
+          visualEvidence: ["fill report", "slippage", "PnL feedback loop"],
+          locatorQueries: ["完整的反馈迭代卡片", "trading feedback iteration module"],
+          priority: 6
         }
       ]
     };
@@ -2144,8 +2336,9 @@
       language,
       visualMode
     );
-    const sourceModules = completeQuestionSpecificMapModules(
-      useFallbackForModeConflict ? fallback.modules : modules,
+    const candidateModules = filterInstructionOnlyTargetModules(useFallbackForModeConflict ? fallback.modules : modules, visualMode);
+    const sourceModules = completeExplicitTargetModules(
+      completeQuestionSpecificMapModules(candidateModules, question, rawAnswer, visualMode, maxMainModules),
       question,
       rawAnswer,
       visualMode,
@@ -2162,22 +2355,33 @@
       modules: addTargetContractsToModules(
         repairMapModulesQuality(
           normalizeMapModuleTargets(
-            sourceModules.map((module, index) => ({
-              id: `module_${index + 1}`,
-              title: sanitizeModuleTitle(module.title || `模块 ${index + 1}`, index, question, rawAnswer, visualMode),
-              imageText: String(module.imageText || module.shortText || module.detail || "").slice(0, 32),
-              detail: repairKnownThinDetail(module, sanitizeDetailForUser(String(module.detail || "").slice(0, 1400), String(module.imageText || module.title || ""))),
-              sourceExcerpt: sanitizeDetailForUser(String(module.sourceExcerpt || "").slice(0, 160), String(module.imageText || module.title || "")),
-              iconHint: String(module.iconHint || "idea"),
-              regionKind: inferRegionKind(module, visualMode),
-              regionPrompt: String(module.regionPrompt || module.visualPrompt || module.title || "").slice(0, 180),
-              priority: Number(module.priority || index + 1),
-              visualEvidence: module.visualEvidence,
-              maskPolicy: module.maskPolicy,
-              spatialHint: module.spatialHint,
-              locatorQueries: module.locatorQueries,
-              componentHints: module.componentHints
-            })),
+            sourceModules.map((module, index) => {
+              const title = sanitizeModuleTitle(module.title || `模块 ${index + 1}`, index, question, rawAnswer, visualMode);
+              const imageText = String(module.imageText || module.shortText || module.detail || "").slice(0, 32);
+              const regionKind = inferRegionKind(module, visualMode);
+              const sourceExcerpt = sanitizeDetailForUser(String(module.sourceExcerpt || "").slice(0, 160), String(module.imageText || module.title || ""));
+              const moduleContext = { ...module, title, imageText, regionKind, sourceExcerpt };
+              const cleanedDetail = sanitizeDetailForUser(String(module.detail || "").slice(0, 1400), String(module.imageText || module.title || ""));
+              return {
+                id: `module_${index + 1}`,
+                title,
+                imageText,
+                detail: repairKnownThinDetail(
+                  moduleContext,
+                  repairGenericSemanticTargetDetail(moduleContext, cleanedDetail, question, rawAnswer, visualMode)
+                ),
+                sourceExcerpt,
+                iconHint: String(module.iconHint || "idea"),
+                regionKind,
+                regionPrompt: String(module.regionPrompt || module.visualPrompt || module.title || "").slice(0, 180),
+                priority: Number(module.priority || index + 1),
+                visualEvidence: module.visualEvidence,
+                maskPolicy: module.maskPolicy,
+                spatialHint: module.spatialHint,
+                locatorQueries: module.locatorQueries,
+                componentHints: module.componentHints
+              };
+            }),
             visualMode
           ),
           visualMode,
@@ -2563,6 +2767,60 @@
     }));
   }
 
+  function filterInstructionOnlyTargetModules(modules, visualMode) {
+    const mode = normalizeVisualMode(visualMode);
+    const source = Array.isArray(modules) ? modules : [];
+    if (!["map", "scene", "poster"].includes(mode)) return source;
+    const filtered = source.filter((module) => {
+      const title = String((module && module.title) || "");
+      const imageText = String((module && (module.imageText || module.shortText)) || "");
+      const prompt = String((module && module.regionPrompt) || "");
+      const titleIsNoise = isInstructionOnlyTargetLabel(title);
+      const imageIsNoise = imageText ? isInstructionOnlyTargetLabel(imageText) : true;
+      const promptIsNoise = prompt ? isInstructionOnlyTargetLabel(prompt) : true;
+      return !(titleIsNoise && imageIsNoise && promptIsNoise);
+    });
+    return filtered.length >= 3 ? filtered : source;
+  }
+
+  function completeExplicitTargetModules(modules, question, rawAnswer, visualMode, maxModules) {
+    const mode = normalizeVisualMode(visualMode);
+    const source = Array.isArray(modules) ? modules.slice(0, maxModules) : [];
+    if (!["map", "scene", "poster"].includes(mode)) return source;
+    const targets = extractExplicitVisualTargets(question, mode);
+    if (targets.length < 3) return source;
+    const completed = source.slice();
+    for (const target of targets) {
+      if (completed.length >= maxModules) break;
+      if (hasEquivalentExplicitTarget(completed, target)) continue;
+      completed.push(buildSemanticTargetModule(target, completed.length, mode, rawAnswer || question || ""));
+    }
+    return completed.slice(0, maxModules).map((module, index) => ({
+      ...module,
+      id: `module_${index + 1}`,
+      priority: Number(module.priority || index + 1)
+    }));
+  }
+
+  function hasEquivalentExplicitTarget(modules, target) {
+    const key = normalizeTitleForCompare(target);
+    if (!key) return false;
+    return (modules || []).some((module) => {
+      const titleKey = normalizeTitleForCompare(module && module.title);
+      const text = [
+        module && module.title,
+        module && module.imageText,
+        module && module.shortText,
+        module && module.regionPrompt,
+        ...(Array.isArray(module && module.locatorQueries) ? module.locatorQueries : [])
+      ]
+        .map((value) => normalizeTitleForCompare(value))
+        .filter(Boolean)
+        .join("\n");
+      return text.includes(key) || (titleKey && key.includes(titleKey));
+    });
+  }
+
   function repairMapModulesQuality(modules, visualMode, question, rawAnswer) {
     const repaired = (Array.isArray(modules) ? modules : []).map((module) => repairMapModuleQuality(module, visualMode, question, rawAnswer));
     if (normalizeVisualMode(visualMode) !== "map") return repaired;
@@ -2840,7 +3098,17 @@
     "避免把说明",
     "可点击的独立",
     "detail shown after hotspot",
-    "unnumbered panel"
+    "unnumbered panel",
+    // Meta-process phrases from buildFallbackRawAnswer (service.js): the fallback
+    // raw answer quotes the entire question and describes the generation pipeline
+    // itself ("先给出直接回答，再拆成可视化模块"). Because that sentence embeds
+    // every region label, extractContextualDetailSentence would otherwise match it
+    // for every hotspot and surface the whole prompt as the region detail.
+    "需要先给出直接回答",
+    "拆成若干可视化模块",
+    "拆成可视化模块",
+    "每个模块应对应",
+    "在详情中说明机制"
   ];
 
   // True if a clause/detail contains visual-system vocab OR meta-instruction
@@ -2879,6 +3147,75 @@
     if (cleaned.length >= 24) return cleaned;
     // Too little survived cleaning — prefer the fallback over a prompt fragment.
     return String(fallback || "").trim() || detail;
+  }
+
+  function repairGenericSemanticTargetDetail(module, detail, question, rawAnswer, visualMode) {
+    const source = String(detail || "").trim();
+    if (!isGenericSemanticTargetDetail(source)) return source;
+    const title = String((module && module.title) || (module && module.imageText) || "").trim();
+    const context = [rawAnswer, module && module.sourceExcerpt, question].filter(Boolean).join("\n");
+    const contextual = extractContextualDetailSentence(title, context);
+    const rebuilt = buildSemanticTargetDetail(title || String(module && module.imageText) || "当前区域", visualMode, context, module && module.regionKind);
+    if (contextual && !isGenericSemanticTargetDetail(contextual)) {
+      return appendDetailSentence(contextual, rebuilt);
+    }
+    return rebuilt;
+  }
+
+  function isGenericSemanticTargetDetail(value) {
+    const text = String(value || "").trim();
+    if (!text) return false;
+    return [
+      "是场景里一个独立的对象或区域",
+      "用户进入这个场景时，会下意识把它当作一个可以走近、操作或观察的目标",
+      "它的位置和样貌决定了它在场景里的角色",
+      "是地图中被单独标出的一处区域",
+      "它通常位于路径与地标之间的某个节点",
+      "是海报里的一处独立叙事元素",
+      "承担一段视觉论述"
+    ].some((phrase) => text.includes(phrase));
+  }
+
+  function extractContextualDetailSentence(title, source) {
+    const label = String(title || "").trim();
+    const text = String(source || "").replace(/\s+/g, " ").trim();
+    if (!label || !text) return "";
+    const aliases = buildContextualDetailAliases(label);
+    const sentences = text.match(/[^。！？!?；;\n]+[。！？!?；;]?/g) || [text];
+    const candidate = sentences
+      .map((sentence) => sentence.trim())
+      .find((sentence) => {
+        if (sentence.length < 16 || isGenericSemanticTargetDetail(sentence)) return false;
+        if (looksLikeImperativeVisualPrompt(sentence)) return false;
+        // Reject meta-instruction / prompt-quoting sentences (e.g. the fallback
+        // raw answer that quotes the whole question). They contain every region
+        // label, so they would otherwise match here for every hotspot.
+        if (looksLikeUserFacingNoise(sentence)) return false;
+        return aliases.some((alias) => alias && sentence.includes(alias));
+      });
+    if (!candidate) return "";
+    return candidate.length > 180 ? `${candidate.slice(0, 178)}…` : candidate;
+  }
+
+  function buildContextualDetailAliases(title) {
+    const source = String(title || "").trim();
+    const aliases = new Set([source]);
+    const simplified = source.replace(/^(核心|主要|当前|中央|中心|互动|沉浸式)/, "").replace(/(区域|模块|目标|对象)$/, "");
+    if (simplified && simplified !== source) aliases.add(simplified);
+    if (/展品|展项|展柜|装置|骨架|化石/.test(source)) {
+      ["展品", "展项", "展柜", "装置", "骨架", "化石"].forEach((item) => aliases.add(item));
+    }
+    if (/导览|机器人|助手/.test(source)) {
+      ["导览", "机器人", "讲解", "助手"].forEach((item) => aliases.add(item));
+    }
+    if (/观众|游客|人群|人物/.test(source)) {
+      ["观众", "游客", "人群", "人物"].forEach((item) => aliases.add(item));
+    }
+    return Array.from(aliases).filter((item) => item && item.length >= 2);
+  }
+
+  function looksLikeImperativeVisualPrompt(value) {
+    return /^(请|帮我|给我|为|生成|画|画一张|手绘|手绘一张|绘制|绘制一张|设计|用|以|draw|generate|design)/i.test(String(value || "").trim());
   }
 
   function completeQuestionSpecificMapModules(modules, question, rawAnswer, visualMode, maxModules = 12) {
@@ -3251,7 +3588,7 @@
     const compactQuestion = normalizeTitleForCompare(rawQuestion);
     if (compactQuestion && compactSource === compactQuestion) return true;
     if (compactQuestion && compactQuestion.length >= 8 && compactSource.includes(compactQuestion.slice(0, Math.min(16, compactQuestion.length)))) return true;
-    return /^(请|帮我|给我|为|生成|画|画一张|设计|解释|说明|分析|对比|介绍|summarize|explain|generate|draw|design)/i.test(source);
+    return /^(请|帮我|给我|为|生成|画|画一张|手绘|手绘一张|绘制|绘制一张|设计|解释|说明|分析|对比|介绍|summarize|explain|generate|draw|design)/i.test(source);
   }
 
   function normalizeTitleForCompare(value) {
@@ -3265,7 +3602,7 @@
     return stripLeadingVisualInstructionPrefix(value)
       .replace(/\.{3,}|…/g, "")
       .replace(/^(请|帮我|给我)\s*/i, "")
-      .replace(/^(生成|画一张|画一个|画|设计|解释|说明|分析|对比|介绍)\s*/i, "")
+      .replace(/^(生成|画一张|画一个|画|手绘一张|手绘一个|手绘|绘制一张|绘制一个|绘制|设计|解释|说明|分析|对比|介绍)\s*/i, "")
       .replace(/^(draw|generate|create|make|design|explain|introduce|summarize|analyze)\s+/i, "")
       .replace(/[，。！？、；：,.!?;:]+$/g, "")
       .trim();
@@ -3745,6 +4082,11 @@
     return /\bagent\b/i.test(text) && /工作流|工作流程|流程|闭环|感知|规划|记忆|工具|反馈|结构|架构|组成|模块|执行|决策|策略|风控|workflow|loop|tool|architecture|structure|module/i.test(text);
   }
 
+  function isTradingAgentQuestion(question, rawAnswer = "") {
+    const text = `${question || ""} ${rawAnswer || ""}`;
+    return /\bagent\b/i.test(text) && /自动化交易|量化交易|交易策略|行情|订单簿|下单|撤单|持仓|仓位|风控|滑点|成交|券商|交易所|broker|trading|order|position|risk/i.test(text);
+  }
+
   function isEcommerceFunnelQuestion(question) {
     const text = String(question || "");
     return /电商|商城|商品|订单|支付|复购|转化漏斗|漏斗分析/.test(text) && /漏斗|转化|成交|支付|加购/.test(text);
@@ -3762,7 +4104,7 @@
       .trim();
     if (!cleaned) return "\u4e3b\u9898";
     const prefixes = [
-      /^\u8bf7?\s*(?:\u753b|\u753b\u4e00\u4e2a|\u753b\u4e00\u5f20|\u751f\u6210|\u521b\u5efa|\u5236\u4f5c|\u8bbe\u8ba1)\s*(?:\u4e00\u4e2a|\u4e00\u5f20|\u4e00\u4efd)?\s*/i,
+      /^\u8bf7?\s*(?:\u753b|\u753b\u4e00\u4e2a|\u753b\u4e00\u5f20|\u624b\u7ed8|\u624b\u7ed8\u4e00\u4e2a|\u624b\u7ed8\u4e00\u5f20|\u7ed8\u5236|\u7ed8\u5236\u4e00\u4e2a|\u7ed8\u5236\u4e00\u5f20|\u751f\u6210|\u521b\u5efa|\u5236\u4f5c|\u8bbe\u8ba1)\s*(?:\u4e00\u4e2a|\u4e00\u5f20|\u4e00\u4efd)?\s*/i,
       /^\u8bf7?\s*(?:\u4ecb\u7ecd|\u8bf4\u660e|\u89e3\u91ca|\u5206\u6790|\u68b3\u7406|\u8bb2\u8bb2|\u8c08\u8c08|\u6982\u8ff0|\u603b\u7ed3)\s*(?:\u4e00\u4e0b|\u4e0b|\u4e00\u6b21)?\s*(?:\u5173\u4e8e)?\s*/i,
       /^\u5e2e\u6211\s*(?:\u4ecb\u7ecd|\u8bf4\u660e|\u89e3\u91ca|\u5206\u6790|\u68b3\u7406)\s*(?:\u4e00\u4e0b|\u4e0b)?\s*(?:\u5173\u4e8e)?\s*/i,
       /^(?:draw|generate|create|make|design|what is|explain|introduce|summarize|analyze|describe)\s+/i

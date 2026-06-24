@@ -258,11 +258,8 @@ async function collectPageState(cdp) {
       const hotspots = Array.from(document.querySelectorAll(".image-stage > [data-hotspot-id]")).map((node) => {
         const rect = node.getBoundingClientRect();
         const style = getComputedStyle(node);
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const hit = document.elementFromPoint(centerX, centerY);
-        const hitHotspot = hit && hit.closest ? hit.closest("[data-hotspot-id]") : null;
         const id = node.getAttribute("data-hotspot-id");
+        const clickable = findClickablePoint(node, id);
         const module = moduleById.get(id) || {};
         return {
           id,
@@ -273,11 +270,36 @@ async function collectPageState(cdp) {
           background: style.backgroundColor,
           borderTopWidth: style.borderTopWidth,
           zIndex: style.zIndex,
-          hitTargetId: hitHotspot ? hitHotspot.getAttribute("data-hotspot-id") : "",
+          hitTargetId: clickable.hitTargetId,
+          clickPoint: clickable.point,
           rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
           style: node.getAttribute("style") || ""
         };
       });
+      function findClickablePoint(node, id) {
+        const rect = node.getBoundingClientRect();
+        const ratios = [
+          [0.5, 0.5],
+          [0.18, 0.18],
+          [0.82, 0.18],
+          [0.18, 0.82],
+          [0.82, 0.82],
+          [0.5, 0.18],
+          [0.5, 0.82],
+          [0.18, 0.5],
+          [0.82, 0.5]
+        ];
+        let fallback = null;
+        for (const [rx, ry] of ratios) {
+          const point = { x: rect.left + rect.width * rx, y: rect.top + rect.height * ry };
+          const hit = document.elementFromPoint(point.x, point.y);
+          const hitHotspot = hit && hit.closest ? hit.closest("[data-hotspot-id]") : null;
+          const hitTargetId = hitHotspot ? hitHotspot.getAttribute("data-hotspot-id") : "";
+          fallback = fallback || { point, hitTargetId };
+          if (hitTargetId === id) return { point, hitTargetId };
+        }
+        return fallback || { point: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }, hitTargetId: "" };
+      }
       return {
         title: document.querySelector(".result-header h2")?.textContent || "",
         summary: document.querySelector(".result-header p")?.textContent || "",
@@ -350,8 +372,12 @@ async function auditHotspotClicks(cdp, hotspots) {
 
 async function clickHotspotAtCenter(cdp, hotspot) {
   const current = hotspot && hotspot.id ? (await getCurrentHotspotSnapshot(cdp, hotspot.id)) || hotspot : hotspot;
-  const x = current.rect.left + current.rect.width / 2;
-  const y = current.rect.top + current.rect.height / 2;
+  const point = current.clickPoint || {
+    x: current.rect.left + current.rect.width / 2,
+    y: current.rect.top + current.rect.height / 2
+  };
+  const x = point.x;
+  const y = point.y;
   await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y });
   await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", x, y, button: "left", clickCount: 1 });
   await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", clickCount: 1 });
@@ -365,18 +391,41 @@ async function getCurrentHotspotSnapshot(cdp, hotspotId) {
       if (!node) return null;
       const rect = node.getBoundingClientRect();
       const style = getComputedStyle(node);
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      const hit = document.elementFromPoint(centerX, centerY);
-      const hitHotspot = hit && hit.closest ? hit.closest("[data-hotspot-id]") : null;
+      const id = node.getAttribute("data-hotspot-id");
+      const clickable = findClickablePoint(node, id);
+      function findClickablePoint(node, id) {
+        const rect = node.getBoundingClientRect();
+        const ratios = [
+          [0.5, 0.5],
+          [0.18, 0.18],
+          [0.82, 0.18],
+          [0.18, 0.82],
+          [0.82, 0.82],
+          [0.5, 0.18],
+          [0.5, 0.82],
+          [0.18, 0.5],
+          [0.82, 0.5]
+        ];
+        let fallback = null;
+        for (const [rx, ry] of ratios) {
+          const point = { x: rect.left + rect.width * rx, y: rect.top + rect.height * ry };
+          const hit = document.elementFromPoint(point.x, point.y);
+          const hitHotspot = hit && hit.closest ? hit.closest("[data-hotspot-id]") : null;
+          const hitTargetId = hitHotspot ? hitHotspot.getAttribute("data-hotspot-id") : "";
+          fallback = fallback || { point, hitTargetId };
+          if (hitTargetId === id) return { point, hitTargetId };
+        }
+        return fallback || { point: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }, hitTargetId: "" };
+      }
       return {
-        id: node.getAttribute("data-hotspot-id"),
+        id,
         ariaLabel: node.getAttribute("aria-label") || "",
         text: node.textContent || "",
         background: style.backgroundColor,
         borderTopWidth: style.borderTopWidth,
         zIndex: style.zIndex,
-        hitTargetId: hitHotspot ? hitHotspot.getAttribute("data-hotspot-id") : "",
+        hitTargetId: clickable.hitTargetId,
+        clickPoint: clickable.point,
         rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
         style: node.getAttribute("style") || ""
       };
@@ -435,7 +484,7 @@ function evaluateCase({ testCase, pageState, detailState, clickAudit, clickTarge
       checks.length) *
       100
   );
-  return {
+  const result = {
     id: testCase.id,
     category: testCase.category,
     question: testCase.question,
@@ -446,6 +495,14 @@ function evaluateCase({ testCase, pageState, detailState, clickAudit, clickTarge
     actual,
     checks
   };
+  if (process.env.CHATIMAGE_AGENT_EVAL_PRESERVE_STATE === "1") {
+    result.state = {
+      pageState,
+      detailState,
+      clickAudit
+    };
+  }
+  return result;
 }
 
 function checkVisualMode(testCase, visualMode) {

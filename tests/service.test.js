@@ -62,6 +62,7 @@ async function main() {
   await testAnswerStructureProviderUsesOneTextCall();
   await testAnswerStructureProviderRepairsParseFailure();
   await testAnswerStructureProviderRepairsThinResult();
+  await testFallbackAnswerStructureDoesNotLeakVisualPrompt();
   await testAlignmentFailureFallsBackToPlannedLayout();
   await testHitTestMatchesDomOrderWhenZIndexTies();
   await testAlignmentProviderUsesVisionEndpoint();
@@ -246,6 +247,53 @@ async function testHitTestMatchesDomOrderWhenZIndexTies() {
     ]
   );
   assert.deepStrictEqual(result.visualQualityWarnings, []);
+}
+
+async function testFallbackAnswerStructureDoesNotLeakVisualPrompt() {
+  const question =
+    "画一张机场航站楼接驳指引图：值机柜台、安检、候机区、登机口、行李提取、地铁出租车接驳，需要每个区域都可以点击查看说明";
+  const provider = createAnswerStructureProvider({
+    shouldUseApi: async () => true,
+    apiPost: async () => ({
+      content: JSON.stringify({
+        rawAnswer: "This answer is about an unrelated shopping app.",
+        visualSpec: {
+          title: "Shopping app",
+          summary: "Unrelated topic",
+          relationType: "hierarchy",
+          modules: [
+            { title: "Cart", imageText: "Cart", detail: "Cart detail" },
+            { title: "Checkout", imageText: "Checkout", detail: "Checkout detail" },
+            { title: "Payment", imageText: "Payment", detail: "Payment detail" }
+          ]
+        }
+      })
+    }),
+    providerConfig: {
+      mode: "api",
+      endpoints: { textGeneration: "/api/llm" }
+    },
+    structureModel: require("../src/structure"),
+    mockLlmProvider: {
+      async answer() {
+        throw new Error("mock should not be used");
+      }
+    },
+    sleep: async () => {}
+  });
+
+  const result = await provider.create(question);
+  assert.doesNotMatch(result.rawAnswer, /需要先给出直接回答/);
+  assert.doesNotMatch(result.rawAnswer, /拆成若干可视化模块/);
+  assert.match(result.rawAnswer, /值机柜台/);
+  assert.match(result.rawAnswer, /行李提取/);
+
+  const detailText = (result.visualSpec.modules || [])
+    .map((module) => `${module.detail || ""}\n${module.sourceExcerpt || ""}`)
+    .join("\n");
+  assert.doesNotMatch(detailText, /需要先给出直接回答/);
+  assert.doesNotMatch(detailText, /拆成若干可视化模块/);
+  assert.doesNotMatch(detailText, /每个区域都可以点击查看说明/);
 }
 
 async function testAnswerStructureProviderUsesOneTextCall() {

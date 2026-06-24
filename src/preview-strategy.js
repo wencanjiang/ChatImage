@@ -76,7 +76,7 @@
       maskPolicy === "full-region" && Number.isFinite(maskScore) && maskScore < 0.35;
     const subjectWithLabel = SUBJECT_WITH_LABEL_KINDS.includes(regionKind);
     const infographicSubjectWithLabel = visualMode === "infographic" && subjectWithLabel;
-    const mapSubjectWithLabel = visualMode === "map" && subjectWithLabel;
+    const semanticSubjectWithLabel = MAP_LIKE_VISUAL_MODES.includes(visualMode) && subjectWithLabel;
     const flowStrip = regionKind === "flow-strip" || isFlowStripHotspot(result, hotspot);
 
     // Route targets keep the original image but use the route caption.
@@ -105,10 +105,9 @@
         caption: ""
       };
     }
-    // The attached label is part of the intended target. SAM3 receives a
-    // synthesized object+label component pair, so this can stay a transparent
-    // cutout instead of falling back to a background-heavy scene crop.
-    if (mapSubjectWithLabel) {
+    // The attached label is part of the intended target, but semantic
+    // map/scene/poster outputs still need a little surrounding context.
+    if (semanticSubjectWithLabel) {
       return {
         preferContextCrop: true,
         mapLike: true,
@@ -137,15 +136,15 @@
     }
     if (subjectWithLabel) {
       return {
-        preferContextCrop: false,
-        mapLike: false,
+        preferContextCrop: true,
+        mapLike: true,
         route: false,
-        independentSubject: true,
+        independentSubject: false,
         subjectWithLabel: true,
         regionKind,
         maskPolicy,
         visualMode,
-        caption: "主体与标签抠图预览"
+        caption: "区域上下文预览"
       };
     }
     // Map-like regions (landmark/mountain/water/...) always use context crops.
@@ -220,7 +219,7 @@
     return Boolean(
       strategy &&
         (strategy.route ||
-          (String(strategy.visualMode || "").toLowerCase() === "map" && strategy.subjectWithLabel) ||
+          (MAP_LIKE_VISUAL_MODES.includes(String(strategy.visualMode || "").toLowerCase()) && strategy.subjectWithLabel) ||
           strategy.flowStrip ||
           isInfographicCardLike(strategy))
     );
@@ -346,8 +345,8 @@
       : [];
     const grownBounds = grownPolygon.length >= 3 ? getPolygonBounds(grownPolygon) : baseBounds;
     const padRatio = grownPolygon.length >= 3
-      ? Math.max(0.025, Math.min(0.08, Math.sqrt(baseArea) * 0.06))
-      : Math.max(0.06, Math.min(0.16, Math.sqrt(baseArea) * 0.2));
+      ? Math.max(0.05, Math.min(0.14, Math.sqrt(baseArea) * 0.12))
+      : Math.max(0.09, Math.min(0.22, Math.sqrt(baseArea) * 0.26));
     const paddedBounds = padNormalizedBounds(grownBounds || normalizedBounds, padRatio);
     return {
       paddedBounds,

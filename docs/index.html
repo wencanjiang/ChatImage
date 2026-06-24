@@ -1,182 +1,534 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ChatImage — Turn LLM answers into interactive visual images</title>
-<meta name="description" content="ChatImage converts a long-form LLM answer into an interactive visual image with clickable hotspots, per-region detail panels, and in-context follow-up threads." />
+<title>ChatImage - Turn LLM answers into interactive visual images</title>
+<meta name="description" content="ChatImage converts long-form LLM answers into interactive visual images with clickable hotspots, detail panels, and follow-up threads." />
 <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
 <style>
   :root{
-    --bg:#f7f3ea;--panel:#fffaf0;--panel-strong:#fffdf8;--text:#25211c;
-    --muted:#6f685f;--line:#dfd7ca;--line-soft:#e7ddcf;
-    --accent:#c15f3c;--accent-strong:#9f472b;--accent-soft:#f7dfd2;--accent-tint:#fff6f0;
-    --shadow:0 18px 46px rgba(59,46,34,.12);--radius:14px;--radius-sm:10px;
-    --maxw:1120px;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --bg:#f7f3ea;
+    --panel:#fffaf0;
+    --panel-strong:#fffdf8;
+    --text:#25211c;
+    --muted:#6f685f;
+    --line:#dfd7ca;
+    --line-soft:#e7ddcf;
+    --accent:#c15f3c;
+    --accent-strong:#9f472b;
+    --accent-soft:#f7dfd2;
+    --accent-tint:#fff6f0;
+    --good:#397456;
+    --shadow:0 18px 46px rgba(59,46,34,.12);
+    --radius:14px;
+    --radius-sm:10px;
+    --maxw:1120px;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{margin:0;background:var(--bg);color:var(--text);
+  body{
+    margin:0;
+    background:radial-gradient(circle at top left,rgba(193,95,60,.08),transparent 32rem),var(--bg);
+    color:var(--text);
     font-family:"LXGW WenKai Mono","LXGW WenKai","Microsoft YaHei",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
-    line-height:1.6;-webkit-font-smoothing:antialiased}
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
   a{color:var(--accent-strong);text-decoration:none}
   a:hover{text-decoration:underline}
   img{max-width:100%;display:block}
+  code{font-family:var(--mono)}
   .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
   section{padding:72px 0}
-  /* nav */
-  nav{position:sticky;top:0;z-index:50;background:rgba(255,250,240,.88);
-    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-    border-bottom:1px solid var(--line)}
+
+  nav{
+    position:sticky;
+    top:0;
+    z-index:50;
+    background:rgba(255,250,240,.88);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line);
+  }
   nav .wrap{display:flex;align-items:center;justify-content:space-between;height:62px}
   .brand{display:flex;align-items:center;gap:10px;font-weight:720;font-size:18px;color:var(--text)}
   .brand img{width:30px;height:30px}
   .nav-links{display:flex;align-items:center;gap:22px;font-size:15px}
   .nav-links a{color:var(--muted)}
   .nav-links a:hover{color:var(--accent-strong);text-decoration:none}
-  .btn{display:inline-flex;align-items:center;gap:8px;border-radius:var(--radius-sm);
-    padding:10px 18px;font-weight:700;font-size:15px;border:1px solid transparent;
-    transition:transform .15s ease,background .15s ease;cursor:pointer;text-decoration:none}
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    border-radius:var(--radius-sm);
+    padding:10px 18px;
+    font-weight:700;
+    font-size:15px;
+    border:1px solid transparent;
+    transition:transform .15s ease,background .15s ease,border-color .15s ease,color .15s ease;
+    cursor:pointer;
+    text-decoration:none;
+  }
   .btn:hover{transform:translateY(-1px);text-decoration:none}
+  .btn:focus-visible,.filter-tab:focus-visible,.copy-q:focus-visible,.lightbox-close:focus-visible,.demo-hotspot:focus-visible{
+    outline:3px solid rgba(193,95,60,.35);
+    outline-offset:3px;
+  }
   .btn-primary{background:var(--accent);color:#fffaf0}
   .btn-primary:hover{background:var(--accent-strong)}
   .btn-ghost{border-color:var(--line);background:var(--panel-strong);color:var(--text)}
   .btn-ghost:hover{border-color:var(--accent);color:var(--accent-strong)}
   .btn-sm{padding:7px 14px;font-size:14px}
-  /* hero */
+
   .hero{padding:84px 0 56px;text-align:center}
-  .hero h1{font-size:clamp(34px,5vw,56px);line-height:1.12;margin:0 0 18px;
-    letter-spacing:-.02em;font-weight:720}
+  .hero h1{
+    font-size:clamp(34px,5vw,56px);
+    line-height:1.12;
+    margin:0 0 18px;
+    font-weight:740;
+    text-wrap:balance;
+  }
   .hero h1 .hl{color:var(--accent-strong)}
-  .hero .sub{font-size:clamp(17px,2vw,21px);color:var(--muted);max-width:680px;
-    margin:0 auto 28px;line-height:1.6}
+  .hero .sub{
+    font-size:clamp(17px,2vw,21px);
+    color:var(--muted);
+    max-width:710px;
+    margin:0 auto 28px;
+    line-height:1.6;
+    text-wrap:pretty;
+  }
   .badges{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-bottom:30px}
   .badges img{height:24px}
   .hero-cta{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-bottom:48px}
-  .hero-shot{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
-    box-shadow:var(--shadow);background:#fff;max-width:920px;margin:0 auto}
+  .hero-shot{
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    overflow:hidden;
+    box-shadow:var(--shadow);
+    background:#fffdf8;
+    max-width:1040px;
+    margin:0 auto;
+  }
   .hero-shot img{width:100%}
-  /* section heading */
+
   .sec-head{text-align:center;margin-bottom:44px}
-  .sec-head h2{font-size:clamp(26px,3.4vw,36px);margin:0 0 10px;font-weight:720;letter-spacing:-.01em}
-  .sec-head p{color:var(--muted);font-size:17px;max-width:620px;margin:0 auto}
-  .eyebrow{display:inline-block;color:var(--accent-strong);font-size:13px;font-weight:760;
-    letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
-  /* features */
+  .sec-head h2{
+    font-size:clamp(26px,3.4vw,36px);
+    margin:0 0 10px;
+    font-weight:740;
+    text-wrap:balance;
+  }
+  .sec-head p{color:var(--muted);font-size:17px;max-width:660px;margin:0 auto;text-wrap:pretty}
+  .eyebrow{
+    display:inline-block;
+    color:var(--accent-strong);
+    font-size:13px;
+    font-weight:760;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+
   .grid{display:grid;gap:20px}
-  .feat-grid{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
-  .card{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);
-    padding:26px;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
+  .feat-grid{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line-soft);
+    border-radius:var(--radius);
+    padding:26px;
+    transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;
+  }
   .card:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--accent-soft)}
-  .card .icon{width:44px;height:44px;border-radius:11px;display:grid;place-items:center;
-    background:var(--accent-soft);color:var(--accent-strong);margin-bottom:16px;font-size:22px}
+  .card .icon{
+    width:44px;
+    height:44px;
+    border-radius:11px;
+    display:grid;
+    place-items:center;
+    background:var(--accent-soft);
+    color:var(--accent-strong);
+    margin-bottom:16px;
+    font-size:18px;
+    font-weight:800;
+    font-family:var(--mono);
+  }
   .card h3{margin:0 0 8px;font-size:18px;font-weight:700}
   .card p{margin:0;color:var(--muted);font-size:15px}
-  /* how it works */
-  .steps{counter-reset:step;display:grid;gap:0;max-width:760px;margin:0 auto}
-  .step{display:grid;grid-template-columns:48px 1fr;gap:18px;padding:18px 0;
-    border-bottom:1px dashed var(--line-soft)}
+
+  .steps{counter-reset:step;display:grid;gap:0;max-width:780px;margin:0 auto}
+  .step{display:grid;grid-template-columns:48px 1fr;gap:18px;padding:18px 0;border-bottom:1px dashed var(--line-soft)}
   .step:last-child{border-bottom:0}
-  .step .num{counter-increment:step;width:38px;height:38px;border-radius:50%;
-    background:var(--accent);color:#fffaf0;display:grid;place-items:center;
-    font-weight:800;font-size:16px}
+  .step .num{
+    counter-increment:step;
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    background:var(--accent);
+    color:#fffaf0;
+    display:grid;
+    place-items:center;
+    font-weight:800;
+    font-size:16px;
+  }
   .step .num::before{content:counter(step)}
   .step h4{margin:2px 0 4px;font-size:16px}
   .step p{margin:0;color:var(--muted);font-size:15px}
-  /* demos */
-  .demo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:22px}
-  .demo{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);
-    overflow:hidden;transition:transform .15s ease,box-shadow .15s ease}
-  .demo:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
-  .demo .shot{position:relative;background:linear-gradient(135deg,#fbf6ec,#f3e9d8);
-    aspect-ratio:16/10;overflow:hidden;border-bottom:1px solid var(--line-soft)}
-  .demo .shot img{width:100%;height:100%;object-fit:cover;object-position:top}
-  .demo .tag{position:absolute;top:12px;left:12px;background:rgba(255,250,240,.94);
-    border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12px;
-    font-weight:700;color:var(--accent-strong);backdrop-filter:blur(6px)}
-  .demo .body{padding:18px 20px}
-  .demo h3{margin:0 0 4px;font-size:16px;font-weight:700}
-  .demo .q{color:var(--muted);font-size:13px;margin:0 0 8px;font-family:var(--mono);
-    background:var(--bg);border-radius:7px;padding:7px 9px;line-height:1.5}
-  .demo .meta{display:flex;gap:14px;font-size:12px;color:var(--muted)}
+
+  .filter-tabs{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:32px}
+  .filter-tab{
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:8px 18px;
+    font-size:14px;
+    font-weight:650;
+    color:var(--muted);
+    background:var(--panel);
+    cursor:pointer;
+    transition:background .15s ease,border-color .15s ease,color .15s ease,transform .15s ease;
+  }
+  .filter-tab:hover{border-color:var(--accent);color:var(--accent-strong);transform:translateY(-1px)}
+  .filter-tab.active{background:var(--accent);color:#fffaf0;border-color:var(--accent)}
+
+  .demo-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(390px,1fr));
+    gap:24px;
+    align-items:start;
+  }
+  .demo{
+    background:var(--panel);
+    border:1px solid var(--line-soft);
+    border-radius:var(--radius);
+    overflow:hidden;
+    transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;
+  }
+  .demo:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:var(--accent-soft)}
+  .demo.hide-filter{display:none}
+  .demo .shot{
+    position:relative;
+    aspect-ratio:16/9;
+    overflow:hidden;
+    border-bottom:1px solid var(--line-soft);
+    background:linear-gradient(135deg,#fbf6ec,#f3e9d8);
+    cursor:pointer;
+  }
+  .demo .shot::after{
+    content:"";
+    display:none;
+    position:absolute;
+    left:0;
+    right:0;
+    bottom:0;
+    height:72px;
+    background:linear-gradient(to bottom,rgba(255,250,240,0),rgba(255,250,240,.45));
+    pointer-events:none;
+  }
+  .demo .shot img{
+    width:100%;
+    height:100%;
+    max-width:none;
+    object-fit:contain;
+    object-position:center;
+  }
+  .demo .tag{
+    display:none;
+    position:absolute;
+    top:12px;
+    left:12px;
+    z-index:1;
+    background:rgba(255,250,240,.94);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:4px 10px;
+    font-size:12px;
+    font-weight:700;
+    color:var(--accent-strong);
+    backdrop-filter:blur(6px);
+  }
+  .demo .open-hint{
+    display:none;
+    position:absolute;
+    right:12px;
+    bottom:12px;
+    z-index:1;
+    color:var(--accent-strong);
+    background:rgba(255,250,240,.94);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:5px 9px;
+    font-size:12px;
+    font-weight:700;
+  }
+  .demo .body{padding:20px 22px 22px}
+  .demo h3{margin:0 0 8px;font-size:18px;font-weight:740}
+  .demo .q{
+    color:var(--muted);
+    font-size:14px;
+    margin:0 0 14px;
+    font-family:inherit;
+    background:transparent;
+    border-radius:7px;
+    padding:0;
+    line-height:1.55;
+    display:-webkit-box;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .demo .meta{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:12px;color:var(--muted)}
   .demo .meta span{display:inline-flex;align-items:center;gap:4px}
-  /* code */
-  .code-block{background:#2b2520;color:#f3ece0;border-radius:var(--radius);padding:22px 24px;
-    font-family:var(--mono);font-size:14px;line-height:1.7;overflow-x:auto;max-width:680px;margin:0 auto}
+  .copy-q{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    border:1px solid var(--line-soft);
+    border-radius:6px;
+    padding:4px 9px;
+    font-size:12px;
+    color:var(--muted);
+    background:var(--bg);
+    cursor:pointer;
+    transition:background .15s ease,border-color .15s ease,color .15s ease;
+    margin-top:12px;
+  }
+  .copy-q:hover{border-color:var(--accent);color:var(--accent-strong)}
+  .copy-q.copied{color:var(--good);border-color:var(--good);background:#eef8f1}
+
+  .code-block{
+    background:#2b2520;
+    color:#f3ece0;
+    border-radius:var(--radius);
+    padding:22px 24px;
+    font-family:var(--mono);
+    font-size:14px;
+    line-height:1.7;
+    overflow-x:auto;
+    max-width:680px;
+    margin:0 auto;
+  }
   .code-block .c{color:#8a8175}
   .code-block .p{color:#f0b48a}
   .code-block .k{color:#e8c068}
   .code-block .s{color:#a9c98f}
   .code-block .prompt{color:#c58b5a}
-  /* quickstart */
   .qs-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:32px;align-items:start}
-  @media(max-width:820px){.qs-grid{grid-template-columns:1fr}}
   .qs-steps ol{margin:0;padding-left:20px}
   .qs-steps li{margin-bottom:14px}
-  .qs-steps code{background:var(--bg);border:1px solid var(--line-soft);border-radius:6px;
-    padding:2px 6px;font-family:var(--mono);font-size:13px;color:var(--accent-strong)}
-  .kbd{background:var(--accent-soft);border:1px solid var(--accent);border-radius:6px;
-    padding:1px 6px;font-family:var(--mono);font-size:13px;color:var(--accent-strong)}
-  /* stats strip */
-  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;
-    background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);padding:30px}
+  .qs-steps code{
+    background:var(--bg);
+    border:1px solid var(--line-soft);
+    border-radius:6px;
+    padding:2px 6px;
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--accent-strong);
+  }
+  .kbd{
+    background:var(--accent-soft);
+    border:1px solid var(--accent);
+    border-radius:6px;
+    padding:1px 6px;
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--accent-strong);
+  }
+
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:16px;
+    background:var(--panel);
+    border:1px solid var(--line-soft);
+    border-radius:var(--radius);
+    padding:30px;
+  }
   .stat{text-align:center}
   .stat .n{font-size:32px;font-weight:800;color:var(--accent-strong);line-height:1}
   .stat .l{color:var(--muted);font-size:13px;margin-top:6px}
-  /* cta band */
-  .cta-band{background:linear-gradient(135deg,var(--accent-soft),var(--accent-tint));
-    border:1px solid var(--accent-soft);border-radius:var(--radius);padding:48px 36px;text-align:center}
+  .cta-band{
+    background:linear-gradient(135deg,var(--accent-soft),var(--accent-tint));
+    border:1px solid var(--accent-soft);
+    border-radius:var(--radius);
+    padding:48px 36px;
+    text-align:center;
+  }
   .cta-band h2{margin:0 0 10px;font-size:28px}
   .cta-band p{color:var(--muted);margin:0 0 22px;font-size:16px}
-  /* footer */
   footer{border-top:1px solid var(--line);background:var(--panel);padding:42px 0}
   footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:24px;align-items:center}
   footer .brand{font-size:15px}
-  footer .links{display:flex;gap:18px;font-size:14px}
-  footer .copy{color:var(--muted);font-size:13px;width:100%;text-align:center;padding-top:18px;
-    border-top:1px solid var(--line-soft);margin-top:18px}
-  /* reveal on scroll */
+  footer .links{display:flex;flex-wrap:wrap;gap:18px;font-size:14px}
+  footer .copy{color:var(--muted);font-size:13px;width:100%;text-align:center;padding-top:18px;border-top:1px solid var(--line-soft);margin-top:18px}
+
   .reveal{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
   .reveal.in{opacity:1;transform:none}
-  @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}
-    html{scroll-behavior:auto}}
-  @media(max-width:640px){
-    section{padding:52px 0}
-    .hero{padding:56px 0 40px}
-    .nav-links{gap:14px}.nav-links .hide-sm{display:none}
-    .hero-cta{flex-direction:column;align-items:stretch}
-    .hero-cta .btn{justify-content:center}
+  @media(prefers-reduced-motion:reduce){
+    .reveal{opacity:1;transform:none;transition:none}
+    html{scroll-behavior:auto}
   }
 
-  /* demo filter tabs */
-  .filter-tabs{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:32px}
-  .filter-tab{border:1px solid var(--line);border-radius:999px;padding:8px 18px;font-size:14px;
-    font-weight:600;color:var(--muted);background:var(--panel);cursor:pointer;transition:all .15s ease}
-  .filter-tab:hover{border-color:var(--accent);color:var(--accent-strong)}
-  .filter-tab.active{background:var(--accent);color:#fffaf0;border-color:var(--accent)}
-  .demo.hide-filter{display:none}
-  /* lightbox */
-  .lightbox{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;
-    background:rgba(37,33,28,.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:24px}
+  .lightbox{
+    position:fixed;
+    inset:0;
+    z-index:100;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(37,33,28,.78);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    padding:24px;
+  }
   .lightbox.open{display:flex}
-  .lightbox-inner{max-width:92vw;max-height:90vh;position:relative}
-  .lightbox-inner img{max-width:92vw;max-height:82vh;border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,.4)}
-  .lightbox-close{position:absolute;top:-14px;right:-14px;width:36px;height:36px;border-radius:50%;
-    border:0;background:var(--accent);color:#fff;font-size:20px;cursor:pointer;display:grid;place-items:center;
-    box-shadow:0 4px 12px rgba(0,0,0,.3);z-index:1}
+  .lightbox-inner{
+    width:min(98vw,1480px);
+    max-height:94vh;
+    position:relative;
+    text-align:left;
+  }
+  .interactive-viewer{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(320px,390px);
+    gap:14px;
+    align-items:stretch;
+  }
+  .demo-stage{
+    position:relative;
+    overflow:hidden;
+    border-radius:8px;
+    background:#fffaf0;
+    box-shadow:0 24px 80px rgba(0,0,0,.32);
+    aspect-ratio:16/9;
+  }
+  .demo-stage img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    background:#fffaf0;
+  }
+  .demo-hotspots{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+  }
+  .demo-hotspot{
+    position:absolute;
+    border:0;
+    background:transparent;
+    border-radius:8px;
+    box-shadow:none;
+    cursor:pointer;
+    pointer-events:auto;
+    transition:none;
+  }
+  .demo-hotspot::before{
+    content:"";
+    display:none;
+  }
+  .demo-hotspot::after{
+    content:"";
+    display:none;
+  }
+  .demo-hotspot:hover,
+  .demo-hotspot.active{
+    background:transparent;
+    box-shadow:none;
+    transform:none;
+  }
+  .demo-detail{
+    min-height:0;
+    max-height:min(72vh,620px);
+    overflow:auto;
+    border-radius:8px;
+    border:1px solid rgba(255,250,240,.28);
+    background:#fffaf0;
+    padding:22px;
+    color:var(--text);
+    box-shadow:0 24px 70px rgba(0,0,0,.2);
+  }
+  .demo-detail-kicker{
+    margin:0 0 8px;
+    color:var(--accent-strong);
+    font-size:12px;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .demo-detail h3{
+    margin:0 0 10px;
+    font-size:20px;
+    line-height:1.25;
+  }
+  .demo-detail .short{
+    margin:0 0 12px;
+    color:#4b443d;
+    font-weight:680;
+  }
+  .demo-detail .long{
+    margin:0;
+    color:var(--muted);
+    font-size:15px;
+    line-height:1.78;
+  }
+  .demo-detail-intro{
+    padding-bottom:14px;
+    margin-bottom:14px;
+    border-bottom:1px solid var(--line-soft);
+  }
+  .demo-detail-body{
+    padding-top:2px;
+  }
+  .lightbox-close{
+    position:absolute;
+    top:10px;
+    right:10px;
+    width:36px;
+    height:36px;
+    border-radius:50%;
+    border:0;
+    background:var(--accent);
+    color:#fff;
+    font-size:20px;
+    cursor:pointer;
+    display:grid;
+    place-items:center;
+    box-shadow:0 4px 12px rgba(0,0,0,.3);
+    z-index:2;
+  }
   .lightbox-close:hover{background:var(--accent-strong)}
-  .lightbox-cap{color:#fffaf0;text-align:center;margin-top:12px;font-size:14px}
+  .lightbox-cap{display:none;color:#fffaf0;text-align:center;margin-top:12px;font-size:14px}
   .lightbox-cap strong{display:block;font-size:16px;margin-bottom:2px}
-  /* copy button */
-  .copy-q{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line-soft);
-    border-radius:6px;padding:3px 8px;font-size:12px;color:var(--muted);background:var(--bg);
-    cursor:pointer;transition:all .15s ease;margin-top:8px}
-  .copy-q:hover{border-color:var(--accent);color:var(--accent-strong)}
-  .copy-q.copied{color:var(--good);border-color:var(--good)}
+
+  @media(max-width:820px){
+    .qs-grid{grid-template-columns:1fr}
+    .interactive-viewer{grid-template-columns:1fr}
+    .demo-detail{max-height:34vh}
+  }
+  @media(max-width:640px){
+    .wrap{padding:0 18px}
+    section{padding:52px 0}
+    .hero{padding:56px 0 40px}
+    .nav-links{gap:12px}
+    .nav-links .hide-sm{display:none}
+    .hero-cta{flex-direction:column;align-items:stretch}
+    .hero-cta .btn{justify-content:center}
+    .demo-grid{grid-template-columns:1fr}
+    .filter-tabs{justify-content:flex-start;overflow-x:auto;padding-bottom:6px}
+    .filter-tab{white-space:nowrap}
+    .lightbox{padding:14px}
+    .lightbox-inner{width:96vw}
+    .lightbox-close{top:-10px;right:-8px}
+    .demo-hotspot::before{width:14px;height:14px}
+    .demo-hotspot::after{display:none}
+    footer .wrap{align-items:flex-start}
+  }
 </style>
 </head>
 <body>
-
 <nav>
   <div class="wrap">
     <a class="brand" href="#top"><img src="assets/logo.svg" alt="" />ChatImage</a>
@@ -186,208 +538,172 @@
       <a href="#demos">Demos</a>
       <a href="#quickstart" class="hide-sm">Get started</a>
       <a href="TECHNICAL_REPORT.md" class="hide-sm" target="_blank" rel="noopener">Docs</a>
-      <a class="btn btn-ghost btn-sm" href="https://github.com/wencanjiang/ChatImage" target="_blank" rel="noopener">GitHub ↗</a>
+      <a class="btn btn-ghost btn-sm" href="https://github.com/wencanjiang/ChatImage" target="_blank" rel="noopener">GitHub</a>
     </div>
   </div>
 </nav>
 
-<!-- HERO -->
 <header class="hero" id="top">
   <div class="wrap">
     <div class="badges">
-      <a href="https://arxiv.org/abs/XXXX.XXXXX" target="_blank" rel="noopener"><img src="https://img.shields.io/badge/arXiv-Paper-b31b1b?style=flat-square&logo=arxiv" alt="arXiv" /></a>
-      <a href="https://github.com/wencanjiang/ChatImage" target="_blank" rel="noopener"><img src="https://img.shields.io/badge/GitIO-Repo-1f6feb?style=flat-square&logo=github" alt="Repo" /></a>
-      <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square&logo=opensourceinitiative" alt="License" />
-      <img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=flat-square&logo=nodedotjs" alt="Node" />
+      <a href="https://arxiv.org/abs/XXXX.XXXXX" target="_blank" rel="noopener"><img src="https://img.shields.io/badge/arXiv-Paper-b31b1b?style=flat-square&logo=arxiv" alt="arXiv paper" /></a>
+      <a href="https://github.com/wencanjiang/ChatImage" target="_blank" rel="noopener"><img src="https://img.shields.io/badge/GitHub-Repo-1f6feb?style=flat-square&logo=github" alt="GitHub repository" /></a>
+      <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square&logo=opensourceinitiative" alt="MIT license" />
+      <img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=flat-square&logo=nodedotjs" alt="Node.js 18 or newer" />
     </div>
     <h1>Turn LLM answers into <span class="hl">interactive visual images</span></h1>
-    <p class="sub">ChatImage converts a long-form LLM answer into a structured visual result — an image overlaid with clickable hotspots, each opening its own detail panel and follow-up thread. No keys needed to try it.</p>
+    <p class="sub">ChatImage converts a long answer into a structured image with clickable regions, per-region detail panels, and contextual follow-up threads. The showcase below uses real generated images exported from recent runs.</p>
     <div class="hero-cta">
-      <a class="btn btn-primary" href="#quickstart">Try it in 3 commands →</a>
+      <a class="btn btn-primary" href="#quickstart">Try it in 3 commands</a>
       <a class="btn btn-ghost" href="#demos">View demos</a>
     </div>
     <div class="hero-shot reveal">
-      <img src="assets/hero.png" alt="ChatImage desktop app showing an interactive infographic with clickable hotspots" />
+      <img src="assets/demos/real-west-lake-tour-map.png" alt="ChatImage real generated West Lake tour map demo" />
     </div>
   </div>
 </header>
 
-<!-- STATS -->
 <section style="padding-top:0">
   <div class="wrap">
     <div class="stats reveal">
-      <div class="stat"><div class="n">13+</div><div class="l">Built-in demo topics</div></div>
-      <div class="stat"><div class="n">3</div><div class="l">Visual modes (infographic / map / scene)</div></div>
-      <div class="stat"><div class="n">0</div><div class="l">API keys to try (mock mode)</div></div>
-      <div class="stat"><div class="n">100%</div><div class="l">Local-first, keys never reach the browser</div></div>
+      <div class="stat"><div class="n">5</div><div class="l">Real exported demos</div></div>
+      <div class="stat"><div class="n">4</div><div class="l">Content types</div></div>
+      <div class="stat"><div class="n">0</div><div class="l">API keys to view</div></div>
+      <div class="stat"><div class="n">100%</div><div class="l">Reusable JSON state</div></div>
     </div>
   </div>
 </section>
 
-<!-- FEATURES -->
 <section id="features">
   <div class="wrap">
     <div class="sec-head reveal">
       <span class="eyebrow">What it does</span>
       <h2>From wall-of-text answer to explorable image</h2>
-      <p>Instead of a long text block, ChatImage gives you an image you can click around to learn only what you care about.</p>
+      <p>Instead of reading a long text block, users can click the parts of an image they care about and ask follow-up questions in context.</p>
     </div>
     <div class="grid feat-grid">
       <div class="card reveal">
-        <div class="icon">🎯</div>
+        <div class="icon">01</div>
         <h3>Clickable hotspots</h3>
-        <p>Transparent, accurate regions overlaid on the generated image. Click any region to open its detail panel without losing your place.</p>
+        <p>Transparent, accurate regions are placed over the generated image so each section can be explored independently.</p>
       </div>
       <div class="card reveal">
-        <div class="icon">🧩</div>
-        <h3>Per-region detail &amp; threads</h3>
-        <p>Each hotspot keeps its own title, summary, and a follow-up thread — ask about a single region in context, not the whole answer.</p>
+        <div class="icon">02</div>
+        <h3>Per-region threads</h3>
+        <p>Each hotspot keeps its own title, summary, and follow-up conversation instead of flattening everything into one chat.</p>
       </div>
       <div class="card reveal">
-        <div class="icon">👁️</div>
+        <div class="icon">03</div>
         <h3>Vision-aligned positioning</h3>
-        <p>In real-API mode, LocateAnything / MiMo-vision / local OCR localize the actual visual regions so hotspots land on the right content — not a hard-coded grid.</p>
+        <p>Real-provider mode can use LocateAnything, MiMo-vision, local OCR, and SAM3 refinement to align regions with the rendered image.</p>
       </div>
       <div class="card reveal">
-        <div class="icon">🔌</div>
-        <h3>Provider-agnostic</h3>
-        <p>Run fully in mock mode with no keys, or proxy real text, image, and vision providers through the backend so keys stay server-side.</p>
+        <div class="icon">04</div>
+        <h3>Provider agnostic</h3>
+        <p>Run fully in mock mode, or proxy text, image, and vision providers through the backend so API keys stay off the browser.</p>
       </div>
       <div class="card reveal">
-        <div class="icon">💾</div>
-        <h3>Local-first persistence</h3>
-        <p>Generated ChatImages, hotspots, calibration data, and follow-up threads are stored in a local SQLite database. Your work survives restarts.</p>
+        <div class="icon">05</div>
+        <h3>Local persistence</h3>
+        <p>Generated ChatImages, hotspots, calibration data, and follow-up threads are stored locally so work survives restarts.</p>
       </div>
       <div class="card reveal">
-        <div class="icon">📎</div>
-        <h3>File context</h3>
-        <p>Attach code, Markdown, CSV, JSON, or log files and include their contents as prompt context for more grounded answers.</p>
+        <div class="icon">06</div>
+        <h3>Calibration tools</h3>
+        <p>Inspect and correct hotspot bounds when a provider draws content differently from the planned layout.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- HOW -->
-<section id="how" style="background:var(--panel);border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)">
+<section id="how">
   <div class="wrap">
     <div class="sec-head reveal">
-      <span class="eyebrow">Under the hood</span>
-      <h2>How a ChatImage is made</h2>
-      <p>Ten steps from your question to an explorable image.</p>
+      <span class="eyebrow">Pipeline</span>
+      <h2>How one answer becomes a visual workspace</h2>
+      <p>The hosted showcase is exported from real local runs: the image, hotspot bounds, layout state, and region detail JSON are preserved together.</p>
     </div>
     <div class="steps">
-      <div class="step reveal"><div class="num"></div><div><h4>You ask a question</h4><p>Plain natural language in the composer — e.g. "compare REST and GraphQL".</p></div></div>
-      <div class="step reveal"><div class="num"></div><div><h4>Get a raw LLM answer</h4><p>The text provider returns a long-form answer (or a deterministic mock answer).</p></div></div>
-      <div class="step reveal"><div class="num"></div><div><h4>Normalize into a visual spec</h4><p>The answer becomes structured <code>modules</code> + <code>auxiliaryModules</code>, each a clickable region.</p></div></div>
-      <div class="step reveal"><div class="num"></div><div><h4>Plan a layout</h4><p>A LayoutSpec assigns each module a region and normalized bounds.</p></div></div>
-      <div class="step reveal"><div class="num"></div><div><h4>Generate the image</h4><p>An image prompt is derived from the structured content and the image provider draws the visual.</p></div></div>
-      <div class="step reveal"><div class="num"></div><div><h4>Align to real regions</h4><p>Vision grounding (LocateAnything → SAM3 refine) localizes where each module actually rendered.</p></div></div>
-      <div class="step reveal"><div class="num"></div><div><h4>Overlay hotspots</h4><p>Transparent, clickable hotspots are placed on the image at the grounded coordinates.</p></div></div>
-      <div class="step reveal"><div class="num"></div><div><h4>Click to explore</h4><p>Clicking a hotspot opens its detail panel and follow-up thread.</p></div></div>
-      <div class="step reveal"><div class="num"></div><div><h4>Calibrate if needed</h4><p>Toggle calibration mode to inspect and correct hotspot bounds.</p></div></div>
-      <div class="step reveal"><div class="num"></div><div><h4>Persist locally</h4><p>The result and its threads are saved to SQLite for later review.</p></div></div>
+      <div class="step reveal"><div class="num"></div><div><h4>Ask a question</h4><p>The user submits a prompt in the ChatImage interface.</p></div></div>
+      <div class="step reveal"><div class="num"></div><div><h4>Generate an answer</h4><p>A long-form answer is produced by the selected provider or by mock mode.</p></div></div>
+      <div class="step reveal"><div class="num"></div><div><h4>Normalize the answer</h4><p>The answer becomes structured modules, auxiliary modules, and region metadata.</p></div></div>
+      <div class="step reveal"><div class="num"></div><div><h4>Plan a visual layout</h4><p>A layout spec assigns each module a region and normalized bounds.</p></div></div>
+      <div class="step reveal"><div class="num"></div><div><h4>Render the image</h4><p>The image provider draws the visual from the structured prompt.</p></div></div>
+      <div class="step reveal"><div class="num"></div><div><h4>Align hotspots</h4><p>Vision grounding can localize where each module actually appears in the image.</p></div></div>
+      <div class="step reveal"><div class="num"></div><div><h4>Explore and follow up</h4><p>Clicking a hotspot opens its detail panel and a focused follow-up thread.</p></div></div>
     </div>
   </div>
 </section>
 
-<!-- DEMOS -->
 <section id="demos">
   <div class="wrap">
     <div class="sec-head reveal">
       <span class="eyebrow">See it in action</span>
-      <h2>Demos — all run with no API keys</h2>
-      <p>Every example below was generated in mock mode. Click any card to view full-size, or copy the question to try it yourself.</p>
+      <h2>Real generated interactive demos</h2>
+      <p>These curated cases use actual ChatImage generated PNGs and exported hotspot state. Open a demo, click its regions, and reuse the preserved JSON state when needed.</p>
     </div>
-    <div class="filter-tabs reveal">
-      <button class="filter-tab active" data-filter="all">All (8)</button>
-      <button class="filter-tab" data-filter="infographic">Infographics</button>
-      <button class="filter-tab" data-filter="map">Maps</button>
-      <button class="filter-tab" data-filter="scene">Scenes</button>
+    <div class="filter-tabs reveal" aria-label="Demo filters">
+      <button class="filter-tab active" type="button" data-filter="all">All (5)</button>
+      <button class="filter-tab" type="button" data-filter="map">Maps</button>
+      <button class="filter-tab" type="button" data-filter="scene">Scene</button>
+      <button class="filter-tab" type="button" data-filter="technical">Technical</button>
+      <button class="filter-tab" type="button" data-filter="business">Business</button>
     </div>
     <div class="demo-grid">
-      <div class="demo reveal" data-cat="infographic" data-img="assets/demos/rest-graphql.png" data-title="REST vs GraphQL">
-        <div class="shot"><span class="tag">infographic</span><img src="assets/demos/rest-graphql.png" alt="REST vs GraphQL comparison infographic" loading="lazy" /></div>
+      <article class="demo reveal" data-cat="map" data-demo="assets/demos/real-west-lake-tour-map.json" data-img="assets/demos/real-west-lake-tour-map.png" data-title="West Lake tour map">
+        <div class="shot"><img src="assets/demos/real-west-lake-tour-map.png" alt="West Lake tour map real generated demo" loading="lazy" /></div>
         <div class="body">
-          <h3>REST vs GraphQL</h3>
-          <p class="q" data-q="对比 REST 和 GraphQL 的设计差异、优缺点和适用场景">对比 REST 和 GraphQL 的设计差异、优缺点和适用场景</p>
-          <div class="meta"><span>swimlane-flow</span><span>5 hotspots</span></div>
-          <button class="copy-q" data-copy="对比 REST 和 GraphQL 的设计差异、优缺点和适用场景">📋 Copy question</button>
+          <h3>West Lake tour map</h3>
+          <p class="q">New run. A complete hand-drawn West Lake tour map with natural landmarks, routes, water, bridges, hills, and clickable scenic areas.</p>
+          <div class="meta"><span>new real generated map</span><span>9 hotspots</span></div>
+          <button class="copy-q" type="button" data-copy="???????????????????????????????????????????????????????????????????????????????????????????????????????????">Copy question</button>
         </div>
-      </div>
-      <div class="demo reveal" data-cat="infographic" data-img="assets/demos/rag-pipeline.png" data-title="RAG 检索增强流程">
-        <div class="shot"><span class="tag">infographic</span><img src="assets/demos/rag-pipeline.png" alt="RAG retrieval-augmented generation pipeline" loading="lazy" /></div>
+      </article>
+      <article class="demo reveal" data-cat="scene" data-demo="assets/demos/real-future-museum-scene.json" data-img="assets/demos/real-future-museum-scene.png" data-title="Future museum scene">
+        <div class="shot"><img src="assets/demos/real-future-museum-scene.png" alt="Future museum scene real generated demo" loading="lazy" /></div>
         <div class="body">
-          <h3>RAG 检索增强流程</h3>
-          <p class="q" data-q="讲解 RAG 检索增强生成的完整流程，包括文档切分、向量化、检索召回、重排和上下文拼接">讲解 RAG 检索增强生成的完整流程，包括文档切分、向量化、检索召回、重排和上下文拼接</p>
-          <div class="meta"><span>swimlane</span><span>6 + 2 aux</span></div>
-          <button class="copy-q" data-copy="讲解 RAG 检索增强生成的完整流程，包括文档切分、向量化、检索召回、重排和上下文拼接">📋 Copy question</button>
+          <h3>Future museum scene</h3>
+          <p class="q">New run. A single illustrated museum hall with a core exhibit, visitor path, guide robot, and immersive display targets.</p>
+          <div class="meta"><span>new real generated scene</span><span>4 hotspots</span></div>
+          <button class="copy-q" type="button" data-copy="???????????????????????????????????????????????????????????????????????????????????AI ???????">Copy question</button>
         </div>
-      </div>
-      <div class="demo reveal" data-cat="infographic" data-img="assets/demos/oauth2-login-flow.png" data-title="OAuth 2.0 授权码流程">
-        <div class="shot"><span class="tag">infographic</span><img src="assets/demos/oauth2-login-flow.png" alt="OAuth 2.0 authorization code flow" loading="lazy" /></div>
+      </article>
+      <article class="demo reveal" data-cat="technical" data-demo="assets/demos/real-oauth2-flow.json" data-img="assets/demos/real-oauth2-flow.png" data-title="OAuth 2.0 authorization code flow">
+        <div class="shot"><img src="assets/demos/real-oauth2-flow.png" alt="OAuth 2.0 authorization code flow real generated demo" loading="lazy" /></div>
         <div class="body">
-          <h3>OAuth 2.0 授权码流程</h3>
-          <p class="q" data-q="画一张 OAuth 2.0 授权码模式的流程图，说明客户端、授权服务器和资源服务器的交互">画一张 OAuth 2.0 授权码模式的流程图，说明客户端、授权服务器和资源服务器的交互</p>
-          <div class="meta"><span>swimlane-flow</span><span>5 hotspots</span></div>
-          <button class="copy-q" data-copy="画一张 OAuth 2.0 授权码模式的流程图，说明客户端、授权服务器和资源服务器的交互">📋 Copy question</button>
+          <h3>OAuth 2.0 authorization code flow</h3>
+          <p class="q">New run. A technical authorization-code flow with user, client, auth server, resource server, tokens, and scope.</p>
+          <div class="meta"><span>new real generated flow</span><span>7 hotspots</span></div>
+          <button class="copy-q" type="button" data-copy="?? OAuth 2.0 ???????????????????????????????????Access Token?Refresh Token ? scope???????????????????????????????">Copy question</button>
         </div>
-      </div>
-      <div class="demo reveal" data-cat="infographic" data-img="assets/demos/kubernetes.png" data-title="Kubernetes 部署架构">
-        <div class="shot"><span class="tag">infographic</span><img src="assets/demos/kubernetes.png" alt="Kubernetes deployment architecture" loading="lazy" /></div>
+      </article>
+      <article class="demo reveal" data-cat="technical" data-demo="assets/demos/real-kubernetes-architecture.json" data-img="assets/demos/real-kubernetes-architecture.png" data-title="Kubernetes deployment architecture">
+        <div class="shot"><img src="assets/demos/real-kubernetes-architecture.png" alt="Kubernetes deployment architecture real generated demo" loading="lazy" /></div>
         <div class="body">
-          <h3>Kubernetes 部署架构</h3>
-          <p class="q" data-q="介绍 Kubernetes 的集群部署架构，说明控制平面和工作节点各组件的职责">介绍 Kubernetes 的集群部署架构，说明控制平面和工作节点各组件的职责</p>
-          <div class="meta"><span>layered</span><span>5 hotspots</span></div>
-          <button class="copy-q" data-copy="介绍 Kubernetes 的集群部署架构，说明控制平面和工作节点各组件的职责">📋 Copy question</button>
+          <h3>Kubernetes deployment architecture</h3>
+          <p class="q">Stable real run. A deployment architecture diagram with Deployment, ReplicaSet, Pod, Service, Ingress, ConfigMap, and scaling controls.</p>
+          <div class="meta"><span>real generated architecture</span><span>5 hotspots</span></div>
+          <button class="copy-q" type="button" data-copy="??? Kubernetes ?????????? Deployment?ReplicaSet?Pod?Service?Ingress?ConfigMap?Secret ??????">Copy question</button>
         </div>
-      </div>
-      <div class="demo reveal" data-cat="infographic" data-img="assets/demos/agent-workflow.png" data-title="大模型 Agent 工作流程">
-        <div class="shot"><span class="tag">infographic</span><img src="assets/demos/agent-workflow.png" alt="Agent workflow infographic" loading="lazy" /></div>
+      </article>
+      <article class="demo reveal" data-cat="business" data-demo="assets/demos/real-ecommerce-funnel.json" data-img="assets/demos/real-ecommerce-funnel.png" data-title="E-commerce conversion funnel">
+        <div class="shot"><img src="assets/demos/real-ecommerce-funnel.png" alt="E-commerce conversion funnel real generated demo" loading="lazy" /></div>
         <div class="body">
-          <h3>大模型 Agent 工作流程</h3>
-          <p class="q" data-q="解释大模型 Agent 的工作流程，重点说明感知、规划、记忆、工具调用和反馈迭代">解释大模型 Agent 的工作流程，重点说明感知、规划、记忆、工具调用和反馈迭代</p>
-          <div class="meta"><span>swimlane</span><span>5 hotspots</span></div>
-          <button class="copy-q" data-copy="解释大模型 Agent 的工作流程，重点说明感知、规划、记忆、工具调用和反馈迭代">📋 Copy question</button>
+          <h3>E-commerce conversion funnel</h3>
+          <p class="q">Stable real run. A business funnel with traffic, product detail, add-to-cart intent, checkout, payment success, and repurchase.</p>
+          <div class="meta"><span>real generated business graphic</span><span>5 hotspots</span></div>
+          <button class="copy-q" type="button" data-copy="??????????????????????????????????????????">Copy question</button>
         </div>
-      </div>
-      <div class="demo reveal" data-cat="infographic" data-img="assets/demos/ecommerce-funnel.png" data-title="电商转化漏斗分析">
-        <div class="shot"><span class="tag">infographic</span><img src="assets/demos/ecommerce-funnel.png" alt="E-commerce conversion funnel analysis" loading="lazy" /></div>
-        <div class="body">
-          <h3>电商转化漏斗分析</h3>
-          <p class="q" data-q="分析电商从曝光到复购的完整转化漏斗，指出每个阶段的关键指标和优化方向">分析电商从曝光到复购的完整转化漏斗，指出每个阶段的关键指标和优化方向</p>
-          <div class="meta"><span>funnel</span><span>5 hotspots</span></div>
-          <button class="copy-q" data-copy="分析电商从曝光到复购的完整转化漏斗，指出每个阶段的关键指标和优化方向">📋 Copy question</button>
-        </div>
-      </div>
-      <div class="demo reveal" data-cat="map" data-img="assets/demos/west-lake-map.png" data-title="西湖手绘导览地图">
-        <div class="shot"><span class="tag">map</span><img src="assets/demos/west-lake-map.png" alt="West Lake hand-drawn tourist map" loading="lazy" /></div>
-        <div class="body">
-          <h3>西湖手绘导览地图</h3>
-          <p class="q" data-q="画一张西湖景区的手绘导览地图，标注断桥、苏堤、三潭印月等主要景点和游览路线">画一张西湖景区的手绘导览地图，标注断桥、苏堤、三潭印月等主要景点和游览路线</p>
-          <div class="meta"><span>hand-drawn map</span><span>9 regions</span></div>
-          <button class="copy-q" data-copy="画一张西湖景区的手绘导览地图，标注断桥、苏堤、三潭印月等主要景点和游览路线">📋 Copy question</button>
-        </div>
-      </div>
-      <div class="demo reveal" data-cat="scene" data-img="assets/demos/museum-scene.png" data-title="博物馆场景图">
-        <div class="shot"><span class="tag">scene</span><img src="assets/demos/museum-scene.png" alt="Museum scene illustration with explorable exhibits" loading="lazy" /></div>
-        <div class="body">
-          <h3>博物馆场景图</h3>
-          <p class="q" data-q="画一幅博物馆场景插画，展示大厅、展柜、互动装置和导览路线">画一幅博物馆场景插画，展示大厅、展柜、互动装置和导览路线</p>
-          <div class="meta"><span>scene</span><span>4 hotspots</span></div>
-          <button class="copy-q" data-copy="画一幅博物馆场景插画，展示大厅、展柜、互动装置和导览路线">📋 Copy question</button>
-        </div>
-      </div>
+      </article>
     </div>
   </div>
 </section>
-
-<!-- QUICK START -->
 <section id="quickstart" style="background:var(--panel);border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)">
   <div class="wrap">
     <div class="sec-head reveal">
       <span class="eyebrow">Get started</span>
       <h2>Run it locally in 3 commands</h2>
-      <p>No API keys required — mock mode generates the demos above out of the box.</p>
+      <p>No API keys are required for mock mode, so the demo path works immediately after install.</p>
     </div>
     <div class="qs-grid">
       <div class="code-block reveal">
@@ -406,34 +722,32 @@
       <div class="qs-steps reveal">
         <ol>
           <li>Install <strong>Node.js 18+</strong> and <strong>npm</strong>.</li>
-          <li>Clone and <code>npm install</code>.</li>
+          <li>Clone the repository and run <code>npm install</code>.</li>
           <li><code>npm start</code> launches the local server on port <span class="kbd">5178</span>.</li>
-          <li>Open with <code>?provider=mock</code> for instant, key-free demos.</li>
-          <li>Want real models? Copy <code>.env.example</code> to <code>.env.local</code>, fill in your keys, and restart.</li>
-          <li>Build the frontend with <code>npm run build</code> → outputs <code>dist/</code>.</li>
+          <li>Open <code>?provider=mock</code> for instant key-free demos.</li>
+          <li>For real providers, copy <code>.env.example</code> to <code>.env.local</code>, fill in keys, and restart.</li>
+          <li>Build the frontend with <code>npm run build</code> when you need static assets in <code>dist/</code>.</li>
         </ol>
-        <p style="margin-top:18px"><a class="btn btn-ghost btn-sm" href="https://github.com/wencanjiang/ChatImage#configuration" target="_blank" rel="noopener">Full config docs ↗</a></p>
+        <p style="margin-top:18px"><a class="btn btn-ghost btn-sm" href="https://github.com/wencanjiang/ChatImage#configuration" target="_blank" rel="noopener">Full config docs</a></p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- CTA -->
 <section>
   <div class="wrap">
     <div class="cta-band reveal">
       <h2>Ready to explore answers visually?</h2>
-      <p>Star the repo, clone it, and run a demo in under a minute.</p>
+      <p>Clone the project, start mock mode, and inspect an interactive ChatImage locally.</p>
       <div class="hero-cta" style="margin-bottom:0">
-        <a class="btn btn-primary" href="https://github.com/wencanjiang/ChatImage" target="_blank" rel="noopener">Star on GitHub ★</a>
+        <a class="btn btn-primary" href="https://github.com/wencanjiang/ChatImage" target="_blank" rel="noopener">Open on GitHub</a>
         <a class="btn btn-ghost" href="https://github.com/wencanjiang/ChatImage#quick-start" target="_blank" rel="noopener">Quick start</a>
-        <a class="btn btn-ghost" href="TECHNICAL_REPORT.md" target="_blank" rel="noopener">Technical report 📄</a>
+        <a class="btn btn-ghost" href="TECHNICAL_REPORT.md" target="_blank" rel="noopener">Technical report</a>
       </div>
     </div>
   </div>
 </section>
 
-<!-- FOOTER -->
 <footer>
   <div class="wrap">
     <div class="brand"><img src="assets/logo.svg" alt="" />ChatImage</div>
@@ -443,12 +757,34 @@
       <a href="TECHNICAL_REPORT.md" target="_blank" rel="noopener">Tech report</a>
       <a href="https://github.com/wencanjiang/ChatImage/issues" target="_blank" rel="noopener">Issues</a>
     </div>
-    <div class="copy">MIT License © ChatImage Contributors · An open-source project turning LLM answers into interactive visual images.</div>
+    <div class="copy">MIT License. ChatImage Contributors. An open-source project turning LLM answers into interactive visual images.</div>
   </div>
 </footer>
 
+<div class="lightbox" id="lightbox" aria-modal="true" role="dialog" aria-label="Full demo image">
+  <div class="lightbox-inner">
+    <button class="lightbox-close" id="lightboxClose" type="button" aria-label="Close full image">&times;</button>
+    <div class="interactive-viewer">
+      <div class="demo-stage" id="demoStage">
+        <img id="lightboxImg" src="" alt="" />
+        <div class="demo-hotspots" id="demoHotspots"></div>
+      </div>
+      <aside class="demo-detail">
+        <div class="demo-detail-intro">
+          <p class="demo-detail-kicker">Interactive regions</p>
+          <h3 id="demoPanelTitle">Select a hotspot</h3>
+          <p class="short" id="demoPanelSub">Each preserved demo state includes reusable hotspot bounds and region text.</p>
+        </div>
+        <div class="demo-detail-body" id="demoDetail" aria-live="polite">
+          <p class="long">Open a demo card and choose a highlighted region to inspect its region-specific explanation.</p>
+        </div>
+      </aside>
+    </div>
+    <div class="lightbox-cap"><strong id="lightboxTitle"></strong><span id="lightboxSub"></span></div>
+  </div>
+</div>
+
 <script>
-// lightweight scroll reveal
 (function(){
   var els=document.querySelectorAll('.reveal');
   if(!('IntersectionObserver'in window)||window.matchMedia('(prefers-reduced-motion: reduce)').matches){
@@ -461,19 +797,7 @@
   },{threshold:0.12,rootMargin:'0px 0px -40px 0px'});
   els.forEach(function(e){io.observe(e)});
 })();
-</script>
 
-<!-- Lightbox -->
-<div class="lightbox" id="lightbox">
-  <div class="lightbox-inner">
-    <button class="lightbox-close" id="lightboxClose">&times;</button>
-    <img id="lightboxImg" src="" alt="" />
-    <div class="lightbox-cap"><strong id="lightboxTitle"></strong><span id="lightboxSub"></span></div>
-  </div>
-</div>
-
-<script>
-// Demo filter tabs
 (function(){
   var tabs=document.querySelectorAll('.filter-tab');
   var demos=document.querySelectorAll('.demo[data-cat]');
@@ -481,58 +805,159 @@
     tab.addEventListener('click',function(){
       tabs.forEach(function(t){t.classList.remove('active')});
       tab.classList.add('active');
-      var f=tab.dataset.filter;
-      demos.forEach(function(d){
-        if(f==='all'||d.dataset.cat===f){d.classList.remove('hide-filter')}
-        else{d.classList.add('hide-filter')}
+      var filter=tab.dataset.filter;
+      demos.forEach(function(demo){
+        if(filter==='all'||demo.dataset.cat===filter){demo.classList.remove('hide-filter')}
+        else{demo.classList.add('hide-filter')}
       });
     });
   });
 })();
 
-// Lightbox
 (function(){
   var lb=document.getElementById('lightbox');
   var lbImg=document.getElementById('lightboxImg');
   var lbTitle=document.getElementById('lightboxTitle');
   var lbSub=document.getElementById('lightboxSub');
+  var demoHotspots=document.getElementById('demoHotspots');
+  var demoDetail=document.getElementById('demoDetail');
+  var demoPanelTitle=document.getElementById('demoPanelTitle');
+  var demoPanelSub=document.getElementById('demoPanelSub');
   var lbClose=document.getElementById('lightboxClose');
+  var activeDemo=null;
+  var activeButtons=[];
+
+  function escapeHtml(value){
+    return String(value||'')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#39;');
+  }
+
+  function getHotspots(demo){
+    if(demo&&demo.state&&Array.isArray(demo.state.hotspots))return demo.state.hotspots;
+    if(demo&&Array.isArray(demo.hotspots))return demo.hotspots;
+    return [];
+  }
+
+  function setDetail(hotspot,index){
+    if(!demoDetail)return;
+    if(!hotspot){
+      if(demoPanelTitle)demoPanelTitle.textContent='No hotspot state';
+      if(demoPanelSub)demoPanelSub.textContent='This demo image is available, but its reusable hotspot JSON could not be loaded.';
+      demoDetail.innerHTML='<p class="long">The static image remains visible as a fallback.</p>';
+      return;
+    }
+    activeButtons.forEach(function(btn,i){btn.classList.toggle('active',i===index)});
+    var label=String(hotspot.label||'Untitled region');
+    var shortText=String(hotspot.shortText||hotspot.regionKind||'').trim();
+    if(demoPanelTitle)demoPanelTitle.textContent=activeDemo&&activeDemo.title?activeDemo.title:'Interactive demo';
+    if(demoPanelSub)demoPanelSub.textContent=(getHotspots(activeDemo).length||0)+' clickable regions preserved from the generated state.';
+    var shortMarkup=shortText&&shortText!==label
+      ? '<p class="short">'+escapeHtml(shortText)+'</p>'
+      : '';
+    demoDetail.innerHTML=[
+      '<h3>'+escapeHtml(label)+'</h3>',
+      shortMarkup,
+      '<p class="long">'+escapeHtml(hotspot.detail||'No detail text is available for this region.')+'</p>'
+    ].join('');
+  }
+
+  function renderHotspots(demo){
+    if(!demoHotspots)return;
+    demoHotspots.innerHTML='';
+    activeButtons=[];
+    var hotspots=getHotspots(demo);
+    hotspots.forEach(function(hotspot,index){
+      var bounds=hotspot.bounds||hotspot;
+      var btn=document.createElement('button');
+      btn.type='button';
+      btn.className='demo-hotspot';
+      btn.dataset.label=hotspot.label||('Region '+(index+1));
+      btn.dataset.index=String(index+1);
+      btn.setAttribute('aria-label',hotspot.label||('Region '+(index+1)));
+      btn.style.left=(Number(bounds.x||0)*100)+'%';
+      btn.style.top=(Number(bounds.y||0)*100)+'%';
+      btn.style.width=(Number(bounds.width||0)*100)+'%';
+      btn.style.height=(Number(bounds.height||0)*100)+'%';
+      btn.style.zIndex=String(10+Number(hotspot.zIndex||index));
+      btn.addEventListener('click',function(e){
+        e.stopPropagation();
+        setDetail(hotspot,index);
+      });
+      demoHotspots.appendChild(btn);
+      activeButtons.push(btn);
+    });
+    setDetail(hotspots[0],0);
+  }
+
+  function loadDemo(card){
+    var fallback={
+      title:card.dataset.title,
+      image:card.dataset.img,
+      state:{hotspots:[]}
+    };
+    if(!card.dataset.demo)return Promise.resolve(fallback);
+    return fetch(card.dataset.demo,{cache:'no-cache'})
+      .then(function(res){
+        if(!res.ok)throw new Error('Demo JSON failed: '+res.status);
+        return res.json();
+      })
+      .catch(function(){return fallback});
+  }
+
   document.querySelectorAll('.demo[data-img]').forEach(function(card){
     var shot=card.querySelector('.shot');
     if(!shot)return;
-    shot.style.cursor='zoom-in';
-    shot.addEventListener('click',function(e){
-      if(e.target.closest('.copy-q'))return;
-      lbImg.src=card.dataset.img;
-      lbImg.alt=card.dataset.title;
-      lbTitle.textContent=card.dataset.title;
-      var meta=card.querySelector('.meta');
-      lbSub.textContent=meta?meta.textContent:'';
+    shot.addEventListener('click',function(){
       lb.classList.add('open');
+      lbTitle.textContent=card.dataset.title;
+      lbSub.textContent='Loading preserved hotspot state...';
+      lbImg.alt=card.dataset.title;
+      if(demoHotspots)demoHotspots.innerHTML='';
+      loadDemo(card).then(function(demo){
+        activeDemo=demo;
+        lbImg.src=demo.image||card.dataset.img;
+        lbImg.alt=demo.title||card.dataset.title;
+        lbTitle.textContent=demo.title||card.dataset.title;
+        var count=demo.hotspotCount||getHotspots(demo).length;
+        lbSub.textContent=(demo.modeLabel||demo.visualMode||'interactive demo')+(count?' · '+count+' hotspots':'');
+        renderHotspots(demo);
+      });
     });
   });
-  function close(){lb.classList.remove('open');lbImg.src=''}
+  function close(){
+    lb.classList.remove('open');
+    lbImg.src='';
+    activeDemo=null;
+    activeButtons=[];
+    if(demoHotspots)demoHotspots.innerHTML='';
+  }
   lbClose.addEventListener('click',close);
   lb.addEventListener('click',function(e){if(e.target===lb)close()});
   document.addEventListener('keydown',function(e){if(e.key==='Escape')close()});
 })();
 
-// Copy question buttons
 (function(){
   document.querySelectorAll('.copy-q').forEach(function(btn){
     btn.addEventListener('click',function(e){
       e.stopPropagation();
       var text=btn.dataset.copy;
+      function copied(){
+        btn.classList.add('copied');
+        btn.textContent='Copied';
+        setTimeout(function(){btn.classList.remove('copied');btn.textContent='Copy question'},2000);
+      }
       if(navigator.clipboard&&navigator.clipboard.writeText){
-        navigator.clipboard.writeText(text).then(function(){
-          btn.classList.add('copied');
-          btn.innerHTML='✓ Copied!';
-          setTimeout(function(){btn.classList.remove('copied');btn.innerHTML='📋 Copy question'},2000);
-        });
+        navigator.clipboard.writeText(text).then(copied);
       }else{
-        var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);
-        ta.select();try{document.execCommand('copy');btn.classList.add('copied');
-          btn.innerHTML='✓ Copied!';setTimeout(function(){btn.classList.remove('copied');btn.innerHTML='📋 Copy question'},2000)}catch(e){}
+        var ta=document.createElement('textarea');
+        ta.value=text;
+        document.body.appendChild(ta);
+        ta.select();
+        try{document.execCommand('copy');copied()}catch(err){}
         document.body.removeChild(ta);
       }
     });
@@ -541,3 +966,4 @@
 </script>
 </body>
 </html>
+

@@ -132,33 +132,153 @@ async function refineAlignmentWithSam3(serverConfig, alignmentResult, request) {
     };
   }
   const maskById = new Map((sam3Parsed.modules || []).map((module) => [module.moduleId, module]));
+  const sam3PromotedModules = [];
+  const refinedModules = (alignmentResult.modules || []).map((module) => {
+    const mask = maskById.get(module.moduleId);
+    if (!mask) return module;
+    const refinedMask = refineMaskForInteraction(mask, module);
+    const promoted = promotePlannedBoundsWithSam3(module, refinedMask);
+    if (promoted) sam3PromotedModules.push(module.moduleId);
+    return {
+      ...module,
+      ...(promoted
+        ? {
+            bounds: promoted.bounds,
+            rawBounds: module.bounds,
+            confidence: promoted.confidence,
+            source: "sam3-refined-planned",
+            sam3BoundsPromotion: promoted.diagnostics
+          }
+        : {}),
+      mask: {
+        provider: "sam3",
+        score: refinedMask.score,
+        bounds: refinedMask.maskBounds,
+        inputBounds: refinedMask.inputBounds,
+        image: refinedMask.maskImage || "",
+        cutoutImage: refinedMask.cutoutImage || "",
+        organicImage: refinedMask.organicImage || "",
+        organicBounds: refinedMask.organicBounds || null,
+        organicAspectRatio: refinedMask.organicAspectRatio || null,
+        maskPixels: refinedMask.maskPixels,
+        polygon: refinedMask.polygon || [],
+        strategy: refinedMask.strategy || "sam3-mask"
+      }
+    };
+  });
+  const sourceCounts = countModuleSources(refinedModules);
   return {
     ...alignmentResult,
     providerChain: addUnique(alignmentResult.providerChain, "sam3"),
-    modules: (alignmentResult.modules || []).map((module) => {
-      const mask = maskById.get(module.moduleId);
-      if (!mask) return module;
-      const refinedMask = refineMaskForInteraction(mask, module);
-      return {
-        ...module,
-        mask: {
-          provider: "sam3",
-          score: refinedMask.score,
-          bounds: refinedMask.maskBounds,
-          inputBounds: refinedMask.inputBounds,
-          image: refinedMask.maskImage || "",
-          cutoutImage: refinedMask.cutoutImage || "",
-          maskPixels: refinedMask.maskPixels,
-          polygon: refinedMask.polygon || [],
-          strategy: refinedMask.strategy || "sam3-mask"
-        }
-      };
-    }),
+    modules: refinedModules,
+    sourceCounts,
+    effectiveProvider: chooseEffectiveProvider(sourceCounts),
+    fallbackModules: refinedModules.filter((module) => String(module.source || "") === "planned").map((module) => module.moduleId),
     sam3Raw: sam3Parsed.raw || sam3Parsed,
     acceptedSam3Modules: (sam3Parsed.modules || []).map((module) => module.moduleId),
+    sam3PromotedModules,
     rejectedSam3Modules: sam3Parsed.rejectedModules || [],
     warnings
   };
+}
+
+function promotePlannedBoundsWithSam3(module, refinedMask) {
+  if (String(module && module.source || "").toLowerCase() !== "planned") return null;
+  const planned = normalizeLooseBounds(module && module.bounds);
+  const maskBounds = normalizeLooseBounds(refinedMask && refinedMask.maskBounds);
+  if (!planned || !maskBounds) return null;
+  const plannedArea = boundsArea(planned);
+  const maskArea = boundsArea(maskBounds);
+  if (!plannedArea || !maskArea) return null;
+  const score = Number(refinedMask && refinedMask.score);
+  const maskPixels = Number(refinedMask && refinedMask.maskPixels);
+  if (Number.isFinite(score) && score < 0.24) return null;
+  if (Number.isFinite(maskPixels) && maskPixels <= 0) return null;
+  if (maskArea < plannedArea * 0.035) return null;
+  const overlap = normalizedOverlapRatio(planned, maskBounds);
+  const distance = normalizedCenterDistance(planned, maskBounds);
+  if (overlap < 0.04 && distance > 0.32) return null;
+  const union = unionBounds(planned, maskBounds);
+  const unionArea = boundsArea(union);
+  if (unionArea > Math.max(plannedArea * 4.2, 0.42)) return null;
+  const confidence = Math.max(Number(module.confidence || 0), Number.isFinite(score) ? Math.min(0.86, Math.max(0.58, score)) : 0.62);
+  return {
+    bounds: union,
+    confidence,
+    diagnostics: {
+      reason: "planned fallback refined by SAM3 mask bounds",
+      planned,
+      maskBounds,
+      overlap: roundBounds(overlap),
+      centerDistance: roundBounds(distance)
+    }
+  };
+}
+
+function countModuleSources(modules) {
+  const counts = {};
+  for (const module of modules || []) {
+    const source = String((module && module.source) || "unknown").trim() || "unknown";
+    counts[source] = (counts[source] || 0) + 1;
+  }
+  return counts;
+}
+
+function chooseEffectiveProvider(sourceCounts) {
+  const counts = sourceCounts || {};
+  const candidates = ["locateanything", "mimo-vision", "local-ocr", "sam3-refined-planned", "vision-low-confidence"];
+  let best = "";
+  let bestCount = 0;
+  for (const source of candidates) {
+    const count = Number(counts[source] || 0);
+    if (count > bestCount) {
+      best = source;
+      bestCount = count;
+    }
+  }
+  return best || (Number(counts.planned || 0) ? "planned" : "unknown");
+}
+
+function unionBounds(a, b) {
+  const left = Math.min(Number(a.x || 0), Number(b.x || 0));
+  const top = Math.min(Number(a.y || 0), Number(b.y || 0));
+  const right = Math.max(Number(a.x || 0) + Number(a.width || 0), Number(b.x || 0) + Number(b.width || 0));
+  const bottom = Math.max(Number(a.y || 0) + Number(a.height || 0), Number(b.y || 0) + Number(b.height || 0));
+  return clampBounds({
+    x: left,
+    y: top,
+    width: right - left,
+    height: bottom - top
+  });
+}
+
+function normalizedOverlapRatio(a, b) {
+  const areaA = boundsArea(a);
+  const areaB = boundsArea(b);
+  if (!areaA || !areaB) return 0;
+  const left = Math.max(Number(a.x || 0), Number(b.x || 0));
+  const top = Math.max(Number(a.y || 0), Number(b.y || 0));
+  const right = Math.min(Number(a.x || 0) + Number(a.width || 0), Number(b.x || 0) + Number(b.width || 0));
+  const bottom = Math.min(Number(a.y || 0) + Number(a.height || 0), Number(b.y || 0) + Number(b.height || 0));
+  const overlap = Math.max(0, right - left) * Math.max(0, bottom - top);
+  return overlap / Math.min(areaA, areaB);
+}
+
+function boundsArea(bounds) {
+  return Math.max(0, Number(bounds && bounds.width) || 0) * Math.max(0, Number(bounds && bounds.height) || 0);
+}
+
+function normalizedCenterDistance(a, b) {
+  if (!a || !b) return 1;
+  const ax = Number(a.x || 0) + Number(a.width || 0) / 2;
+  const ay = Number(a.y || 0) + Number(a.height || 0) / 2;
+  const bx = Number(b.x || 0) + Number(b.width || 0) / 2;
+  const by = Number(b.y || 0) + Number(b.height || 0) / 2;
+  return Math.hypot(ax - bx, ay - by);
+}
+
+function roundBounds(value) {
+  return Number(Number(value || 0).toFixed(6));
 }
 
 function refineMaskForInteraction(mask, alignmentModule) {
@@ -687,6 +807,9 @@ function normalizeSam3Output(value, requestedModules) {
       score: normalizeScore(item.score, moduleId),
       maskImage: normalizePngDataUrl(item.maskImage, "maskImage", 512 * 1024),
       cutoutImage: normalizePngDataUrl(item.cutoutImage, "cutoutImage", 2 * 1024 * 1024),
+      organicImage: normalizePngDataUrl(item.organicImage, "organicImage", 3 * 1024 * 1024),
+      organicBounds: normalizeOptionalBounds(item.organicBounds, moduleId, "organicBounds"),
+      organicAspectRatio: normalizeOptionalPositiveNumber(item.organicAspectRatio),
       maskPixels: Math.max(0, Math.round(Number(item.maskPixels || 0))),
       polygon: normalizePolygon(item.polygon, moduleId)
     });
@@ -724,6 +847,16 @@ function normalizeBounds(bounds, moduleId) {
     throwSam3OutputError(`SAM3 ${moduleId} bounds are outside normalized image bounds`);
   }
   return normalized;
+}
+
+function normalizeOptionalBounds(bounds, moduleId, label) {
+  if (!bounds) return null;
+  return normalizeBounds(bounds, `${moduleId} ${label}`);
+}
+
+function normalizeOptionalPositiveNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : null;
 }
 
 function normalizeScore(value, moduleId) {
