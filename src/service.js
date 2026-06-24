@@ -201,14 +201,35 @@
 
   function buildFallbackRawAnswer(question) {
     const source = String(question || "").trim();
-    if (/地图|地理|景区|导览|路线|游玩|山|湖|海岸|栈道/.test(source)) {
-      const subject = source
-        .replace(/生成|请|画成|一张|手绘|导览地图|地理风貌图|地理风貌|不要流程图|点击.*$/g, "")
-        .replace(/[，。！？,.!?]/g, "")
-        .trim() || "目标景区";
-      return `${subject}适合做成一张手绘导览地图：画面应把核心景区、主要游览路线、交通入口、住宿或补给点、自然地貌和观景关系放在同一张图中。用户点击不同地理区域时，应能看到该区域的位置、典型风貌、游玩价值、时间安排和注意事项。地图不应做成流程图，而应通过路线、地标、图例、房屋或索道图标等可见元素来表达可交互区域。`;
+    if (isWayfindingQuestion(source)) {
+      const subject = stripFallbackQuestionShell(source, "机场航站楼");
+      return `${subject}指引图应围绕真实到达和离开动线组织信息：值机柜台负责办理登机手续和托运行李，安检连接公共区域与候机区，候机区承担等待、休息和登机准备，登机口决定最终登机方向，行李提取负责到达后的定位和分流，地铁出租车接驳则把航站楼与外部交通连接起来。理解这些区域时，要看它们之间的先后顺序、相邻关系、停留价值和下一段路径，而不是把整张图当成普通流程说明。`;
     }
-    return `围绕“${source}”，需要先给出直接回答，再拆成若干可视化模块。每个模块应对应一个真实概念、对象、步骤或区域，并在详情中说明机制、影响、例子和注意事项。`;
+    if (/地图|地理|景区|导览|路线|游玩|山|湖|海岸|栈道/.test(source)) {
+      const subject = stripFallbackQuestionShell(source, "目标景区");
+      return `${subject}适合做成一张手绘导览地图：画面应把核心景区、主要游览路线、交通入口、住宿或补给点、自然地貌和观景关系放在同一张图中。不同地理区域分别承担定位、分流、观景、停留或补给作用；理解时要结合它们的位置、典型风貌、游玩价值、时间安排和注意事项。地图不应做成流程图，而应通过路线、地标、图例、房屋或索道图标等可见元素表达空间关系。`;
+    }
+    const subject = stripFallbackQuestionShell(source, "该主题");
+    return `${subject}可以从核心对象、关键关系、运行逻辑、使用场景和注意边界几个角度理解。核心对象说明讨论的主体是什么；关键关系解释不同部分如何连接；运行逻辑关注顺序、因果或空间组织；使用场景说明它在真实情境中的价值；注意边界保留限制、例外和容易误解的地方。`;
+  }
+
+  function isWayfindingQuestion(source) {
+    return /机场|航站|航站楼|值机|安检|候机|登机口|行李提取|接驳|出租车|地铁|指引图|导向|导视|terminal|airport|wayfinding/i.test(
+      String(source || "")
+    );
+  }
+
+  function stripFallbackQuestionShell(question, fallback) {
+    const cleaned = String(question || "")
+      .replace(/^(请|帮我|给我|为|生成|画|画一张|手绘|手绘一张|绘制|绘制一张|设计|用|以)\s*/g, "")
+      .replace(/(?:，|,|。|；|;)?(?:需要|要求|并且|且)?(?:每个|各个|所有)?(?:区域|模块|目标|对象)?(?:都)?(?:可以|可)?(?:点击|交互|查看说明|查看详情|追问)[\s\S]*$/g, "")
+      .replace(/(?:不要|避免|不应).{0,16}(?:流程图|卡片|说明)[\s\S]*$/g, "")
+      .replace(/[。！？!?]+$/g, "")
+      .trim();
+    const beforeColon = cleaned.split(/[：:]/)[0].trim();
+    const candidate = beforeColon || cleaned;
+    if (!candidate || candidate.length > 28) return fallback;
+    return candidate;
   }
 
   function auditHotspotHitTest(hotspots) {
@@ -503,7 +524,7 @@
         }
         let alignedLayout;
         try {
-          alignedLayout = alignmentModel.applyAlignmentsToLayout(layout, parsed.alignments);
+          alignedLayout = alignmentModel.applyAlignmentsToLayout(layout, parsed.alignments, parsed.rejectedModules);
         } catch (error) {
           error.alignmentRaw = {
             provider: "vision-api-align",
@@ -621,7 +642,7 @@
         }
         let alignedLayout;
         try {
-          alignedLayout = alignmentModel.applyAlignmentsToLayout(layout, parsed.alignments);
+          alignedLayout = alignmentModel.applyAlignmentsToLayout(layout, parsed.alignments, parsed.rejectedModules);
         } catch (error) {
           error.alignmentRaw = {
             provider: (rawParsed && rawParsed.provider) || "vision-api-align",
@@ -722,9 +743,12 @@
       inputBounds: mask.inputBounds || null,
       maskPixels: mask.maskPixels,
       polygon: Array.isArray(mask.polygon) ? mask.polygon : [],
+      organicBounds: mask.organicBounds || null,
+      organicAspectRatio: mask.organicAspectRatio || null,
       strategy: mask.strategy || "",
       hasImage: Boolean(mask.image),
-      hasCutoutImage: Boolean(mask.cutoutImage)
+      hasCutoutImage: Boolean(mask.cutoutImage),
+      hasOrganicImage: Boolean(mask.organicImage)
     };
   }
 
@@ -884,7 +908,8 @@
       structuredSpec: visualSpec,
       layout,
       hotspots: [],
-      imageUrl: image.imageUrl,
+      // Display/history uses the locally cached copy (see main pipeline result).
+      imageUrl: image.cachedImageUrl || image.imageUrl,
       imageWidth: image.width,
       imageHeight: image.height,
       imagePrompt,
@@ -1102,7 +1127,10 @@
           layout: clickLayout,
           hotspots,
           threads: [],
-          imageUrl: image.imageUrl,
+          // Display/history uses the locally cached copy so replays survive the
+          // upstream CDN URL expiring. Alignment already ran against the remote
+          // image.imageUrl earlier in this pipeline.
+          imageUrl: image.cachedImageUrl || image.imageUrl,
           imageWidth: image.width,
           imageHeight: image.height,
           createdAt: new Date().toISOString(),

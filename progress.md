@@ -447,3 +447,100 @@
   - `npm.cmd test` passed.
   - `npm.cmd run build` passed.
   - Final service restart confirmed `http://127.0.0.1:5178/` is listening with LocateAnything and SAM3 resident models loaded.
+
+## 2026-06-22 Explicit Target Cleanup Pass
+
+- Continued from the latest online instance test where the airport-terminal guide was technically clickable but had two wrong hotspots: `查看说明` and `要求`.
+- Root cause:
+  - The explicit-target extractor treated `点击查看说明` as a visual target.
+  - The colon-list parser stripped `要求每个区域...` too late, leaving a dangling `要求` item after list splitting.
+  - Existing online checks only verified that hotspots could be clicked, so semantically wrong but clickable targets slipped through.
+- Fixes in progress:
+  - Instruction-only target labels such as `查看说明`, `查看详情`, `要求`, `详情`, `每个区域` are now dropped during explicit target normalization.
+  - Map/scene/poster model-returned modules are filtered for instruction-only fake targets before layout and hotspot alignment.
+  - If a model omits explicit user targets after filtering, the structure layer fills missing targets with semantic target modules.
+- Verification so far:
+  - `node --check src\structure.js` passed.
+  - `npm.cmd run test:structure` passed, including the airport guide regression.
+
+## 2026-06-22 Partial Alignment and Online Instance Pass
+
+- Continued the explicit-target cleanup and online validation on the fixed service `http://127.0.0.1:5178/`; no extra frontend ports were started.
+- Fixes:
+  - Added title cleanup for `手绘一张...` / `绘制一张...`, so prompts like `手绘一张大学校园导览地图...` now save as `大学校园导览地图` instead of copying the raw instruction into the title.
+  - Added a regression test for the hand-drawn campus-map title.
+  - Increased bottom safe spacing around the fixed composer so lower hotspots are not hidden behind the input bar during click audits or normal interaction.
+  - Fixed alignment parsing so one low-confidence module no longer throws away the entire visual alignment result. Low-confidence modules are recorded in `rejectedModules` and fall back individually, while successful LocateAnything/SAM3 modules keep their grounded boxes and masks.
+  - Updated the online runner with stricter semantic target checks for airport/campus and added scene/map cases (`museum-scene`, `west-lake-map`).
+- Online instance results:
+  - `campus-guide-map`: OK, score 100, 7 hotspots, title `大学校园导览地图`; report at `tmp/online-common-case-test-campus-after-restart/online-common-case-report.md`.
+  - `museum-scene`: initially failed at score 90 because `观众` low confidence caused global `alignment-fallback`; after the parser fix it passed score 100 with `provider=locateanything`, chain `locateanything > mimo-vision > sam3`, 4/4 masks; report at `tmp/online-common-case-test-museum-after-partial-align-fix/online-common-case-report.md`.
+  - `airport-terminal-guide`: one run timed out at image generation, then rerun passed score 100, 6 hotspots, title `机场航站楼指引图`; report at `tmp/online-common-case-test-airport-after-partial-align-fix/online-common-case-report.md`.
+  - `trading-agent`: OK, score 100, 6 hotspots; report at `tmp/online-common-case-test-expanded-after-restart/online-common-case-report.md`.
+  - `west-lake-map`: OK, score 100, 9 hotspots, `provider=locateanything`; report at `tmp/online-common-case-test-expanded-after-restart/online-common-case-report.md`.
+- Verification:
+  - `node --check src\structure.js` passed.
+  - `node --check src\alignment.js` passed.
+  - `node --check src\service.js` passed.
+  - `npm.cmd run test:structure` passed.
+  - `npm.cmd run test:layout` passed.
+  - `npm.cmd run test:quality` passed.
+  - `npm.cmd run test:agent-eval` passed with all 13 cases at score 100.
+  - `npm.cmd run test:alignment` passed.
+  - `npm.cmd run test:service` passed.
+  - `npm.cmd run test:sam3` passed.
+  - `npm.cmd run test:browser-api-alignment` passed.
+  - `npm.cmd run test:browser` passed; the logged 503 is the expected missing-key error-path case inside that test.
+- Current service:
+  - Final restart confirmed PID `159872` listening on `127.0.0.1:5178`.
+  - LocateAnything and SAM3 resident models loaded successfully.
+
+## 2026-06-22 Detail Preview and Overlap Hit-Test Pass
+
+- Fixed the missing "区域上下文预览" issue in the hotspot detail panel.
+  - Root cause: context previews could receive an empty/invalid CSS mask, producing `mask-image: url("")` and making the loaded image invisible.
+  - Fix: map/scene context preview fallbacks now render a soft original-image crop first and never depend on CSS masks; invalid preview masks are rejected in `renderHotspotPreview`.
+- Improved overlapping hotspot behavior.
+  - New results now preserve module `priority` on hotspots.
+  - Hit-test z-index repair no longer lets overlapping peers keep raising each other until a later/background module wins.
+  - Existing history results are improved at render time: z-index now combines semantic layer, module order, and only a small explicit z-index bonus.
+  - Landmark/building `full-region` hotspots now render above water/background regions instead of being treated as background.
+- Updated tests and audit tooling.
+  - Browser/render tests now cover invalid mask fallback and map context preview visibility.
+  - Agent evaluation and online/history audit tools now use 9-point click sampling, matching the product rule that partial overlap is allowed as long as each hotspot has a reachable clickable area.
+- Online/visual verification on fixed `http://127.0.0.1:5178/`:
+  - History audit `tmp/history-preview-audit-20260622-final`: 西湖 9/9, 未来博物馆 4/4, 机场 6/6, 未来博物馆 4/4 all passed; no empty mask preview.
+  - New online generation `tmp/online-single-museum-after-preview-zfix`: future museum scene generated, saved to Recent as `ci_e576425d-13b9-4903-b648-426577d18687`; 4/4 hotspot clicks passed, previews visible. Report status is warn only because the alignment summary still counts some layout-guided LocateAnything modules as planned-like.
+- Verification:
+  - `npm.cmd run test:render` passed.
+  - `npm.cmd run test:layout` passed.
+  - `npm.cmd run test:browser` passed.
+  - `npm.cmd run test:browser-api-alignment` passed.
+  - `npm.cmd run test:agent-eval` passed.
+  - `npm.cmd test` passed.
+- Current service:
+  - PID `11020` is listening on `http://127.0.0.1:5178/`.
+  - `CHATIMAGE_VISION_MODE=locateanything`; LocateAnything and SAM3 are configured.
+
+## 2026-06-23 Demo Refresh and Latest Multi-Instance QA
+
+- Fixed the showcase page so demos are truly interactive instead of static lightbox screenshots.
+  - `docs/index.html` now loads per-demo JSON, draws clickable hotspot overlays, and updates a region-specific detail panel.
+  - Replaced the broken/garbled public examples with 7 curated demos: agent workflow, RAG pipeline, OAuth2 flow, West Lake map, future museum scene, smartwatch exploded view, and ecommerce funnel.
+  - `scripts/generate-doc-demos.js` now writes reusable SVG + JSON state plus `docs/assets/demos/manifest.json`.
+- Added regression coverage:
+  - `tests/docs-demos.test.js` verifies all public demo JSON/SVG references exist, hotspot state is complete, and the docs page is interactive.
+  - `tests/structure.test.js` now prevents campus-map prompts from turning `点击区域后解释用途和风貌` into a fake hotspot.
+- Latest preserved multi-instance run:
+  - Artifact: `tmp/latest-multi-instance-analysis-20260623-212957-selected`
+  - 9/9 selected cases passed at average score 100.
+  - Each case has `state.json`, `summary.json`, and screenshot under `cases/<case-id>/`.
+- Verification:
+  - `npm run test:structure` passed.
+  - `npm run test:agent-eval` passed with all 13 cases at score 100.
+  - `npm run test:docs-demos` passed.
+  - `npm run test:browser` passed; the logged `/api/llm -> 503` is the expected missing-key error-path case.
+  - `npm run test:render` passed.
+  - `npm run test:sam3` passed.
+  - `npm run test:preview-strategy` passed.
+  - `npm run build` passed.

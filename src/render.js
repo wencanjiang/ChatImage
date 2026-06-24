@@ -119,16 +119,27 @@
 
   function getHotspotRenderZIndex(hotspot) {
     const explicit = Number(hotspot && hotspot.zIndex);
-    if (Number.isFinite(explicit) && explicit > 0) return Math.max(1, Math.round(explicit));
     const kind = String((hotspot && hotspot.regionKind) || "").toLowerCase();
     const policy = String((hotspot && hotspot.maskPolicy) || "").toLowerCase();
     let semantic = 5;
-    if (kind === "background" || policy === "full-region") semantic = 1;
+    if (kind === "background" || (policy === "full-region" && !["landmark", "building", "route", "axis", "legend"].includes(kind))) semantic = 1;
     else if (["water", "mountain", "foreground", "panel"].includes(kind)) semantic = 2;
+    else if (["landmark", "building"].includes(kind)) semantic = 6;
     else if (["route", "axis"].includes(kind) || policy === "route") semantic = 7;
     else if (["legend"].includes(kind) || policy === "legend") semantic = 8;
     else if (["object-with-label", "object", "person", "landmark", "building"].includes(kind) || ["subject", "subject-with-label"].includes(policy)) semantic = 9;
-    return Math.max(1, Math.round(semantic));
+    const explicitBonus = Number.isFinite(explicit) && explicit > 0 ? Math.min(20, Math.round(explicit)) : 0;
+    const priorityBonus = getHotspotPriorityBonus(hotspot);
+    return Math.max(1, Math.round(semantic * 100 + priorityBonus + explicitBonus));
+  }
+
+  function getHotspotPriorityBonus(hotspot) {
+    const explicit = Number(hotspot && hotspot.priority);
+    if (Number.isFinite(explicit) && explicit > 0) return Math.max(0, 80 - Math.min(80, Math.round(explicit)));
+    const id = String((hotspot && hotspot.id) || "");
+    const match = id.match(/(?:module|region|item)_?(\d+)/i);
+    if (match) return Math.max(0, 80 - Math.min(80, Number(match[1])));
+    return 0;
   }
 
   function getHotspotRenderBounds(hotspot) {
@@ -411,6 +422,7 @@
 
   function buildPreviewMaskStyle(preview, mask) {
     if (!preview || !preview.maskImage || !mask) return "";
+    if (!isUsablePreviewMaskImage(preview.maskImage)) return "";
     const maskWidth = Math.max(0.0001, Number(mask.width || 0));
     const maskHeight = Math.max(0.0001, Number(mask.height || 0));
     const maskX = Math.max(0, Math.min(1, Number(mask.x || 0)));
@@ -424,6 +436,13 @@
       `--mask-px:${maskPositionX.toFixed(5)}`,
       `--mask-py:${maskPositionY.toFixed(5)}`
     ].join(";");
+  }
+
+  function isUsablePreviewMaskImage(value) {
+    const text = String(value || "").trim();
+    if (!/^data:image\/(?:png|webp|jpeg|jpg);base64,/i.test(text)) return false;
+    const payload = text.slice(text.indexOf(",") + 1).replace(/\s+/g, "");
+    return payload.length >= 24 && /^[A-Za-z0-9+/]+=*$/.test(payload);
   }
 
   function renderMessages(messages) {

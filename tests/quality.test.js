@@ -61,7 +61,8 @@ function main() {
   semanticScene.layout.visualMode = "scene";
   semanticScene.layout.layoutVariant = "scene";
   semanticScene.alignmentRaw = { provider: "locateanything", layoutProvider: "vision", sourceCounts: { "mimo-vision": 3 } };
-  semanticScene.imagePrompt = "Target semantic regions visualEvidence maskPolicy locatorQueries easy to segment later";
+  semanticScene.imagePrompt =
+    "Natural visual targets visualEvidence maskPolicy locatorQueries downstream grounding metadata do not draw visible mask artifacts";
   semanticScene.layout.regions[1].bounds = { x: 0.18, y: 0.24, width: 0.36, height: 0.34 };
   semanticScene.hotspots[1].x = 0.18;
   semanticScene.hotspots[1].y = 0.24;

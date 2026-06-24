@@ -15,6 +15,7 @@ const {
   runLocateAnythingPreload
 } = require("./server/locateanything");
 const { refineAlignmentWithSam3, runSam3Health, runSam3Preload } = require("./server/sam3");
+const { cacheRemoteImage } = require("./server/image-cache");
 const {
   loadEnvFile,
   assertSameOriginRequest,
@@ -118,6 +119,11 @@ function createConfig(overrides = {}) {
     sam3LicenseAck: process.env.CHATIMAGE_SAM3_LICENSE_ACK || "",
     databasePath: process.env.CHATIMAGE_DATABASE_PATH || path.join(rootDir, "tmp", "chatimage.sqlite"),
     staticDir: process.env.CHATIMAGE_STATIC_DIR || rootDir,
+    imageCacheEnabled: parseEnvBoolean(process.env.CHATIMAGE_IMAGE_CACHE_ENABLED, true),
+    imageCacheDir: process.env.CHATIMAGE_IMAGE_CACHE_DIR || path.join(rootDir, "tmp", "image-cache"),
+    imageCacheUrlPrefix: "/image-cache/",
+    imageCacheTimeoutMs: Number(process.env.CHATIMAGE_IMAGE_CACHE_TIMEOUT_MS || 20_000),
+    imageCacheMaxBytes: Number(process.env.CHATIMAGE_IMAGE_CACHE_MAX_BYTES || 16 * 1024 * 1024),
     apiRequestTimeoutMs: Number(process.env.CHATIMAGE_API_REQUEST_TIMEOUT_MS || 120_000),
     apiFetchRetryAttempts: Number(process.env.CHATIMAGE_API_FETCH_RETRY_ATTEMPTS || 2),
     apiFetchRetryDelayMs: Number(process.env.CHATIMAGE_API_FETCH_RETRY_DELAY_MS || 800),
@@ -177,6 +183,14 @@ function createServer(serverConfig = config) {
     runLocateAnythingPreload,
     runSam3Health,
     runSam3Preload,
+    cacheImage: (imageUrl, opts = {}) =>
+      cacheRemoteImage(imageUrl, {
+        cacheDir: serverConfig.imageCacheDir,
+        urlPrefix: serverConfig.imageCacheUrlPrefix,
+        timeoutMs: serverConfig.imageCacheTimeoutMs,
+        maxBytes: serverConfig.imageCacheMaxBytes,
+        ...opts
+      }),
     readJson,
     requireApiKey,
     sendJson
@@ -186,6 +200,12 @@ function createServer(serverConfig = config) {
     try {
       assertSameOriginRequest(req, serverConfig);
       const url = new URL(req.url, `http://${req.headers.host}`);
+      const cachePrefix = serverConfig.imageCacheUrlPrefix || "/image-cache/";
+      if (serverConfig.imageCacheDir && url.pathname.startsWith(cachePrefix)) {
+        // Serve locally cached images out of the dedicated cache dir; serveStatic
+        // performs the path-traversal check against that base directory.
+        return serveStatic(`/${url.pathname.slice(cachePrefix.length)}`, res, serverConfig.imageCacheDir);
+      }
       for (const route of routes) {
         if (await route({ url, req, res, serverConfig, store, helpers })) return;
       }

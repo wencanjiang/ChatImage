@@ -82,6 +82,7 @@
     const modulesById = new Map(modules.map((module) => [module.id, module]));
     const modulesByTitle = new Map(modules.map((module) => [module.title, module]));
     const seen = new Set();
+    const rejectedModules = normalizeParsedRejectedModules(parsed.rejectedModules, modulesById, modulesByTitle);
     const alignments = list.map((item, index) => {
       const module = resolveModule(item, modulesById, modulesByTitle);
       if (!module) {
@@ -93,7 +94,16 @@
       seen.add(module.id);
       const confidence = Number(item.confidence ?? item.score);
       if (!Number.isFinite(confidence) || confidence < minConfidence) {
-        throw new Error(`视觉对齐失败：${module.title} 置信度不足`);
+        rejectedModules.push({
+          moduleId: module.id,
+          label: item.label || item.title || module.title,
+          bounds: safeNormalizeBounds(item.bounds, module.title),
+          rawBounds: safeNormalizeBounds(item.rawBounds, `${module.title}.rawBounds`),
+          confidence: Number.isFinite(confidence) ? confidence : null,
+          source: item.source || item.provider || parsed.provider || "vision",
+          reason: `confidence below ${minConfidence}`
+        });
+        return null;
       }
       const bounds = normalizeBounds(item.bounds, module.title);
       return {
@@ -107,7 +117,7 @@
         matchedText: item.matchedText || "",
         mask: normalizeMask(item.mask, module.title)
       };
-    });
+    }).filter(Boolean);
 
     const missing = modules.filter((module) => !seen.has(module.id));
     // NOTE: we intentionally do NOT throw when some modules are missing a
@@ -118,7 +128,7 @@
     // which has access to `layout` (this function does not). Callers can detect
     // partial alignment by comparing alignments.length to modules.length.
     void missing;
-    return { alignments };
+    return { alignments, rejectedModules };
   }
 
   function getAlignableModules(spec) {
@@ -127,10 +137,11 @@
     return main.concat(auxiliary);
   }
 
-  function applyAlignmentsToLayout(layout, alignments) {
+  function applyAlignmentsToLayout(layout, alignments, preRejectedModules = []) {
     const split = splitAlignmentCandidates(layout, alignments);
     const usableAlignments = split.usable;
     const qualityRejected = split.rejected;
+    const normalizedPreRejected = normalizePreRejectedModules(preRejectedModules);
     const alignmentById = new Map(usableAlignments.map((alignment) => [alignment.moduleId, alignment]));
     const rejectedById = new Map(qualityRejected.map((alignment) => [alignment.moduleId, alignment]));
     const nextLayout = {
@@ -215,14 +226,21 @@
           alignedAt: new Date().toISOString(),
           modules: [...alignments, ...missingAlignments],
           acceptedModules: usableAlignments.map((alignment) => alignment.moduleId),
-          rejectedModules: qualityRejected,
+          rejectedModules: [...normalizedPreRejected, ...qualityRejected],
           missingModules: missingAlignments.map((alignment) => alignment.moduleId),
           sourceCounts: summarizeAlignmentSources([...usableAlignments, ...missingAlignments]).sourceCounts
         }
       };
     }
 
-    return buildRepairedAlignmentLayout(layout, usableAlignments, validation.errors, qualityRejected, alignments);
+    return buildRepairedAlignmentLayout(
+      layout,
+      usableAlignments,
+      validation.errors,
+      qualityRejected,
+      alignments,
+      normalizedPreRejected
+    );
   }
 
   function splitAlignmentCandidates(layout, alignments) {
@@ -314,10 +332,17 @@
     return Number(Number(value || 0).toFixed(4));
   }
 
-  function buildRepairedAlignmentLayout(layout, alignments, candidateErrors, qualityRejected = [], originalAlignments = alignments) {
+  function buildRepairedAlignmentLayout(
+    layout,
+    alignments,
+    candidateErrors,
+    qualityRejected = [],
+    originalAlignments = alignments,
+    preRejectedModules = []
+  ) {
     let regions = layout.regions.map((region) => ({ ...region, bounds: { ...(region.bounds || {}) } }));
     const accepted = [];
-    const rejected = qualityRejected.slice();
+    const rejected = preRejectedModules.concat(qualityRejected);
     const alignmentIds = alignments.map((alignment) => alignment.moduleId);
 
     for (let alignmentIndex = 0; alignmentIndex < alignments.length; alignmentIndex += 1) {
@@ -732,6 +757,49 @@
     return null;
   }
 
+  function normalizeParsedRejectedModules(value, modulesById, modulesByTitle) {
+    if (!Array.isArray(value)) return [];
+    return value.map((item, index) => {
+      const module = resolveModule(item || {}, modulesById, modulesByTitle);
+      const moduleId = module ? module.id : String((item && (item.moduleId || item.id || item.hotspotId)) || `unknown_${index + 1}`);
+      const label = String((item && (item.label || item.title || item.name)) || (module && module.title) || moduleId);
+      const confidence = Number(item && (item.confidence ?? item.score));
+      return {
+        moduleId,
+        label,
+        bounds: safeNormalizeBounds(item && item.bounds, label),
+        rawBounds: safeNormalizeBounds(item && item.rawBounds, `${label}.rawBounds`),
+        confidence: Number.isFinite(confidence) ? confidence : null,
+        source: String((item && (item.source || item.provider)) || "vision"),
+        reason: String((item && item.reason) || "provider rejected module")
+      };
+    });
+  }
+
+  function normalizePreRejectedModules(value) {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((item, index) => ({
+        moduleId: String((item && item.moduleId) || `rejected_${index + 1}`),
+        label: String((item && item.label) || (item && item.moduleId) || `rejected_${index + 1}`),
+        bounds: item && item.bounds ? item.bounds : null,
+        rawBounds: item && item.rawBounds ? item.rawBounds : null,
+        confidence: item && Object.prototype.hasOwnProperty.call(item, "confidence") ? item.confidence : null,
+        source: String((item && item.source) || "vision"),
+        reason: String((item && item.reason) || "provider rejected module")
+      }))
+      .filter((item) => item.moduleId);
+  }
+
+  function safeNormalizeBounds(bounds, label) {
+    if (!bounds) return null;
+    try {
+      return normalizeBounds(bounds, label);
+    } catch {
+      return null;
+    }
+  }
+
   function normalizeBounds(bounds, label) {
     if (!bounds || typeof bounds !== "object" || Array.isArray(bounds)) {
       throw new Error(`视觉对齐失败：${label} 缺少 bounds`);
@@ -789,6 +857,9 @@
         maskPixels: Math.max(0, Math.round(Number(mask.maskPixels || 0))),
         image: normalizeMaskImage(mask.image),
         cutoutImage: normalizeMaskImage(mask.cutoutImage),
+        organicImage: normalizeMaskImage(mask.organicImage, 3 * 1024 * 1024),
+        organicBounds: mask.organicBounds ? normalizeBounds(mask.organicBounds, `${label} mask organic`) : null,
+        organicAspectRatio: normalizePositiveNumber(mask.organicAspectRatio),
         polygon: normalizePolygon(mask.polygon),
         strategy: String(mask.strategy || "")
       };
@@ -801,10 +872,15 @@
     }
   }
 
-  function normalizeMaskImage(value) {
+  function normalizePositiveNumber(value) {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 ? number : null;
+  }
+
+  function normalizeMaskImage(value, maxLength = 512 * 1024) {
     const text = String(value || "");
     if (!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/i.test(text)) return "";
-    return text.length <= 512 * 1024 ? text : "";
+    return text.length <= maxLength ? text : "";
   }
 
   function normalizePolygon(value) {

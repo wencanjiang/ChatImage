@@ -32,7 +32,7 @@
 \backcite {antol2015vqa}{{3}{2}{section.2}}
 \backcite {goyal2017vqav2}{{3}{2}{section.2}}
 \backcite {masry2022chartqa}{{3}{2}{section.2}}
-\backcite {mathew2022docvqa}{{3}{2}{section.2}}
+\backcite {mathew2021docvqa}{{3}{2}{section.2}}
 \backcite {wei2022cot}{{3}{2}{section.2}}
 \backcite {yao2023react}{{3}{2}{section.2}}
 \backcite {schick2024toolformer}{{3}{2}{section.2}}
@@ -43,7 +43,7 @@
 \backcite {tang2023chartlama}{{3}{2}{section.2}}
 \backcite {zhang2014mindmap}{{3}{2}{section.2}}
 \backcite {feng2024layoutgpt}{{4}{3.1}{Item.8}}
-\backcite {wang2025locateanything}{{5}{3.3}{subsection.3.3}}
-\backcite {liu2024internvl}{{5}{3.3}{subsection.3.3}}
+\backcite {wang2025locateanything}{{4}{3.3}{subsection.3.3}}
+\backcite {liu2024internvl}{{4}{3.3}{subsection.3.3}}
 \backcite {kirillov2023sam}{{5}{3.3}{subsection.3.3}}
 \backcite {ravi2024sam2}{{5}{3.3}{subsection.3.3}}

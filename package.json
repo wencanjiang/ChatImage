@@ -43,6 +43,7 @@
     "test:browser-image-error": "node tests/browser-image-error.test.js",
     "test:browser-vision-preflight": "node tests/browser-vision-preflight.test.js",
     "test:browser-history": "node tests/browser-history.test.js",
+    "test:docs-demos": "node tests/docs-demos.test.js",
     "test:agent-eval": "node tests/agent-evaluation.test.js",
     "test:real-api-smoke-config": "node tests/real-api-smoke-config.test.js",
     "test:real-diagnostics": "node tests/real-diagnostics.test.js",

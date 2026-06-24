@@ -21,6 +21,9 @@ const {
   renderResult
 } = require("../src/render");
 
+const ONE_PIXEL_PNG =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
 function createResult() {
   return {
     title: "标题<script>",
@@ -128,8 +131,55 @@ function main() {
       }
     ]
   });
-  assert.match(explicitZIndexHtml, /z-index:3/);
-  assert.doesNotMatch(explicitZIndexHtml, /z-index:9/);
+  assert.match(explicitZIndexHtml, /z-index:\d+/);
+  const stackedZIndexHtml = renderImageFrame({
+    ...createResult(),
+    hotspots: [
+      {
+        ...createResult().hotspots[0],
+        id: "module_1",
+        label: "Exhibit",
+        regionKind: "object",
+        maskPolicy: "subject",
+        zIndex: 10
+      },
+      {
+        ...createResult().hotspots[0],
+        id: "module_4",
+        label: "Space",
+        regionKind: "object",
+        maskPolicy: "subject",
+        zIndex: 11
+      }
+    ]
+  });
+  const moduleOneZ = Number(stackedZIndexHtml.match(/data-hotspot-id="module_1"[\s\S]*?z-index:(\d+)/)[1]);
+  const moduleFourZ = Number(stackedZIndexHtml.match(/data-hotspot-id="module_4"[\s\S]*?z-index:(\d+)/)[1]);
+  assert.ok(moduleOneZ > moduleFourZ, `earlier primary module should render above later peer: ${moduleOneZ} <= ${moduleFourZ}`);
+  const mapRegionZIndexHtml = renderImageFrame({
+    ...createResult(),
+    hotspots: [
+      {
+        ...createResult().hotspots[0],
+        id: "module_1",
+        label: "Lake water",
+        regionKind: "water",
+        maskPolicy: "full-region",
+        zIndex: 1
+      },
+      {
+        ...createResult().hotspots[0],
+        id: "module_8",
+        label: "Garden landmark",
+        regionKind: "landmark",
+        maskPolicy: "full-region",
+        zIndex: 2
+      }
+    ]
+  });
+  const lakeZ = Number(mapRegionZIndexHtml.match(/data-hotspot-id="module_1"[\s\S]*?z-index:(\d+)/)[1]);
+  const landmarkZ = Number(mapRegionZIndexHtml.match(/data-hotspot-id="module_8"[\s\S]*?z-index:(\d+)/)[1]);
+  assert.ok(landmarkZ > lakeZ, `landmark full-region should render above water: ${landmarkZ} <= ${lakeZ}`);
   const maskedFrameHtml = renderImageFrame({
     ...createResult(),
     hotspots: [
@@ -225,12 +275,23 @@ function main() {
     aspectRatio: 1.2,
     crop: { x: 0.08, y: 0.18, width: 0.34, height: 0.44 },
     maskBounds: { x: 0.1, y: 0.2, width: 0.28, height: 0.36 },
-    maskImage: "data:image/png;base64,iVBORw0KGgo="
+    maskImage: ONE_PIXEL_PNG
   });
   assert.match(maskedPreviewHtml, /detail-preview-crop has-mask/);
   assert.match(maskedPreviewHtml, /detail-preview-soft/);
   assert.match(maskedPreviewHtml, /--mask-image:url/);
   assert.match(maskedPreviewHtml, /SAM3 精细区域预览/);
+
+  const invalidMaskedPreviewHtml = renderHotspotPreview({
+    imageUrl: "data:image/svg+xml,test",
+    alt: "invalid mask",
+    aspectRatio: 1.2,
+    crop: { x: 0.08, y: 0.18, width: 0.34, height: 0.44 },
+    maskBounds: { x: 0.1, y: 0.2, width: 0.28, height: 0.36 },
+    maskImage: "data:image/png;base64,"
+  });
+  assert.doesNotMatch(invalidMaskedPreviewHtml, /detail-preview-crop has-mask/);
+  assert.doesNotMatch(invalidMaskedPreviewHtml, /--mask-image:url/);
 
   const softFallbackPreviewHtml = renderHotspotPreview({
     imageUrl: "data:image/svg+xml,test",

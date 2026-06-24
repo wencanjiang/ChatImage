@@ -8,7 +8,7 @@
 \PassOptionsToPackage{pagebackref,breaklinks=true,colorlinks,citecolor=blue,urlcolor=blue,linkcolor=blue,bookmarks=false}{hyperref}
 \PassOptionsToPackage{noabbrev,nameinlink,capitalize}{cleveref}
 
-\documentclass[onecolumn,numbers]{april_aigc}
+\documentclass[twocolumn,numbers]{april_aigc}
 
 \input{preamble}
 
@@ -212,6 +212,10 @@ available.
 \input{sec/4_experiment}
 \input{sec/5_conclusion}
 
+\begingroup
+\renewcommand{\bibfont}{\scriptsize}
+\setlength{\bibsep}{0pt}
 \bibliography{chatimage}
+\endgroup
 
 \end{document}

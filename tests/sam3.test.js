@@ -20,6 +20,7 @@ async function main() {
   await testSubjectWithLabelSynthesizesComponents();
   await testLegendSubjectWithLabelDoesNotSynthesizeComponents();
   await testRefineAlignmentKeepsLocateBoundsAndAddsMask();
+  await testPlannedFallbackPromotesUsableSamBounds();
   await testRefineAlignmentExpandsComponentBoundsForSam3();
   await testLongLabelExpandsSamInputHorizontally();
   await testVeryLowConfidenceRouteUsesCorridorFallback();
@@ -102,6 +103,9 @@ async function testFakeSam3Segmentation() {
   assert.strictEqual(parsed.modules[0].maskBounds.x, 0.11);
   assert.match(parsed.modules[0].maskImage, /^data:image\/png;base64,/);
   assert.match(parsed.modules[0].cutoutImage, /^data:image\/png;base64,/);
+  assert.match(parsed.modules[0].organicImage, /^data:image\/png;base64,/);
+  assert.ok(parsed.modules[0].organicBounds.width > parsed.modules[0].maskBounds.width);
+  assert.ok(parsed.modules[0].organicAspectRatio > 0);
   assert.ok(parsed.modules[0].polygon.length >= 3);
   assert.match(parsed.warnings.join("\n"), /fake sam3/);
 }
@@ -191,8 +195,45 @@ async function testRefineAlignmentKeepsLocateBoundsAndAddsMask() {
   assert.strictEqual(refined.modules[0].mask.bounds.x, 0.082);
   assert.match(refined.modules[0].mask.image, /^data:image\/png;base64,/);
   assert.match(refined.modules[0].mask.cutoutImage, /^data:image\/png;base64,/);
+  assert.match(refined.modules[0].mask.organicImage, /^data:image\/png;base64,/);
+  assert.ok(refined.modules[0].mask.organicBounds.width > refined.modules[0].mask.bounds.width);
+  assert.ok(refined.modules[0].mask.organicAspectRatio > 0);
   assert.ok(refined.modules[0].mask.polygon.length >= 3);
   assert.deepStrictEqual(refined.acceptedSam3Modules, ["module_1", "module_2"]);
+}
+
+async function testPlannedFallbackPromotesUsableSamBounds() {
+  const alignment = {
+    provider: "locateanything",
+    providerChain: ["locateanything", "planned"],
+    effectiveProvider: "planned",
+    fallbackModules: ["module_1"],
+    modules: [
+      {
+        moduleId: "module_1",
+        label: "Fallback card",
+        bounds: { x: 0.1, y: 0.2, width: 0.3, height: 0.4 },
+        confidence: 0.5,
+        source: "planned"
+      }
+    ],
+    sourceCounts: { planned: 1 },
+    warnings: []
+  };
+  const refined = await refineAlignmentWithSam3(createConfig(), alignment, {
+    imageUrl: createHealthFixtureDataUrl(),
+    imageWidth: 640,
+    imageHeight: 360
+  });
+  assert.deepStrictEqual(refined.providerChain, ["locateanything", "planned", "sam3"]);
+  assert.strictEqual(refined.modules[0].source, "sam3-refined-planned");
+  assert.notDeepStrictEqual(refined.modules[0].bounds, alignment.modules[0].bounds);
+  assert.deepStrictEqual(refined.modules[0].rawBounds, alignment.modules[0].bounds);
+  assert.strictEqual(refined.effectiveProvider, "sam3-refined-planned");
+  assert.deepStrictEqual(refined.sourceCounts, { "sam3-refined-planned": 1 });
+  assert.deepStrictEqual(refined.fallbackModules, []);
+  assert.deepStrictEqual(refined.sam3PromotedModules, ["module_1"]);
+  assert.strictEqual(refined.modules[0].mask.provider, "sam3");
 }
 
 async function testRefineAlignmentExpandsComponentBoundsForSam3() {

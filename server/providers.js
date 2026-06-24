@@ -433,6 +433,8 @@ async function pollImageTask(serverConfig, taskId, signal) {
   const maxAttempts = Number(serverConfig.imagePollAttempts || 30);
   const firstDelay = Number(serverConfig.imagePollInitialDelayMs ?? 1200);
   const nextDelay = Number(serverConfig.imagePollDelayMs ?? 2000);
+  const startedAt = Date.now();
+  let lastStatus = "";
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     if (signal && signal.aborted) {
       const abortError = new Error("Image task polling aborted by client disconnect");
@@ -464,16 +466,36 @@ async function pollImageTask(serverConfig, taskId, signal) {
       if (attempt < maxAttempts - 1 && isTransientApiFailure(formatted)) {
         continue;
       }
+      logImageTaskEvent("failed", taskId, attempt + 1, startedAt, lastStatus);
       throw new Error(`Image detail API error: ${formatted}`);
     }
     const imageUrl = extractImageUrl(data);
-    if (imageUrl) return data;
+    if (imageUrl) {
+      logImageTaskEvent("ready", taskId, attempt + 1, startedAt, lastStatus);
+      return data;
+    }
     const status = String(data.status || data.state || data.data?.status || "").toLowerCase();
+    if (status) lastStatus = status;
     if (status.includes("fail") || status.includes("error")) {
+      logImageTaskEvent("failed", taskId, attempt + 1, startedAt, lastStatus);
       throw new Error(`Image task failed: ${formatApiError(data)}`);
     }
   }
-  throw new Error("Image task timed out");
+  logImageTaskEvent("timeout", taskId, maxAttempts, startedAt, lastStatus);
+  throw new Error(
+    `Image task timed out (taskId=${taskId}, attempts=${maxAttempts}, elapsedMs=${Date.now() - startedAt}, lastStatus=${lastStatus || "unknown"})`
+  );
+}
+
+// 记录生图轮询的关键阶段，便于排查上游超时/失败：task id、轮询次数、累计耗时、最后一次上游状态。
+function logImageTaskEvent(phase, taskId, attempts, startedAt, lastStatus) {
+  const elapsedMs = Date.now() - startedAt;
+  const line = `[${new Date().toISOString()}] image-task ${phase} taskId=${taskId} attempts=${attempts} elapsedMs=${elapsedMs} lastStatus=${lastStatus || "n/a"}`;
+  if (phase === "timeout" || phase === "failed") {
+    console.warn(line);
+  } else {
+    console.log(line);
+  }
 }
 
 async function parseJsonResponse(response) {

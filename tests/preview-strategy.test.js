@@ -148,8 +148,8 @@ function testRouteRegionUsesRouteCaption() {
 }
 
 function testSceneGuideRobotUsesSubjectWithLabelPreview() {
-  // The museum guide robot label is part of the target. It should use the
-  // synthesized object+label SAM3 mask, not a background-heavy scene crop.
+  // The museum guide robot label is part of the target, but the preview should
+  // still keep organic surrounding context instead of exposing a raw SAM cutout.
   const result = {
     structuredSpec: {
       visualMode: "scene",
@@ -167,10 +167,10 @@ function testSceneGuideRobotUsesSubjectWithLabelPreview() {
     regionKind: "object-with-label",
     maskPolicy: "subject-with-label"
   });
-  assert.strictEqual(strategy.preferContextCrop, false);
-  assert.strictEqual(strategy.independentSubject, true);
+  assert.strictEqual(strategy.preferContextCrop, true);
+  assert.strictEqual(strategy.independentSubject, false);
   assert.strictEqual(strategy.subjectWithLabel, true);
-  assert.strictEqual(strategy.caption, "主体与标签抠图预览");
+  assert.strictEqual(shouldUseContextPreviewShape(strategy), true);
 }
 
 function testMapLodgingMarkerUsesContextPreview() {
@@ -371,9 +371,10 @@ function testMaskPolicyResolvedFromStructuredSpecWhenHotspotLacksIt() {
   const hotspot = { id: "m1" };
   const strategy = inferPreviewStrategy(result, hotspot);
   assert.strictEqual(strategy.maskPolicy, "subject-with-label");
-  assert.strictEqual(strategy.preferContextCrop, false);
+  assert.strictEqual(strategy.preferContextCrop, true);
   assert.strictEqual(strategy.subjectWithLabel, true);
-  assert.strictEqual(strategy.independentSubject, true);
+  assert.strictEqual(strategy.independentSubject, false);
+  assert.strictEqual(shouldUseContextPreviewShape(strategy), true);
 }
 
 function testAuxiliaryFlowStripResolvedFromStructuredSpec() {
@@ -460,9 +461,10 @@ function testEverySubjectWithLabelKindUsesContextCrop() {
       regionKind,
       maskPolicy: "subject-with-label"
     });
-    assert.strictEqual(strategy.preferContextCrop, false);
+    assert.strictEqual(strategy.preferContextCrop, true);
     assert.strictEqual(strategy.subjectWithLabel, true);
-    assert.strictEqual(strategy.independentSubject, true);
+    assert.strictEqual(strategy.independentSubject, false);
+    assert.strictEqual(shouldUseContextPreviewShape(strategy), true);
   }
 }
 

@@ -236,7 +236,12 @@ class LocateAnythingJsonlWorker:
         all_boxes = []
         answers = []
         candidates = []
-        max_full_queries = min(3, len(phrases))
+        if should_prioritize_crop_locating(module):
+            crop_result = self.locate_module_in_crop(image, width, height, module, phrases, candidates)
+            if crop_result and crop_result.get("candidateScore", 0) >= 0.46:
+                return crop_result
+
+        max_full_queries = min(get_full_query_budget(module), len(phrases))
         for phrase_item in phrases[:max_full_queries]:
             answer, boxes, phrase_candidates = self.locate_with_phrase(
                 image,
@@ -254,7 +259,7 @@ class LocateAnythingJsonlWorker:
             if best and best["score"] >= 0.74 and not should_defer_candidate_for_crop(best, module):
                 return format_candidate_result(best, answers, all_boxes, candidates)
 
-        crop_result = self.locate_module_in_crop(image, width, height, module, phrases, candidates)
+        crop_result = None if should_prioritize_crop_locating(module) else self.locate_module_in_crop(image, width, height, module, phrases, candidates)
         if crop_result:
             best_full = choose_best_locate_candidate(candidates, module)
             if not best_full or crop_result.get("candidateScore", 0) >= best_full.get("score", 0) - 0.04:
@@ -1102,6 +1107,29 @@ def should_defer_candidate_for_crop(candidate, module):
 def is_route_like_module(module):
     text = " ".join(str(value or "") for value in [module.get("regionKind"), module.get("maskPolicy"), module.get("label"), module.get("regionPrompt")])
     return bool(re.search(r"route|trail|walkway|coast|\u6808\u9053|\u6b65\u9053|\u6e38\u7ebf|\u7ebf\u8def|\u8def\u7ebf|\u7d22\u9053|\u6865|\u5824", text, re.IGNORECASE))
+
+
+def should_prioritize_crop_locating(module):
+    if not normalize_bounds_dict(module.get("plannedBounds") if isinstance(module, dict) else None):
+        return False
+    visual_mode = str(module.get("visualMode") or "").strip().lower()
+    kind = str(module.get("regionKind") or "").strip().lower()
+    policy = str(module.get("maskPolicy") or "").strip().lower()
+    if visual_mode in {"map", "scene", "poster"}:
+        return True
+    if kind in {"landmark", "building", "mountain", "water", "route", "legend", "district", "area", "foreground", "background"}:
+        return True
+    if policy in {"full-region", "route", "legend", "subject-with-label"} and not is_card_like_infographic_module(module):
+        return True
+    return False
+
+
+def get_full_query_budget(module):
+    if should_prioritize_crop_locating(module):
+        return 1
+    if is_route_like_module(module) or is_subject_like_module(module):
+        return 2
+    return 3
 
 
 def is_subject_like_module(module):

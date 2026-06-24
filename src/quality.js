@@ -181,13 +181,15 @@
     if (result && result.alignmentRaw && !/mock-alignment/.test(JSON.stringify(result.alignmentRaw))) {
       const missing = [];
       if (isSemanticVisualWork(result)) {
-        if (!/Target semantic regions|Every semantic region|visible separated area|semantic region/i.test(prompt)) missing.push("semantic regions");
+        if (!/Natural visual targets|Clickable targets|Every target/i.test(prompt)) missing.push("natural visual targets");
         if (!/visualEvidence|maskPolicy|locatorQueries/i.test(prompt)) missing.push("visual target contract");
-        if (!/easy to segment|segment later|SAM-style|mask/i.test(prompt)) missing.push("segmentation constraints");
+        if (!/LocateAnything|SAM grounding|later grounding|downstream grounding|do not draw visible mask artifacts|do not draw segmentation masks/i.test(prompt)) {
+          missing.push("grounding constraints");
+        }
         if (missing.length) {
           return warn("image_prompt", "生图提示词", `Semantic visual prompt is missing: ${missing.join(", ")}.`);
         }
-        return ok("image_prompt", "生图提示词", "Prompt includes semantic regions, target contract, and segmentation constraints.");
+        return ok("image_prompt", "生图提示词", "Prompt includes natural targets, target contract, and downstream grounding constraints.");
       }
       if (!/独立可辨识|independent/i.test(prompt)) missing.push("独立卡片");
       if (!/中文文字必须清晰|legible|清晰可读/i.test(prompt)) missing.push("中文清晰");

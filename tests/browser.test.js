@@ -83,6 +83,55 @@ async function main() {
     assert.strictEqual(organicPreviewCss.position, "static");
     assert.strictEqual(organicPreviewCss.maxWidth, "100%");
 
+    const cutoutPreviewCss = await cdp.evaluate(`(() => {
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = '<div class="detail-preview-crop detail-preview-cutout" style="--crop-x:0;--crop-y:0;--crop-w:1;--crop-h:1;aspect-ratio:1"><img class="detail-preview-cutout-image" src="data:image/png;base64,iVBORw0KGgo=" alt="cutout"></div>';
+      document.body.appendChild(wrapper);
+      const image = wrapper.querySelector(".detail-preview-cutout-image");
+      const style = getComputedStyle(image);
+      const state = {
+        position: style.position,
+        width: style.width,
+        height: style.height,
+        objectFit: style.objectFit,
+        maxWidth: style.maxWidth
+      };
+      wrapper.remove();
+      return state;
+    })()`);
+    assert.strictEqual(cutoutPreviewCss.position, "static");
+    assert.strictEqual(cutoutPreviewCss.objectFit, "contain");
+    assert.strictEqual(cutoutPreviewCss.maxWidth, "100%");
+
+    const filledMaskAlpha = await cdp.evaluate(`(() => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 32;
+      canvas.height = 32;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "rgba(255,255,255,1)";
+      ctx.fillRect(4, 4, 24, 24);
+      ctx.clearRect(12, 12, 8, 8);
+      window.ChatImageTestHooks.fillMaskAlphaHolesForTest(ctx, canvas.width, canvas.height);
+      const center = ctx.getImageData(16, 16, 1, 1).data[3];
+      const outside = ctx.getImageData(1, 1, 1, 1).data[3];
+      return { center, outside };
+    })()`);
+    assert.strictEqual(filledMaskAlpha.center, 255);
+    assert.strictEqual(filledMaskAlpha.outside, 0);
+
+    const invalidPreviewMaskHtml = await cdp.evaluate(`(() => {
+      return window.ChatImageRender.renderHotspotPreview({
+        imageUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        alt: "invalid mask regression",
+        crop: { x: 0.1, y: 0.1, width: 0.3, height: 0.3 },
+        maskBounds: { x: 0.12, y: 0.12, width: 0.2, height: 0.2 },
+        maskImage: "data:image/png;base64,",
+        aspectRatio: 1.4
+      });
+    })()`);
+    assert.ok(!invalidPreviewMaskHtml.includes("has-mask"), "invalid preview masks must not hide the preview image");
+    assert.ok(!invalidPreviewMaskHtml.includes("--mask-image"), "invalid preview masks must not emit CSS mask-image");
+
     const organicPreviewAlpha = await cdp.evaluate(`(async () => {
       const sourceCanvas = document.createElement("canvas");
       sourceCanvas.width = 320;
@@ -325,11 +374,123 @@ async function main() {
         hotspots: [mapHotspot]
       };
       const mapOffsetPreview = window.ChatImageTestHooks.buildHotspotPreviewForTest(mapResult, mapHotspot);
+      const mapContextHotspot = {
+        id: "map_2",
+        label: "Gate area",
+        x: 0.20,
+        y: 0.30,
+        width: 0.22,
+        height: 0.20,
+        regionKind: "landmark",
+        maskPolicy: "full-region"
+      };
+      const mapContextResult = {
+        id: "map-context-preview-regression",
+        imageUrl,
+        imageWidth: 1600,
+        imageHeight: 900,
+        structuredSpec: {
+          visualMode: "map",
+          modules: [{ id: "map_2", regionKind: "landmark", maskPolicy: "full-region" }]
+        },
+        layout: {
+          regions: [
+            {
+              hotspotId: "map_2",
+              bounds: { x: 0.20, y: 0.30, width: 0.22, height: 0.20 },
+              mask: {
+                bounds: { x: 0.21, y: 0.31, width: 0.18, height: 0.16 },
+                inputBounds: { x: 0.18, y: 0.28, width: 0.26, height: 0.24 },
+                image: "data:image/png;base64,iVBORw0KGgo="
+              }
+            }
+          ]
+        },
+        hotspots: [mapContextHotspot]
+      };
+      const mapContextPreview = window.ChatImageTestHooks.buildHotspotPreviewForTest(mapContextResult, mapContextHotspot);
+      const mapOrganicHotspot = {
+        id: "map_3",
+        label: "Hill region",
+        x: 0.38,
+        y: 0.18,
+        width: 0.22,
+        height: 0.18,
+        regionKind: "mountain",
+        maskPolicy: "full-region"
+      };
+      const mapOrganicResult = {
+        id: "map-organic-preview-regression",
+        imageUrl,
+        imageWidth: 1600,
+        imageHeight: 900,
+        structuredSpec: {
+          visualMode: "map",
+          modules: [{ id: "map_3", regionKind: "mountain", maskPolicy: "full-region" }]
+        },
+        layout: {
+          regions: [
+            {
+              hotspotId: "map_3",
+              bounds: { x: 0.38, y: 0.18, width: 0.22, height: 0.18 },
+              mask: {
+                bounds: { x: 0.40, y: 0.20, width: 0.16, height: 0.12 },
+                inputBounds: { x: 0.36, y: 0.16, width: 0.28, height: 0.22 },
+                organicBounds: { x: 0.37, y: 0.17, width: 0.26, height: 0.14 },
+                organicAspectRatio: 2.1,
+                image: "data:image/png;base64,iVBORw0KGgo=",
+                organicImage: "data:image/png;base64,iVBORw0KGgo="
+              }
+            }
+          ]
+        },
+        hotspots: [mapOrganicHotspot]
+      };
+      const mapOrganicPreview = window.ChatImageTestHooks.buildHotspotPreviewForTest(mapOrganicResult, mapOrganicHotspot);
+      const mapCutoutOnlyHotspot = {
+        id: "map_4",
+        label: "Library building",
+        x: 0.58,
+        y: 0.24,
+        width: 0.22,
+        height: 0.2,
+        regionKind: "building",
+        maskPolicy: "subject-with-label"
+      };
+      const mapCutoutOnlyResult = {
+        id: "map-cutout-only-regression",
+        imageUrl,
+        imageWidth: 1600,
+        imageHeight: 900,
+        structuredSpec: {
+          visualMode: "map",
+          modules: [{ id: "map_4", regionKind: "building", maskPolicy: "subject-with-label" }]
+        },
+        layout: {
+          regions: [
+            {
+              hotspotId: "map_4",
+              bounds: { x: 0.58, y: 0.24, width: 0.22, height: 0.2 },
+              mask: {
+                bounds: { x: 0.60, y: 0.26, width: 0.12, height: 0.1 },
+                inputBounds: { x: 0.56, y: 0.22, width: 0.28, height: 0.24 },
+                image: "data:image/png;base64,iVBORw0KGgo=",
+                cutoutImage: "data:image/png;base64,iVBORw0KGgo="
+              }
+            }
+          ]
+        },
+        hotspots: [mapCutoutOnlyHotspot]
+      };
+      const mapCutoutOnlyPreview = window.ChatImageTestHooks.buildHotspotPreviewForTest(mapCutoutOnlyResult, mapCutoutOnlyHotspot);
       return {
         rejected,
         accepted,
         flowPreview,
         mapOffsetPreview,
+        mapContextPreview,
+        mapOrganicPreview,
+        mapCutoutOnlyPreview,
         rejectedCenterX: rejected.crop.x + rejected.crop.width / 2,
         rejectedCenterY: rejected.crop.y + rejected.crop.height / 2,
         acceptedCenterX: accepted.crop.x + accepted.crop.width / 2,
@@ -369,9 +530,39 @@ async function main() {
       `offset map preview should not expose the small shifted mask: ${JSON.stringify(infographicPreviewCrop.mapOffsetPreview)}`
     );
     assert.ok(
-      infographicPreviewCrop.mapOffsetPreview.crop.x < 0.64 &&
-        infographicPreviewCrop.mapOffsetPreview.crop.x + infographicPreviewCrop.mapOffsetPreview.crop.width > 0.82,
-      `offset map preview should cover hotspot + SAM input context: ${JSON.stringify(infographicPreviewCrop.mapOffsetPreview)}`
+      infographicPreviewCrop.mapOffsetPreview.crop.x > 0.68 &&
+        infographicPreviewCrop.mapOffsetPreview.crop.x + infographicPreviewCrop.mapOffsetPreview.crop.width < 0.84,
+      `offset map preview should stay centered on the segmented region, not the broad locator context: ${JSON.stringify(infographicPreviewCrop.mapOffsetPreview)}`
+    );
+    assert.ok(
+      Math.abs(
+        infographicPreviewCrop.mapOffsetPreview.crop.x +
+          infographicPreviewCrop.mapOffsetPreview.crop.width / 2 -
+          0.76
+      ) < 0.03,
+      `offset map preview center should follow SAM mask center: ${JSON.stringify(infographicPreviewCrop.mapOffsetPreview)}`
+    );
+    assert.ok(
+      !infographicPreviewCrop.mapContextPreview.maskBounds && !infographicPreviewCrop.mapContextPreview.maskImage,
+      `map context fallback must not depend on a CSS mask: ${JSON.stringify(infographicPreviewCrop.mapContextPreview)}`
+    );
+    assert.ok(
+      infographicPreviewCrop.mapContextPreview.crop.x >= 0.18 &&
+        infographicPreviewCrop.mapContextPreview.crop.x + infographicPreviewCrop.mapContextPreview.crop.width <= 0.42,
+      `map context fallback should stay centered on the segmented region with only light padding: ${JSON.stringify(infographicPreviewCrop.mapContextPreview)}`
+    );
+    assert.strictEqual(infographicPreviewCrop.mapOrganicPreview.source, "sam3-server-organic-context");
+    assert.ok(
+      Math.abs(infographicPreviewCrop.mapOrganicPreview.aspectRatio - 2.1) < 0.01,
+      `server organic preview should use SAM3 organic aspect ratio: ${JSON.stringify(infographicPreviewCrop.mapOrganicPreview)}`
+    );
+    assert.ok(
+      !infographicPreviewCrop.mapCutoutOnlyPreview.cutoutUrl && !infographicPreviewCrop.mapCutoutOnlyPreview.organicUrl,
+      `semantic region must not treat raw SAM cutout as an organic preview: ${JSON.stringify(infographicPreviewCrop.mapCutoutOnlyPreview)}`
+    );
+    assert.ok(
+      !infographicPreviewCrop.mapCutoutOnlyPreview.maskBounds && !infographicPreviewCrop.mapCutoutOnlyPreview.maskImage,
+      `semantic region fallback must be a soft context crop, not a raw mask: ${JSON.stringify(infographicPreviewCrop.mapCutoutOnlyPreview)}`
     );
 
     const sidebarBefore = await cdp.evaluate(`({
@@ -622,6 +813,11 @@ async function main() {
     `);
     assert.notStrictEqual(clickedFeedback, "none");
     await cdp.waitForFunction(`!document.querySelector("#detailPanel").hidden && document.querySelector(".detail-content h2")`, 3000);
+    const previewFlightActive = await cdp.evaluate(`
+      Boolean(document.querySelector(".detail-preview-flight-ghost")) &&
+      document.querySelector("#detailPanel").classList.contains("is-preview-flight-running")
+    `);
+    assert.strictEqual(previewFlightActive, true);
     const selectedTitle = await cdp.evaluate(`document.querySelector(".detail-content h2").textContent`);
     assert.ok(selectedTitle.trim().length > 0);
     const detailLayout = await cdp.evaluate(`(() => {

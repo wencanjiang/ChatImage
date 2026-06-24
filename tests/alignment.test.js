@@ -148,7 +148,7 @@ function testInvalidAlignmentResponse() {
     createSpec().modules
   );
   assert.strictEqual(parsed.alignments.length, 1);
-  assert.throws(
+  assert.doesNotThrow(
     () =>
       parseAlignmentResponse(
         JSON.stringify({
@@ -161,6 +161,18 @@ function testInvalidAlignmentResponse() {
       ),
     /置信度不足/
   );
+  const lowConfidence = parseAlignmentResponse(
+    JSON.stringify({
+      modules: [
+        { moduleId: "module_1", bounds: { x: 0.1, y: 0.2, width: 0.2, height: 0.2 }, confidence: 0.2 },
+        { moduleId: "module_2", bounds: { x: 0.5, y: 0.2, width: 0.2, height: 0.2 }, confidence: 0.9 }
+      ]
+    }),
+    createSpec().modules
+  );
+  assert.deepStrictEqual(lowConfidence.alignments.map((alignment) => alignment.moduleId), ["module_2"]);
+  assert.deepStrictEqual(lowConfidence.rejectedModules.map((item) => item.moduleId), ["module_1"]);
+  assert.match(lowConfidence.rejectedModules[0].reason, /confidence below/);
   assert.throws(
     () =>
       parseAlignmentResponse(
