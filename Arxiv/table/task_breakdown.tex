@@ -1,0 +1,25 @@
+\begin{table}[H]
+    \centering
+    \small
+    \caption{\textbf{Task-type success breakdown on Lite-100.} Each column reports the
+    success rate for one task family. Entries report mean $\pm$ standard deviation over
+    three repeated runs.}
+    \label{tab:task_breakdown}
+    \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lcccccc}
+        \toprule
+        Model & Farming $\uparrow$ & Crafting $\uparrow$ & Exploration $\uparrow$ & Combat $\uparrow$ & Social $\uparrow$ & Total $\uparrow$ \\
+        \midrule
+        ReAct-like~\citep{yao2023react} & 14.3\std{0.0\%} & \phantom{0}9.5\std{4.1\%} & \phantom{0}4.8\std{2.1\%} & 0.0\std{0.0\%} & \phantom{0}4.0\std{0.0\%} & \phantom{0}6.7\std{0.6\%} \\
+        Reflexion-like~\citep{shinn2023reflexion} & 17.5\std{2.7\%} & 11.9\std{4.1\%} & \phantom{0}4.8\std{2.1\%} & 2.8\std{2.8\%} & \phantom{0}6.7\std{2.3\%} & \phantom{0}8.7\std{0.6\%} \\
+        Voyager-like~\citep{wang2024voyager} & 14.3\std{0.0\%} & \phantom{0}9.5\std{4.1\%} & \phantom{0}6.0\std{2.1\%} & 2.8\std{2.8\%} & \phantom{0}4.0\std{0.0\%} & \phantom{0}7.3\std{0.6\%} \\
+        CRADLE~\citep{tan2024cradle}  & \second{25.4\std{2.7\%}} & 16.7\std{4.1\%} & \second{10.7\std{3.6\%}} & 2.8\std{2.8\%} & \phantom{0}\second{8.0\std{4.0\%}} & \second{13.0\std{1.0\%}} \\
+        \stardojo{}~\citep{tan2025stardojo}  & 20.6\std{2.7\%} & \second{19.0\std{4.1\%}} & \phantom{0}9.5\std{2.1\%} & \second{5.6\std{4.8\%}} & \phantom{0}\second{8.0\std{0.0\%}} & 12.3\std{0.6\%} \\
+        \hline
+
+        \rowcolor{oursrowblue}
+        \best{\method{} (Ours)} & \best{34.9\std{2.7\%}} & \best{23.8\std{4.1\%}} & \best{13.1\std{2.1\%}} & \best{8.3\std{8.3\%}} & \best{10.7\std{2.3\%}} & \best{18.0\std{1.7\%}} \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}

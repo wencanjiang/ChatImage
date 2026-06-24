@@ -1,0 +1,82 @@
+\section{Introduction}
+\label{sec:introduction}
+
+Large Language Models (LLMs) have become a primary interface for answering
+complex questions~\citep{openai2023gpt4,anthropic2024claude}. Yet the form of
+these answers has barely changed: a long block of text that the user must scan
+linearly. When a question such as ``compare REST and GraphQL'' or ``explain the
+RAG retrieval pipeline'' is answered with several hundred words, the user often
+wants only one part---a single comparison dimension, one pipeline stage---but
+must read or skim the whole block to find it. The text is information-dense but
+interaction-poor: it is not navigable by region, not visually structured, and
+offers no way to drill into a single sub-topic in context.
+
+Parallel advances in text-to-image generation~\citep{ramesh2022dalle2,saharia2022imagen,podell2024sdxl}
+and vision-language understanding~\citep{liu2024llava,liu2024internvl} suggest
+an alternative: \emph{render the answer as an image}. A generated infographic,
+map, or scene can convey structure at a glance---modules, flow, hierarchy,
+layout---far more compactly than prose. However, a plain generated image loses
+the answer's detail: it shows \emph{what} the regions are but not the full
+explanation behind each, and it offers no way to ask follow-ups about a
+specific region. Naively overlaying text on an image does not solve this
+either, because generative models do not reliably place content at specified
+coordinates~\citep{feng2024layoutgpt,cheng2024intelligent}, so any fixed
+clickable region may not align with the actual rendered content.
+
+\begin{figure*}[t!]
+    \centering
+    \includegraphics[width=0.85\textwidth]{demo1.pdf}
+    \caption{\textbf{\method{} turns a long-form LLM answer into an
+    interactive visual image.} Given a user question, \method{} generates an
+    image whose regions are clickable hotspots. Each hotspot opens a detail
+    panel with the region's explanation and an in-context follow-up thread,
+    so the user explores only what they need. \tbd{replace with ChatImage demo figure}}
+    \label{fig:teaser}
+    \vspace{-0.6em}
+\end{figure*}
+
+We propose \method{}, a system that turns a long-form LLM answer into an
+\textbf{interactive visual image}---a generated image overlaid with
+transparent, clickable hotspots, each linked to its own detail panel and
+follow-up thread (Figure~\ref{fig:teaser}). The central technical problem is
+\textbf{alignment between the structured answer and the generated image}: the
+clickable regions must correspond to the actual visual content the user sees.
+\method{} addresses this with a \textbf{two-pass generation pipeline}. In the
+first pass, it normalizes the LLM answer into a structured visual
+specification (modules with titles, details, and region prompts), plans a
+normalized layout, synthesizes an image prompt, and generates the image. In the
+second pass, a visual grounding model localizes where each structured module
+actually rendered in the image, and the hotspots are placed at those grounded
+coordinates---rather than assuming the image generator followed the layout.
+This decouples \emph{content structure} (decided by \method{}) from
+\emph{visual placement} (discovered after generation), making hotspots robust
+to the layout imprecision of generative models.
+
+\method{} further makes each region \emph{explorable}: clicking a hotspot
+opens a detail panel with the module's explanation, a localized preview crop,
+and a follow-up thread scoped to that hotspot's context. This turns a static
+answer into a navigable artifact---the user can jump to any region, read its
+detail, and ask a targeted question without re-explaining the whole context.
+The system is provider-agnostic: it runs in a no-key mock mode for development
+and demos, or proxies real text, image, and vision models through a local
+backend so API keys never reach the browser.
+
+To our knowledge, \method{} is the \textbf{first} system to convert an LLM
+answer into a navigable, region-interactive visual image with vision-grounded
+hotspots. Our contributions are:
+\begin{itemize}
+    \item \textbf{Interactive visual answers.} We introduce the task of
+    rendering a long-form LLM answer as an explorable image with clickable
+    hotspots, detail panels, and per-region follow-up threads.
+    \item \textbf{Two-pass vision alignment.} We decouple structured content
+    from visual placement via a generate-then-ground pipeline
+    (LocateAnything grounding, optional SAM3 mask refinement), so hotspots
+    align with actual rendered content rather than a hard-coded grid.
+    \item \textbf{Open-source reference system.} We release a complete,
+    provider-agnostic implementation with 13+ built-in demo topics across
+    infographic, map, and scene modes, a local SQLite store, and a calibration
+    mode for hotspot correction.
+    \item \textbf{Benchmark and human evaluation.} We assemble a question
+    benchmark spanning multiple content types and conduct a human evaluation of
+    image quality and visual-alignment accuracy.
+\end{itemize}

@@ -1,0 +1,37 @@
+\begin{table}[tp]
+    \caption{
+    \textbf{Disassembly of parameters and MACs between Wan2.1-T2V-1.3B (Top) and T3-Video-T2V-1.3B (Bottom)} that focuses on the last two columns (``Attn" and ``ALL") of each row. Both consist of the same parameters and some MACs. ``Rest" includes text and time-related embeddings and cross-attention. 
+    }
+    \vspace{-0.5em}
+    \renewcommand{\arraystretch}{1.0}
+    \setlength\tabcolsep{10.0pt}
+    \resizebox{1.0\linewidth}{!}{
+        \begin{tabular}{cccccccclc}
+        \toprule[1.5pt]
+        & \multirow{2}{*}{Resolution} & \multirow{2}{*}{Encoder} & \multirow{2}{*}{Decoder} & \multicolumn{6}{c}{DiT} \\
+        \cline{5-10}
+        & & & & Rest & QKV$_{proj.}$ & O$_{proj.}$ & FFN & \pzo\pzo\pzo Attn & All \\
+        \hline
+        \ccgtab{} & \ccgtab{Param.} & \ccgtab{\pzo\pzo53.6M} & \ccgtab{\pzo\pzo73.3M} & \ccgtab{309.6M} & \ccgtab{212.5M} & \ccgtab{70.8M} & \ccgtab{826.1M} & \ccgtab{\pzo\pzo\pzo\pzo0} & \ccgtab{\pzo1419.0M} \\
+        \hline
+        \multirow{8}{*}{\rotatebox{90}{\makecell[c]{MACs}}} & \multirow{2}{*}{\pzo480$\times$832\pzo} & \multirow{2}{*}{\pzo\pzo81.2T} & \multirow{2}{*}{\pzo137.0T} & \multirow{2}{*}{\pzo\pzo4.7T} & \multirow{2}{*}{\pzo\pzo7.0T} & \multirow{2}{*}{\pzo2.3T} & \multirow{2}{*}{\pzo27.1T} & \pzo\pzo\pzo98.9T & \pzo\pzo140.0T \\
+        \cline{9-10}
+        & &  &  &  &  &  &  & \pzo\pzo\pzo\pzo4.5T\scriptsize{\red{${\times22.0\uparrow}$}} & \pzo\pzo\pzo45.5T \\
+        \cline{2-10}
+        & \multirow{2}{*}{\pzo720$\times$1280} & \multirow{2}{*}{\pzo187.5T} & \multirow{2}{*}{\pzo316.3T} & \multirow{2}{*}{\pzo10.8T} & \multirow{2}{*}{\pzo16.1T} & \multirow{2}{*}{\pzo5.4T} & \multirow{2}{*}{\pzo62.4T} & \pzo\pzo526.7T & \pzo\pzo621.4T \\
+        \cline{9-10}
+        & &  &  &  &  &  &  & \pzo\pzo\pzo17.0T\scriptsize{\red{${\times30.9\uparrow}$}} & \pzo\pzo111.7T \\
+        \cline{2-10}
+        & \multirow{2}{*}{1088$\times$1920} & \multirow{2}{*}{\pzo425.0T} & \multirow{2}{*}{\pzo716.9T} & \multirow{2}{*}{\pzo24.5T} & \multirow{2}{*}{\pzo36.4T} & \multirow{2}{*}{12.1T} & \multirow{2}{*}{141.5T} & \pzo2706.2T & \pzo2920.7T \\
+        \cline{9-10}
+        & &  &  &  &  &  &  & \pzo\pzo\pzo77.5T\scriptsize{\red{${\times34.9\uparrow}$}} & \pzo\pzo291.9T \\
+        \cline{2-10}
+        & \multirow{2}{*}{2176$\times$3840} & \multirow{2}{*}{1699.9T} & \multirow{2}{*}{2867.5T} & \multirow{2}{*}{\pzo97.7T} & \multirow{2}{*}{145.5T} & \multirow{2}{*}{48.5T} & \multirow{2}{*}{566.0T} & 43299.3T & 44157.1T \\
+        \cline{9-10}
+        & &  &  &  &  &  &  & \pzo1006.8T\scriptsize{\red{${\times43.0\uparrow}$}} & \pzo1864.5T \\
+        \bottomrule[1.5pt]
+        \end{tabular}
+    }
+    \vspace{-1.0em}
+    \label{tab:eg4}
+\end{table}

@@ -1,0 +1,130 @@
+\section{Experiments}
+\label{sec:experiments}
+\begingroup
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\floatsep}{6pt plus 2pt minus 2pt}
+\setlength{\intextsep}{6pt plus 2pt minus 2pt}
+
+We evaluate \method{} along two axes: \textbf{image quality} (does the
+generated visual answer faithfully and clearly convey the structured content?)
+and \textbf{visual-alignment accuracy} (do the clickable hotspots land on the
+correct regions of the generated image?). We assemble a benchmark spanning
+multiple content types and conduct a human evaluation, since both image
+quality and region alignment are inherently perceptual and not captured by a
+single automatic metric. Quantitative values are reported as mean$\pm$std over
+multiple runs; entries marked \tbd{XX} are pending completion of the full
+evaluation and are left as placeholders in this version.
+
+\subsection{Benchmark}
+\label{sec:experiments_benchmark}
+
+\begin{wraptable}[10]{r}{0.46\linewidth}
+    \vspace{-1em}
+    \centering
+    \scriptsize
+    \caption{\textbf{Benchmark composition.} Questions span infographic, map,
+    and scene modes across technical, spatial, and descriptive content.}
+    \label{tab:benchmark_split}
+    \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lcc}
+        \toprule
+        Mode & \#Questions & \#Hotspots (avg.) \\
+        \midrule
+        Infographic & \tbd{XX} & \tbd{XX} \\
+        Map & \tbd{XX} & \tbd{XX} \\
+        Scene & \tbd{XX} & \tbd{XX} \\
+        \midrule
+        Total & \tbd{XX} & \tbd{XX} \\
+        \bottomrule
+    \end{tabular}
+    }
+    \vspace{-2em}
+\end{wraptable}
+
+We assemble a benchmark of \tbd{N} questions designed to exercise different
+visual modes and content types, summarized in
+Table~\ref{tab:benchmark_split}. Infographic questions cover technical
+processes and comparisons (e.g., ``compare REST and GraphQL,'' ``explain the
+RAG retrieval pipeline,'' ``draw the OAuth\,2.0 authorization-code flow''),
+which test structured flow and layered layouts. Map questions cover spatial
+guidance (e.g., ``draw a hand-drawn guide map of West Lake''), testing
+geographic region placement and route hotspots. Scene questions cover
+illustrated layouts (e.g., ``illustrate a museum scene''), testing object
+localization in a less rigidly structured image. Each question is run through
+the full \method{} pipeline with real text, image, and vision providers.
+Representative qualitative results are shown in
+Figure~\ref{fig:qualitative}.
+
+\begin{figure*}[t!]
+    \centering
+    \includegraphics[width=0.98\textwidth]{Qualitative_Analysis.pdf}
+    \caption{\textbf{Qualitative results.} Example \method{} outputs across
+    infographic, map, and scene modes, with hotspots (outlined in calibration
+    mode) shown to align with the actual rendered content. \tbd{replace with
+    ChatImage qualitative figure}}
+    \label{fig:qualitative}
+    \vspace{-0.6em}
+\end{figure*}
+
+\subsection{Human Evaluation}
+\label{sec:experiments_human}
+
+Because image quality and region alignment are perceptual, we conduct a human
+evaluation. Annotators are shown the generated interactive visual image (with
+hotspots) alongside the original question and raw answer, and rate two
+dimensions on a 1--5 Likert scale:
+
+\begin{itemize}[leftmargin=*,topsep=2pt,itemsep=1pt]
+    \item \textbf{Image quality (IQ):} Does the image faithfully and clearly
+    convey the structured content of the answer? (1=incoherent, 5=clear and
+    faithful.)
+    \item \textbf{Alignment accuracy (AA):} When clicking each hotspot, does
+    the opened detail correspond to the visual region under the cursor?
+    (1=completely misaligned, 5=perfectly aligned.)
+\end{itemize}
+
+Each question is evaluated by \tbd{K} annotators; we report the mean score and
+inter-annotator agreement (Krippendorff's $\alpha$).
+Table~\ref{tab:main_results} reports the overall scores and per-mode breakdown.
+As baselines, we compare against (i)~a \textbf{planned-only} variant that uses
+planned layout bounds without vision alignment (simulating the common
+assumption that the generator follows the layout), and (ii)~a \textbf{text-only}
+condition where the annotator receives only the raw text answer and rates its
+navigability on the same scale, to contextualize the value of the visual
+interactive format.
+
+\input{table/main_results}
+
+\subsection{Alignment Ablation}
+\label{sec:experiments_ablation}
+
+To isolate the contribution of the two-pass vision alignment, we ablate the
+grounding source while keeping the rest of the pipeline fixed.
+Table~\ref{tab:ablation_results} compares: (a)~planned bounds only (no
+grounding), (b)~LocateAnything grounding without SAM3 refinement, (c)~full
+pipeline with SAM3 mask refinement, and (d)~the robustness design (keeping
+far-from-planned groundings, falling back only for header/cross-panel rejects
+and missing modules). We expect grounding to substantially improve alignment
+accuracy over planned-only bounds, since the latter assume layout fidelity that
+generative models do not provide. The robustness ablation tests whether
+preserving correctly-grounded modules when some fail (rather than discarding
+all alignments) improves overall alignment.
+
+\input{table/ablation_results}
+
+\subsection{Per-Mode Analysis}
+\label{sec:experiments_permode}
+
+\input{table/task_breakdown}
+
+Table~\ref{tab:task_breakdown} breaks down image quality and alignment
+accuracy by visual mode. We expect alignment to be easiest in infographic
+mode, where regions are grid/flow-structured and boundaries are clear, and
+hardest in scene mode, where objects are irregularly placed and grounding must
+distinguish overlapping elements. Map mode presents an intermediate case with
+route and landmark localization. This breakdown helps identify which content
+types the current grounding pipeline handles well and where future work
+(polygons, finer masks) is most needed.
+
+\FloatBarrier
+\endgroup

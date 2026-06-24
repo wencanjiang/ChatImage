@@ -1,0 +1,45 @@
+\section{Related Work}
+\label{sec:related_work}
+
+\method{} sits at the intersection of text-to-image generation, visual
+grounding, interactive visualization, and LLM answer presentation. As the task
+of turning an LLM answer into a region-interactive visual image is, to our
+knowledge, new, we review the closest adjacent lines and the gap \method{} fills.
+
+\paragraph{Text-to-image and controllable generation.}
+Diffusion models~\citep{ramesh2022dalle2,saharia2022imagen,rombach2022ldm,podell2024sdxl}
+produce high-fidelity images but do not follow spatial instructions precisely:
+``place module~A top-left'' yields no guarantee~\citep{feng2024layoutgpt,cheng2024intelligent}.
+Controllable methods---ControlNet~\citep{zhang2023controlnet},
+GLIGEN~\citep{li2023gligen}, training-free
+layout-to-image~\citep{chen2024trainingfree},
+InfographicNLP~\citep{lu2023infographicnlp}---impose structure but target
+synthesis quality, not making generated regions \emph{interactive} and
+\emph{aligned with a structured answer}. \method{} uses text-to-image as a
+rendering backend but does not rely on its layout fidelity: it discovers
+region locations \emph{after} generation via grounding.
+
+\paragraph{Visual grounding and segmentation.}
+Referring localization methods---MDETR~\citep{kamath2021mdetr},
+TransVG~\citep{deng2021transvg}, UNINEXT~\citep{yan2023uninext}, Grounding
+DINO~\citep{liu2023groundingdino}, YOLO-World~\citep{cheng2024yoloworld}---and
+grounding-oriented VLMs~\citep{wang2025locateanything,liu2024llava,liu2024internvl}
+output boxes for descriptive prompts; SAM/SAM2~\citep{kirillov2023sam,ravi2024sam2}
+refine a box into a mask. \method{} repurposes this family for a new goal: not
+finding a pre-existing object, but \emph{aligning a structured answer's regions
+to their actual rendered positions} in a freshly generated image.
+
+\paragraph{Interactive visualization, VQA, and structured LLM output.}
+Interactive image annotation~\citep{hochheiser2004interactive,visualization2011munzner}
+and VQA~\citep{antol2015vqa,goyal2017vqav2,mathew2022docvqa,masry2022chartqa}
+explore \emph{fixed} images rather than answer-generated ones, and VQA treats
+the image as input to be queried, not as an \emph{answer} to be navigated.
+Structured-output work---chain-of-thought~\citep{wei2022cot},
+ReAct~\citep{yao2023react}, tool use~\citep{schick2024toolformer},
+RAG~\citep{lewis2020rag,gao2024ragsurvey}---structures \emph{reasoning}, not
+the output \emph{modality}; the answer stays text. Mind-map and
+chart-generation methods~\citep{zhang2014mindmap,hu2024llmmindmap,obeid2020charttotext,tang2023chartlama}
+visualize structure but as static outputs without image-level region interaction
+or grounding. \method{} combines these threads into a new task: an LLM answer
+rendered as a navigable, region-interactive visual image with vision-grounded
+hotspots, for which we provide an open-source system, benchmark, and evaluation.

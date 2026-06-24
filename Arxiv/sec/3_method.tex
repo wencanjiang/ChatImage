@@ -1,0 +1,243 @@
+﻿\section{The SPIKE Framework}
+\label{sec:method}
+
+% 中文：我们将长时程开放世界控制建模为一个包含多模态观测、分层记忆、显式恢复和 token--latency 预算的序列决策问题。
+% 在每一步，智能体根据当前视觉场景、文本上下文、推断的 UI 状态、近期动作和可选执行日志选择可执行动作。
+We model long-horizon open-world control as sequential decision making with
+multimodal observations, layered memory, recovery, and token--latency budgets:
+the Event Trigger decides when to deliberate, the Reactive Controller acts
+between deliberations, and Hierarchical Memory retrieves evidence at routine and
+escalation boundaries.
+
+
+Open-world control has a cost-value mismatch: routine steps need fast execution,
+whereas rare scene changes, stalls, and failures require expensive reasoning.
+Always-strategic agents spend large-model calls on routine motion; purely
+reactive agents lack reliable triggers for stale plans. \method{} treats
+strategic reasoning as event-triggered, amortizes proposals over stable segments,
+and retrieves different evidence for local and escalated steps.
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=0.98\linewidth]{Architecture.pdf}
+    \caption{\textbf{Closed-loop event-triggered deliberation in \method{}.} The Strategic Controller performs information collection,
+    optional Self Reflection, task reasoning, and short-horizon action proposal;
+    the Reactive Controller uses real-time signals and retrieved memory to
+    follow, override, or trigger replanning. The Hierarchical Memory module
+    combines Global Memory, the State-Action Memory Bank (\samb{}), and the
+    State-Action Knowledge Graph (SA-KG) through vector search and graph
+    traversal, then propagates updates after action execution.}
+    \label{fig:overview}
+    \vspace{-0.5em}
+\end{figure}
+
+\subsection{Event-Triggered Dual Controller Framework}
+\label{subsec:overview}
+
+% 中文：受双过程认知理论启发，\method{} 采用非对称双控制器设计。
+% \strategicsystem{} 负责低频的全局规划、失败分析和任务级重定向；\reactivesystem{} 在严格 token 预算下负责低延迟局部执行。
+% 两个控制器由 Event Trigger 协调；Hierarchical Memory 为不同控制器提供各自所需的上下文。
+For an episode with horizon $H$, let
+$o_t=(v_t,u_t,f_t)$ denote the observation at step $t$, where $v_t$ is the
+visual screenshot, $u_t$ is textual or user interface (UI) context, and $f_t$ is runner feedback
+such as progress, position, inventory, or dialogue changes. The agent chooses an
+executable game action $a_t\in\mathcal{A}$ from history
+$h_t=(o_1,a_1,\ldots,o_t)$. An event-trigger decision $g_t\in\{0,1\}$ selects the
+Strategic Controller ($g_t=1$) or Reactive Controller ($g_t=0$). For trajectory
+$\tau=(o_1,a_1,\ldots,o_H)$, success is $S(\tau)\in\{0,1\}$ and the deliberation
+budget is $B$. Let $C_t(g_t,h_t)$ denote the history-dependent model-call, token,
+or latency cost. The target is
+\begin{equation}
+\label{eq:budgeted_control_objective}
+\max_{\pi_R,\pi_S,g}\mathbb{E}[S(\tau)]
+\quad
+\mathrm{s.t.}\quad
+\mathbb{E}\!\left[\sum_{t=1}^{H} C_t(g_t,h_t)\right]\le B .
+\end{equation}
+Inspired by dual-process theories of cognition \citep{kahneman2011thinking},
+\method{} separates slow, high-cost planning from fast local execution. The
+Strategic Controller handles planning, failure analysis, and task redirection;
+the Reactive Controller executes local actions under a strict token budget; the
+Event Trigger and Hierarchical Memory allocate deliberation and evidence.
+This differs from always-deliberate agents, which call the expensive planner at
+nearly every step, from fixed fast-slow pipelines, which switch controllers by a
+static schedule, and from memory-augmented agents with a single retrieval pool.
+In \method{}, controller allocation, local override, and memory retrieval are
+all conditioned on detected event boundaries, so the framework changes both
+\emph{when} reasoning is invoked and \emph{what} evidence each controller sees.
+
+% 中文：如图~\mbox{\ref{fig:overview}} 所示，\method{} 包含 Env and Information Capture、Strategic Controller、Hierarchical Memory、Reactive Controller 和 Event Trigger 五个模块。
+% 系统遵循统一闭环：信息捕获、路由、记忆检索、动作提议、动作执行与记忆更新。
+% Env and Information Capture 提供实时视觉和文本信息并刷新 Hierarchical Memory；Event Trigger 检查场景变化、卡死状态和进展信号。
+% 常规状态由 \reactivesystem{} 根据 State-Action Memory Bank 中的 Memory Information 和当前子任务直接处理。
+% 当检测到突发视觉变化、重复失败或进展不足时，Event Trigger 将控制权升级给 \strategicsystem{}，生成未来 $T$ 步的短程计划。
+% 随后 \reactivesystem{} 可以遵循该计划、在局部证据表明计划失效时覆盖它，或请求重规划；动作执行后，Memory Update 将结果写回局部和长期记忆。
+
+As illustrated in Figure~\mbox{\ref{fig:overview}}, \method{} consists of Env
+and Information Capture, Strategic Controller, Hierarchical Memory, Reactive
+Controller, and Event Trigger. Together they form a closed loop:
+capture produces $o_t$ and updates $h_t$; the Event Trigger scores whether the
+current history marks an event boundary; the selected controller retrieves
+controller-specific memory and emits $a_t$; execution feedback updates
+\samb{}, SA-KG, and $h_{t+1}$; the next step repeats this trigger--act--update
+cycle.
+\vspace{-0.35em}
+
+\paragraph{Controller roles.}
+The Strategic Controller is activated when periodic refresh, stuck-state, or
+recovery signals require deliberate reasoning. It integrates the current
+observation, task summary, recent failure traces, and structured long-term
+memory, then follows the workflow
+\begin{center}
+\begingroup
+\vspace{-0.35em}
+
+\begin{tikzpicture}
+\node[
+    draw=boxteal,
+    fill=oursrowblue,
+    rounded corners=5pt,
+    line width=0.8pt,
+    inner xsep=6pt,
+    inner ysep=4pt,
+    text width=0.88\linewidth,
+    align=center
+] {Information Collection -> Self Reflection -> Task Reasoning -> Action Proposal.};
+\end{tikzpicture}
+\vspace{-0.35em}
+
+\endgroup
+\end{center}
+Figure~\mbox{\ref{fig:workflow}} expands the Strategic Controller workflow. The
+optional Self Reflection stage handles unclear evidence, contradiction, or
+repeated failure. The output is a short-horizon proposal for the next $T$ steps,
+long enough to guide local execution and compact enough to revise after a scene
+change.
+
+The Reactive Controller handles routine steps under a strict token budget. It
+uses the latest strategic proposal, current observation, and Memory Information
+from \samb{} to emit local actions. When new evidence invalidates the proposal,
+it may only apply bounded local corrections such as avoidance, repositioning, or
+tool reselection; it cannot change the active subgoal, and failed corrections
+return control to the Event Trigger.
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=0.94\linewidth]{workflow.pdf}
+    \caption{\textbf{Strategic Controller workflow in one escalated planning cycle.}
+    The example shows how \method{} collects scene evidence, checks progress,
+    reasons over the task, and emits a short plan for Reactive Controller execution.}
+    \label{fig:workflow}
+    \vspace{-0.5em}
+\end{figure}
+
+\subsection{Event Trigger as an Online Surrogate for Budgeted Deliberation}
+\label{subsec:controller_scheduler}
+
+The Event Trigger operationalizes the budgeted objective as a practical online
+event-boundary decision. Ideally, each step would choose whether the expected
+utility of strategic deliberation justifies its extra cost:
+\vspace{-0.35em}
+\begin{equation}
+\label{eq:event_trigger_optimization}
+g_t^\star=\arg\max_{g\in\{0,1\}}
+\widehat{U}(g\mid h_t)-\lambda C_t(g,h_t),
+\end{equation}
+\vspace{-0.1em}
+where $\widehat{U}(g\mid h_t)$ estimates progress and recovery value from
+history and $\lambda$ controls the cost penalty. Because the true value of
+deliberation is not observable online from sparse task success, \method{} uses a
+reproducible surrogate event detector. Eq.~\mbox{\ref{eq:scheduler_routing}} uses
+fixed thresholds over visual discontinuity, progress stagnation, behavioral
+repetition, and execution failure; these signals identify stale strategic
+proposals or unreliable local execution rather than estimating task success.
+Appendix Sec.~\mbox{\ref{sec:appendix_event_algorithm}} gives the trigger--act--update loop.
+
+The trigger variable $g_t \in \{0,1\}$ indicates whether step $t$ escalates:
+\vspace{-0.35em}
+\begin{equation}
+\label{eq:scheduler_routing}
+g_t=\mathbb{I}\!\left[(c_t\ge T)\vee(d_t>\tau_v)\vee(z_t\ge\tau_z)\vee(r_t\ge\tau_r\wedge z_t\ge\tau_{rz})\vee(\ell_t\ge\tau_\ell)\right].
+\end{equation}
+where $c_t$ counts Reactive steps since the last Strategic call and resets after
+it, $T$ is the refresh interval, and
+$\tau_v,\tau_z,\tau_r,\tau_{rz},\tau_\ell$ are fixed triggering thresholds.
+The detector maps signals to observable failure modes: $d_t=1-\cos(\phi(v_t),\phi(v_{t-1}))$
+catches stale plans after visual discontinuities, $z_t$ catches stalled routines,
+$r_t$ catches behavior loops within the last $W$ actions, and
+$\ell_t\in\{0,1,2,3\}$ catches execution failure. We set
+$\Delta_t=q_t-q_{t-1}$, where $q_t$ is a deterministic progress counter derived
+from the shared \stardojo{} runner feedback, not a privileged game-state API;
+$z_t=0$ when $\Delta_t>0$ and $z_t=z_{t-1}+1$ otherwise. All baselines receive
+the same raw observation, action schema, execution feedback, and history fields;
+\method{} only adds Event Trigger bookkeeping.
+
+The fixed thresholds instantiate the event detector rather than a per-task
+policy; Table~\mbox{\ref{tab:scheduler_sensitivity}} reports their local
+sensitivity, and Appendix Sec.~\mbox{\ref{sec:appendix_scheduler_details}}
+details their computation. These thresholds are tied to event types rather than
+individual tasks: within the same game family, where camera motion, action
+granularity, and progress feedback have similar scales, the same settings can be
+reused without task-by-task replacement. When moving to a different game type,
+the Event Trigger should be recalibrated according to the new event statistics,
+such as visual dynamics, interaction pace, stall duration, and failure-message
+density.
+Failure levels scope recovery: F1 keeps bounded retry local, while F2/F3
+escalate invalid actions, stalls, or repeated compound failures when local
+context becomes unreliable.
+
+\FloatBarrier
+\subsection{Hierarchical Memory}
+\label{subsec:memory}
+
+% 中文：3.3 只保留记忆层的核心主线和两个检索打分公式，字段、融合和写回细节放到附录。
+Long-horizon tasks risk context overflow, hallucination, and forgetting.
+Figure~\mbox{\ref{fig:overview}}(c) organizes Hierarchical Memory around
+controller-specific roles: Global Memory preserves task continuity, the
+State-Action Memory Bank (\samb{}) is a low-latency local action prior for
+Reactive execution, and the State-Action Knowledge Graph (SA-KG) is a strategic
+evidence graph for checking and replanning rather than a flat retrieval store.
+
+Global Memory keeps a fixed-size window of recent observations and actions,
+together with the active subgoal, progress indicators, and failure summaries.
+When the Event Trigger keeps execution local, the Reactive Controller
+retrieves nearby state-action traces from \samb{} as local hints, with the risk
+of stale habits reduced by recency, reward, and success terms. Given the current
+query $x_t$, \samb{} ranks item $i$ by
+\begin{equation}
+\label{eq:samb_score}
+S_{\mathrm{MB}}(i \mid x_t)=\rho_i(\alpha_C C_i+\alpha_L L_i+\alpha_R R_i+\alpha_P P_i).
+\end{equation}
+All terms are normalized before weighting: $L_i$ is the Jaccard overlap between
+lowercased query and memory token sets, $C_i$ is token-frequency cosine
+similarity, $R_i=(\mathrm{clip}(\mathrm{rewardEMA}_i,-1,1)+1)/2$ uses an
+exponential moving average (EMA) of observed rewards, $P_i$ is
+successes over attempts, $\rho_i=\exp(-\mathrm{ageHours}_i/24)$, and
+$\alpha_C,\alpha_L,\alpha_R,\alpha_P$ are fixed retrieval weights. The Reactive
+Controller uses the top retrieved summaries as hints rather than executable
+commands.
+
+When the Event Trigger escalates control, the Strategic Controller
+consults SA-KG for plan checking rather than local traces alone.
+SA-KG stores validated transitions as state nodes, action edges, and similarity
+edges, inspired by state-action-result graphs in experience-driven agents
+without privileged environment APIs~\citep{tang2025experiencedriven} but using
+retrieved graph fragments as evidence rather than directly executing retrieved
+actions.
+Starting from the nearest state nodes for the current subgoal, SA-KG retrieves
+graph fragments by vector search, keeps matches above $\tau_{\mathrm{KG}}$, and
+ranks fragment $j$ by
+\begin{equation}
+\label{eq:sakg_score}
+S_{\mathrm{KG}}(j \mid x_t)=\beta_C C_j+\beta_P P_j,
+\end{equation}
+where $C_j=1-\mathrm{dist}(x_t,s_j)$ is vector similarity and $P_j$ is the
+success rate of the best outgoing action, with execution count used to break
+ties. Fusion first min--max normalizes $S_{\mathrm{MB}}$ and $S_{\mathrm{KG}}$
+within the current candidate sets, then uses
+$S_{\mathrm{fuse}}=\lambda_{\mathrm{MB}}\tilde S_{\mathrm{MB}}+\lambda_{\mathrm{KG}}\tilde S_{\mathrm{KG}}$;
+unmatched graph actions receive zero normalized SA-KG score. After execution,
+\method{} writes only successful execution, interpretable recovery, or
+planner-validated progress, preventing transient errors from becoming long-term
+evidence. Appendix Sec.~\mbox{\ref{sec:appendix_memory_details}} gives the
+storage fields, fusion score, fixed weights, and promotion rules.

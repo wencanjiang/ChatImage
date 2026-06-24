@@ -1,0 +1,182 @@
+\section{Method}
+\label{sec:method}
+
+\method{} converts a user's question into an interactive visual image through
+a pipeline that decouples \emph{content structure} (decided deterministically
+by the system) from \emph{visual placement} (discovered after image
+generation). This section describes the end-to-end pipeline
+(Section~\ref{sec:method_pipeline}), the structured answer normalization and
+layout planning (Section~\ref{sec:method_structure}), the two-pass vision
+alignment that grounds hotspots to real image content
+(Section~\ref{sec:method_alignment}), and the interactive hotspot layer and
+per-region follow-up threads (Section~\ref{sec:method_interaction}).
+
+\begin{figure*}[t!]
+    \centering
+    \includegraphics[width=0.98\textwidth]{model.pdf}
+    \caption{\textbf{\method{} pipeline.} A user question yields a raw LLM
+    answer, which is normalized into a structured visual specification and a
+    normalized layout. An image prompt is synthesized and the image is
+    generated. In the second pass, a visual grounding model localizes where
+    each structured module actually rendered; hotspots are placed at the
+    grounded coordinates and become clickable regions with detail panels and
+    follow-up threads. \tbd{replace with ChatImage architecture figure}}
+    \label{fig:architecture}
+    \vspace{-0.6em}
+\end{figure*}
+
+\subsection{End-to-End Pipeline}
+\label{sec:method_pipeline}
+
+Given a user question $q$, \method{} produces an interactive visual image
+$\mathcal{I}$ with a set of clickable hotspots $\mathcal{H}$. The pipeline
+proceeds in two passes (Figure~\ref{fig:architecture}):
+
+\paragraph{Pass 1: Structure, layout, and image generation.}
+\begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=1pt]
+    \item \textbf{Raw answer.} Obtain a long-form LLM answer $a$ to $q$ via a
+    text model (or a deterministic mock for development).
+    \item \textbf{Normalization.} Normalize $a$ into a structured visual
+    specification $\mathcal{S}$---a set of modules $\{m_i\}$ and auxiliary
+    modules, each with a title, detail text, region prompt, and metadata
+    (Section~\ref{sec:method_structure}).
+    \item \textbf{Layout planning.} Plan a layout $\mathcal{L}$ that assigns
+    each module a region $r_i$ with normalized bounds in $[0,1]^4$.
+    \item \textbf{Image prompt synthesis.} Derive an image prompt from
+    $\mathcal{S}$ and $\mathcal{L}$, encoding the visual style and the
+    intended region labels and positions.
+    \item \textbf{Image generation.} Generate the image via a text-to-image
+    model, obtaining $\mathcal{I}$ and its real pixel dimensions
+    $(W, H)$ parsed from the image header (not the request, since generators
+    do not guarantee exact sizes).
+\end{enumerate}
+
+\paragraph{Pass 2: Vision alignment and hotspot derivation.}
+\begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=1pt,resume]
+    \item \textbf{Visual grounding.} Send $\mathcal{I}$, $(W,H)$, and the
+    modules with their planned bounds to a visual grounding model, which
+    returns a grounded box $b_i$ for each module where it actually rendered
+    (Section~\ref{sec:method_alignment}).
+    \item \textbf{Mask refinement (optional).} Optionally refine each $b_i$
+    with a segmentation model (SAM3) to obtain a pixel mask for tighter
+    previews.
+    \item \textbf{Hotspot derivation.} Copy the grounded bounds into hotspot
+    geometry $h_i = (x_i, y_i, w_i, h_i)$ and render transparent, clickable
+    hotspots over $\mathcal{I}$ (Section~\ref{sec:method_interaction}).
+\end{enumerate}
+
+The key design principle is that \method{} \textbf{does not assume the image
+generator follows the planned layout}. Instead of requiring precise spatial
+control---which diffusion models do not reliably provide~\citep{feng2024layoutgpt}
+---the system \emph{generates first, then grounds}. This makes hotspot
+alignment robust to the layout imprecision of generative models.
+
+\subsection{Structured Answer Normalization and Layout}
+\label{sec:method_structure}
+
+\paragraph{Visual specification.}
+The raw answer $a$ is parsed (via a structured-output LLM call) into a visual
+specification $\mathcal{S}$ with a visual mode (infographic, map, scene, or
+poster), a summary, and a list of modules. Each module $m_i$ carries:
+\textit{title} (the hotspot label), \textit{detail} (the explanation shown in
+the detail panel), \textit{imageText} (short on-image caption),
+\textit{regionPrompt} (a locator phrase for visual grounding), and metadata
+(\textit{regionKind}, \textit{iconHint}, \textit{maskPolicy}, locator queries).
+Because LLMs sometimes echo instruction-style text into the user-facing
+\textit{detail} field, we sanitize it: a cleaning function strips
+visual-system vocabulary and meta-instruction phrases clause-by-clause,
+falling back to \textit{imageText}/\textit{title} when nothing usable survives.
+When the LLM returns no valid structure, \method{} falls back to a library of
+content-grounded mock specifications (Section~\ref{sec:experiments} lists the
+topics), ensuring the system always produces a valid visual answer.
+
+\paragraph{Layout planning.}
+A layout planner assigns each module a region $r_i$ with normalized bounds
+$\in [0,1]^4$ relative to the image canvas. Layouts are organized by
+family---grid, flow (swimlane), compare, hub, timeline, matrix, and
+freeform---selected by the visual mode and relation type. For maps, a
+semantic-slot catalog assigns regions by keyword matching (e.g., ``entrance''
+$\to$ bottom-center, ``core area'' $\to$ center); for infographics, index-based
+templates place modules in flow or grid order. These \emph{planned} bounds
+serve as priors for the grounding step and as a fallback when grounding fails,
+but they are \emph{not} assumed to match the generated image exactly.
+
+\subsection{Two-Pass Vision Alignment}
+\label{sec:method_alignment}
+
+The core technical contribution is aligning the structured regions to the
+generated image. \method{} sends the image, its real dimensions, the modules,
+and their planned bounds to a vision backend that runs a grounding pipeline:
+
+\paragraph{LocateAnything grounding (primary).}
+A visual grounding model (LocateAnything~\citep{wang2025locateanything}) takes
+the image and, for each module, one or more locator phrases built from the
+module's title, region prompt, and semantic hints. It outputs a bounding box
+per module in normalized coordinates, scored against the planned bounds to
+select the best candidate (with optional crop-and-re-ground for low-confidence
+cases). This is a \emph{referring localization} step: we are localizing
+``where did the module labeled $X$ actually render,'' not detecting a
+predefined object class.
+
+\paragraph{Fallbacks.}
+When LocateAnything is unavailable, \method{} falls back to a general
+vision-language model for grounding~\citep{liu2024internvl}, then to local
+OCR, and finally to the planned bounds. Each module is tagged with its
+alignment source (e.g., \textit{vision}, \textit{planned-fallback},
+\textit{vision-low-confidence}) so the system can report alignment quality.
+
+\paragraph{Robustness to partial failure.}
+A single missing or low-confidence grounding must not corrupt the whole
+result. We reject groundings that look like header strips or cross-panel
+artifacts (falling back to planned bounds for those) while keeping
+far-from-planned groundings that still localize the correct region (tagged
+low-confidence). Modules entirely absent from the grounding response retain
+their planned bounds and are flagged, rather than discarding the alignments of
+all correctly-grounded modules. Each grounded box is repaired for
+clickability---enforcing a minimum area and safe margin---before becoming a
+hotspot.
+
+\paragraph{SAM3 mask refinement (optional).}
+For tighter visual previews, a segmentation model (SAM3, following the SAM
+family~\citep{kirillov2023sam,ravi2024sam2}) takes each grounded box as a
+prompt and predicts a pixel mask, from which a tightened box and polygon are
+derived. The mask is used only for preview rendering (cutout, organic
+feathering, soft fade); \emph{click hit-testing always uses the rectangular
+box}, keeping interaction robust even when masks are imperfect.
+
+\subsection{Interactive Hotspot Layer and Follow-up Threads}
+\label{sec:method_interaction}
+
+\paragraph{Hotspot rendering.}
+Each hotspot is a transparent, absolutely-positioned button over the image at
+its grounded coordinates. In normal use, hotspots are fully invisible so the
+generated image is the only thing the user sees; a hover state provides a soft
+visual hint without altering the image. A calibration mode toggles visible
+outlines and per-hotspot labels for inspecting and correcting bounds.
+
+\paragraph{Detail panels and previews.}
+Clicking a hotspot opens a centered detail panel showing the module's title,
+sanitized detail text, a localized preview of the image region, and a
+follow-up input. The preview variant is chosen by a strategy module based on
+the hotspot shape and mask availability: cutout (checkerboard background),
+organic feathering, soft radial fade, or mask-based polygon crop.
+
+\paragraph{Per-region follow-up threads.}
+Each hotspot owns an isolated follow-up thread. A follow-up question is sent
+to the text model with a \emph{local} context---the original question, the raw
+answer, the clicked hotspot's detail, and that thread's history---so the
+answer is scoped to the region without re-explaining the whole image. Threads
+are persisted alongside the ChatImage, enabling resumption across sessions.
+
+\subsection{Implementation}
+\label{sec:method_implementation}
+
+\method{} is a provider-agnostic system with a browser frontend, a local Node.js
+backend, and Python model workers. The frontend is vanilla JavaScript (no
+framework); the backend proxies text, image, and vision providers and persists
+results in SQLite. Vision alignment runs via persistent JSONL workers
+(\texttt{locateanything\_worker.py}, \texttt{sam3\_worker.py}) hosting the
+grounding and segmentation models. The system runs in a no-key \textit{mock}
+mode (deterministic local providers and SVG output) for development and demos,
+or in \textit{api} mode proxying real models. All code, demos, and a live
+project page are open-source.\footnote{\url{https://github.com/wencanjiang/ChatImage}}
