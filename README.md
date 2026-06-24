@@ -6,11 +6,11 @@
 # ChatImage
 
 <p align="center">
-  <!-- Reserved arXiv paper link — fill in when the paper is public -->
-  <a href="https://arxiv.org/abs/XXXX.XXXXX"><img src="https://img.shields.io/badge/arXiv-Paper-b31b1b?style=flat-square&logo=arxiv" alt="arXiv Paper" /></a>
-  <!-- Reserved project / promo page link -->
+  <!-- arXiv paper — source draft in Arxiv/chatimage_paper/; link activates when submitted -->
+  <a href="Arxiv/chatimage_paper/chatimage.pdf"><img src="https://img.shields.io/badge/arXiv-Paper%20(draft)-b31b1b?style=flat-square&logo=arxiv" alt="arXiv Paper" /></a>
+  <!-- Project / promo page -->
   <a href="docs/index.html"><img src="https://img.shields.io/badge/Project%20Page-Demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project Page" /></a>
-  <!-- Reserved technical docs link -->
+  <!-- Technical report -->
   <a href="docs/TECHNICAL_REPORT.md"><img src="https://img.shields.io/badge/Tech%20Report-Docs-25a36a?style=flat-square&logo=googledocs" alt="Tech Report" /></a>
   <a href="https://github.com/wencanjiang/ChatImage/actions"><img src="https://img.shields.io/badge/Tests-passing-2da44e?style=flat-square&logo=githubactions" alt="Tests" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square&logo=opensourceinitiative" alt="License" /></a>
@@ -34,6 +34,15 @@ English | [简体中文](README_CN.md)
 - **Local-first persistence**: generated ChatImages, hotspots, calibration data, and follow-up threads are stored in a local SQLite database.
 - **File context**: attach text-oriented files (code, Markdown, CSV, JSON, logs, …) and include their contents as prompt context.
 - **Zero-frontend-dependency build**: the browser layer is vanilla JS; a single dependency-free script concatenates and minifies assets into `dist/`.
+
+## Paper & Technical Report
+
+| Resource | Description |
+| --- | --- |
+| 📄 **[arXiv paper (draft)](Arxiv/chatimage_paper/chatimage.pdf)** | Technical paper draft covering the task, two-pass vision-alignment method, and a benchmark + human-evaluation framework. LaTeX source in [`Arxiv/chatimage_paper/`](Arxiv/chatimage_paper). |
+| 📚 **[Technical report](docs/TECHNICAL_REPORT.md)** | In-depth system documentation: architecture, data flow, alignment pipeline, API reference, testing strategy, and known limits. |
+| 🌐 **[Project page](docs/index.html)** | Interactive promo site with live demos (filterable by mode), lightbox viewer, and quick-start. |
+| 🗄️ **[Archived notes](docs/archive/)** | Historical design docs, dev log, and audit reports kept for traceability. |
 
 ## Quick Start
 
@@ -181,7 +190,7 @@ Key modules:
 | `POST /api/image` | Proxy image generation requests. |
 | `POST /api/vision` | Proxy vision alignment requests. |
 
-Vision provider request / response details are documented in [`docs/vision-endpoint-contract.md`](docs/vision-endpoint-contract.md).
+Vision provider request / response details are documented in [`docs/archive/vision-endpoint-contract.md`](docs/archive/vision-endpoint-contract.md); the authoritative system reference is [`docs/TECHNICAL_REPORT.md`](docs/TECHNICAL_REPORT.md).
 
 ## Testing
 
@@ -226,7 +235,7 @@ CHATIMAGE_API_KEY=your_key_here npm run test:api
 
 ## Citation
 
-If you find ChatImage useful in your research, please cite it. A formal paper is in preparation — the arXiv link above will be activated once it is public.
+If you find ChatImage useful in your research, please cite it. A technical paper draft is available in [`Arxiv/chatimage_paper/`](Arxiv/chatimage_paper) (PDF [here](Arxiv/chatimage_paper/chatimage.pdf)); the arXiv badge above will link to the published version once submitted.
 
 ```bibtex
 @misc{chatimage2026,

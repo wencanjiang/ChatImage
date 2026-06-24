@@ -6,11 +6,11 @@
 # ChatImage
 
 <p align="center">
-  <!-- 预留 arXiv 论文链接 — 论文公开后填入 -->
-  <a href="https://arxiv.org/abs/XXXX.XXXXX"><img src="https://img.shields.io/badge/arXiv-论文-b31b1b?style=flat-square&logo=arxiv" alt="arXiv Paper" /></a>
-  <!-- 预留项目 / 宣传页链接 -->
+  <!-- arXiv 论文 — 源稿在 Arxiv/chatimage_paper/；提交后激活正式链接 -->
+  <a href="Arxiv/chatimage_paper/chatimage.pdf"><img src="https://img.shields.io/badge/arXiv-论文(草稿)-b31b1b?style=flat-square&logo=arxiv" alt="arXiv Paper" /></a>
+  <!-- 项目 / 宣传页 -->
   <a href="docs/index.html"><img src="https://img.shields.io/badge/项目主页-Demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project Page" /></a>
-  <!-- 预留技术文档链接 -->
+  <!-- 技术报告 -->
   <a href="docs/TECHNICAL_REPORT.md"><img src="https://img.shields.io/badge/技术报告-文档-25a36a?style=flat-square&logo=googledocs" alt="Tech Report" /></a>
   <a href="https://github.com/wencanjiang/ChatImage/actions"><img src="https://img.shields.io/badge/测试-通过-2da44e?style=flat-square&logo=githubactions" alt="Tests" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/许可证-MIT-blue?style=flat-square&logo=opensourceinitiative" alt="License" /></a>
@@ -34,6 +34,15 @@
 - **本地优先持久化**：生成的 ChatImage、热点、校准数据和追问线程存储在本地 SQLite 数据库。
 - **文件上下文**：可附加文本类文件（代码、Markdown、CSV、JSON、日志等）并作为提示词上下文。
 - **零前端依赖构建**：浏览器层为原生 JS；单一无依赖脚本拼接压缩资源到 `dist/`。
+
+## 论文与技术报告
+
+| 资源 | 说明 |
+| --- | --- |
+| 📄 **[arXiv 论文（草稿）](Arxiv/chatimage_paper/chatimage.pdf)** | 技术论文草稿，涵盖任务定义、两趟视觉对齐方法、benchmark 与人类评估框架。LaTeX 源码在 [`Arxiv/chatimage_paper/`](Arxiv/chatimage_paper)。 |
+| 📚 **[技术报告](docs/TECHNICAL_REPORT.md)** | 系统深度文档：架构、数据流、对齐管线、API 参考、测试策略、已知限制。 |
+| 🌐 **[项目主页](docs/index.html)** | 交互式宣传站，含可按模式筛选的 demo、灯箱查看、快速开始。 |
+| 🗄️ **[归档笔记](docs/archive/)** | 历史设计文档、开发日志、审计报告，保留用于追溯。 |
 
 ## 快速开始
 
@@ -224,7 +233,7 @@ CHATIMAGE_API_KEY=your_key_here npm run test:api
 
 ## 引用
 
-若 ChatImage 对你的研究有帮助，请引用。正式论文在准备中——上方的 arXiv 链接将在论文公开后激活。
+若 ChatImage 对你的研究有帮助，请引用。技术论文草稿在 [`Arxiv/chatimage_paper/`](Arxiv/chatimage_paper)（PDF [在此](Arxiv/chatimage_paper/chatimage.pdf)）；上方的 arXiv 徽章将在论文提交后链接到正式版本。
 
 ```bibtex
 @misc{chatimage2026,
