@@ -1,0 +1,252 @@
+% !TeX program = pdflatex
+% !TeX root = april_aigc.tex
+\ifdefined\pdfminorversion
+  \pdfminorversion=7
+\fi
+
+\PassOptionsToPackage{table}{xcolor}
+\PassOptionsToPackage{pagebackref,breaklinks=true,colorlinks,citecolor=blue,urlcolor=blue,linkcolor=blue,bookmarks=false}{hyperref}
+\PassOptionsToPackage{noabbrev,nameinlink,capitalize}{cleveref}
+
+\documentclass[onecolumn,numbers]{april_aigc}
+
+\input{preamble}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{float}
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage[percent]{overpic}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{microtype}
+\usepackage{xspace}
+\usepackage{placeins}
+\usepackage{wrapfig}
+\usepackage{tikz}
+\usepackage{multicol}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{tabularx}
+\usepackage{adjustbox}
+\usepackage{colortbl}
+\usepackage{pifont}
+\usepackage{enumitem}
+\usepackage[normalem]{ulem}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{listings}
+\usepackage{etoolbox}
+\usepackage{caption}
+
+\graphicspath{{fig/}}
+
+\definecolor{linkcolor}{named}{aprilblue}
+\definecolor{urlcolor}{RGB}{255,105,180}
+\definecolor{citecolor}{RGB}{66,168,235}
+\definecolor{lightgray}{rgb}{0.8, 0.8, 0.8}
+\definecolor{darkgreen}{rgb}{0.00, 0.81, 0.78}
+\definecolor{gray_tab}{RGB}{220, 220, 220}
+\definecolor{blue_tab}{RGB}{227, 240, 251}
+\definecolor{oran_tab}{RGB}{252, 242, 237}
+\definecolor{whit_tab}{RGB}{255, 255, 255}
+\definecolor{green_code}{RGB}{55, 126, 34}
+\definecolor{oursrowblue}{RGB}{232,242,255}
+\definecolor{boxteal}{RGB}{70,160,160}
+
+\newcommand{\deepred}{\textcolor[RGB]{176, 36, 24}}
+\newcommand{\grayer}{\textcolor[RGB]{168, 168, 168}}
+\newcommand{\green}{\textcolor[RGB]{0, 255, 0}}
+\newcommand{\blue}{\textcolor[RGB]{0, 0, 255}}
+\newcommand{\bluetab}{\textcolor[RGB]{225, 235, 246}}
+\newcommand{\red}{\textcolor[RGB]{255, 0, 0}}
+\newcommand{\ccwtab}[1]{\cellcolor{whit_tab}{#1}}
+\newcommand{\ccgtab}[1]{\cellcolor{gray_tab}{#1}}
+\newcommand{\ccotab}[1]{\cellcolor{oran_tab}{#1}}
+\newcommand{\ccbtab}[1]{\cellcolor{blue_tab}{#1}}
+\newcommand{\cmark}{\ding{52}\xspace}
+\newcommand{\xmark}{\ding{56}\xspace}
+\newcommand{\pmark}{\ding{58}\xspace}
+\newcommand{\omark}{$\bigcirc$\xspace}
+
+\newcommand{\stardojo}{\textsc{StarDojo}}
+\newcommand{\method}{\textsc{SPIKE}}
+\newcommand{\samb}{\textsc{SA-MB}}
+\newcommand{\reactivesystem}{\textit{Reactive Controller}}
+\newcommand{\strategicsystem}{\textit{Strategic Controller}}
+\newcommand{\littlebrain}{\reactivesystem}
+\newcommand{\bigbrain}{\strategicsystem}
+\newcommand{\tbd}[1]{\textcolor{blue}{\textbf{[#1]}}}
+\newcommand{\best}[1]{\textbf{#1}}
+\newcommand{\second}[1]{\protect\underline{#1}}
+\newcommand{\std}[1]{\scalebox{0.85}{\(\pm\)#1}}
+\newcommand{\na}{--}
+
+\def\onedot{.\xspace}
+\def\eg{\textit{e.g}\onedot}
+\def\Eg{\textit{E.g}\onedot}
+\def\ie{\textit{i.e}\onedot}
+\def\Ie{\textit{I.e}\onedot}
+\def\cf{\textit{c.f}\onedot}
+\def\Cf{\textit{C.f}\onedot}
+\def\etc{\textit{etc}\onedot}
+\def\vs{\textit{vs}\onedot}
+\def\wrt{w.r.t\onedot}
+\def\dof{d.o.f\onedot}
+\def\etal{\textit{et al}\onedot}
+\def\aka{\textit{a.k.a}\onedot}
+
+\makeatletter
+\AfterEndEnvironment{algorithm}{\let\@algcomment\relax}
+\AtEndEnvironment{algorithm}{\kern2pt\hrule\relax\vskip3pt\@algcomment}
+\let\@algcomment\relax
+\newcommand\algcomment[1]{\def\@algcomment{\footnotesize#1}}
+\renewcommand\fs@ruled{\def\@fs@cfont{\bfseries}\let\@fs@capt\floatc@ruled
+  \def\@fs@pre{\hrule height.8pt depth0pt \kern2pt}%
+  \def\@fs@post{}%
+  \def\@fs@mid{\kern2pt\hrule\kern2pt}%
+  \let\@fs@iftopcapt\iftrue}
+\makeatother
+
+\lstset{
+  backgroundcolor=\color{white},
+  basicstyle=\fontsize{7.5pt}{7.5pt}\ttfamily\selectfont,
+  columns=fullflexible,
+  breaklines=true,
+  captionpos=b
+}
+
+\DeclareCaptionFormat{custom}{{\color{aprilblue}\sffamily\textbf{#1 #2}} #3}
+\captionsetup{
+  singlelinecheck=true,
+  format=custom,
+  labelsep=custom,
+  font=small
+}
+
+\titleformat*{\section}{\color{aprilblue}\Large\sffamily\bfseries}
+\titleformat*{\subsection}{\color{aprilblue}\large\sffamily\bfseries}
+\titleformat*{\subsubsection}{\color{aprilblue}\normalsize\sffamily\bfseries}
+
+\usepackage{fancyhdr}
+\newif\ifshowlogo
+\showlogotrue
+\newcommand{\insertlogo}{%
+  \ifshowlogo
+    \IfFileExists{assets/april_logo1.png}%
+    {\includegraphics[height=0.68cm]{assets/april_logo1.png}}%
+    {}%
+  \fi
+}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\setlength{\headheight}{28pt}
+\fancyhead[R]{\insertlogo}
+\fancyfoot[C]{\thepage}
+
+\newif\ifshowtoc
+\showtocfalse
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=linkcolor,
+  urlcolor=urlcolor,
+  citecolor=citecolor,
+  pdfauthor={Wencan Jiang, Jiangning Zhang, Jianbiao Mei, Jinzhuo Liu, Yu Yang, Xiaobin Hu, Zhucun Xue, Yong Liu, Dacheng Tao},
+  pdftitle={SPIKE: An Adaptive Dual Controller Framework for Cost-Efficient Long-Horizon Game Agents}
+}
+
+\renewcommand{\title}[1]{\def\titlelist{{\fontsize{20pt}{28pt}\selectfont\sffamily\bfseries #1}}}
+\title{SPIKE: An Adaptive Dual Controller Framework for Cost-Efficient Long-Horizon Game Agents}
+
+\author[1,*]{Wencan Jiang}
+\author[1,*\raisebox{-0.2em}{\includegraphics[height=0.85em]{assets/icons8-email-96.png}}]{Jiangning Zhang}
+\author[1]{Jianbiao Mei}
+\author[1]{Jinzhuo Liu}
+\author[1]{Yu Yang}
+\author[2]{Xiaobin Hu}
+\author[1]{Zhucun Xue}
+\author[1]{Yong Liu}
+\author[3]{Dacheng Tao}
+
+\affiliation[1]{Zhejiang University}
+\affiliation[2]{National University of Singapore}
+\affiliation[3]{Nanyang Technological University}
+
+\contribution[*]{Equal contribution.}
+\contribution[\dagger]{Corresponding author: Jiangning Zhang.}
+
+\abstract{
+Long-horizon multimodal agents in open-world games must stay goal-directed
+across many low-level interactions under tight token and latency budgets.
+Existing approaches often trade off costly per-step reasoning against reactive
+execution that can drift, repeat failures, and recover poorly. Our key idea is
+to reuse strategic reasoning across locally stable segments and reinvoke it at
+event boundaries. We present \method{}, an \textbf{adaptive dual controller
+framework} for cost-efficient long-horizon game control. Its Strategic
+Controller performs low-frequency global planning, failure analysis, and
+recovery, while its Reactive Controller handles fast local execution under a
+strict token budget. An \textbf{Event Trigger} monitors visual change, task
+progress, repeated actions, and failure signals to decide when control should
+stay reactive or escalate to strategic reasoning. \textbf{Hierarchical Memory}
+separates short-term experience reuse in the State-Action Memory Bank
+(\samb{}) from structured evidence in the State-Action Knowledge Graph
+(SA-KG), allowing each controller to retrieve the context it needs. This design
+reuses strategic proposals over multiple reactive steps, supports local
+override when plans become stale, and reserves expensive reasoning for moments
+where extra deliberation is useful. On the Lite-100 split of \stardojo{},
+\method{} improves Lite-100 success rate (SR) by \textbf{5.0 percentage points}
+(38.5\% relative) over the strongest Lite-100 baseline and Budgeted SR by
+\textbf{9.3 points} (75.6\% relative) over the strongest budgeted baseline. It
+also reduces token consumption by \textbf{54.9\%} and latency by
+\textbf{40.8\%}. Ablations show that \textbf{event triggering},
+\textbf{reactive override}, and \textbf{heterogeneous memory} each contribute
+to success and recovery, supporting \textbf{selective reasoning} rather than
+reasoning at every step.
+}
+
+\coverdate{\today}
+\covercorrespondence{186368@zju.edu.cn}
+\coversourcecode{https://github.com/wencanjiang/SPIKE}
+\coverproject{https://wencanjiang.github.io/projects/SPIKE/}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{plain}
+
+\ifshowtoc
+  \clearpage
+  \setcounter{tocdepth}{2}
+  \tableofcontents
+  \vspace{1cm}
+  \clearpage
+\fi
+
+\input{sec/1_introduction}
+\input{sec/2_related_work}
+\input{sec/3_method}
+\input{sec/4_experiment}
+\input{sec/5_conclusion}
+
+\bibliography{april_aigc}
+
+\clearpage
+\appendix
+\renewcommand\thefigure{A\arabic{figure}}
+\renewcommand\thetable{A\arabic{table}}
+\renewcommand\theequation{A\arabic{equation}}
+\renewcommand\theHfigure{A\arabic{figure}}
+\renewcommand\theHtable{A\arabic{table}}
+\renewcommand\theHequation{A\arabic{equation}}
+\setcounter{equation}{0}
+\setcounter{table}{0}
+\setcounter{figure}{0}
+\input{sec/X_suppl}
+
+\end{document}

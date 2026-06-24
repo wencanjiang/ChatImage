@@ -1,0 +1,24 @@
+\begin{table*}[t!]
+    \centering
+    \caption{
+    \textbf{Quantitative results with SoTAs on {\benchmark}.} \textbf{Bold} / \underline{underline} / \uwave{wavy line} for optimal / suboptimal / third-optimal metrics. For reference: LSE-C is 6.12 (training dataset) and Audio-Video Alignment is 23.19 (real videos). Values exceeding these thresholds lack significant distinguishability. Our {\method} comprehensively achieves significantly the best result.
+    }
+    \renewcommand{\arraystretch}{1.0}
+    \setlength\tabcolsep{10.0pt}
+    \resizebox{1.0\linewidth}{!}{
+        \begin{tabular}{ccccccc}
+        \toprule[0.1em]
+        Method & Video-Text Consistence$\uparrow$ & LSE-D$\downarrow$ & LSE-C$\uparrow$ & Identity Consistence$\uparrow$ & Video Quality$\uparrow$ & Audio-Video Alignment$\uparrow$ \\
+        \hline
+        Sonic~\cite{gan} & 4.57 & \underline{0.663} & \underline{7.80} & 0.613 & 68.58 & 0.191 \\
+        Wan-S2V~\cite{gan} & 4.74 & 5.455 & 6.71 & \underline{0.750} & \uwave{71.22} & \textbf{0.330} \\
+        InfiniteTalk~\cite{gan} & \uwave{4.75} & 2.313 & \textbf{8.48} & 0.609 & 68.53 & 0.211 \\
+        StableAvatar~\cite{gan} & \underline{4.77} & 3.948 & 4.05 & \uwave{0.733} & \underline{71.40} & \uwave{0.250} \\
+        OmniAvatar~\cite{gan} & \underline{4.77} & \uwave{1.009} & 5.84 & 0.497 & 67.24 & 0.225 \\
+        \hline
+        {\method} (Ours) & \textbf{4.85} & \textbf{0.130} & \uwave{6.82} & \textbf{0.763} & \textbf{72.60} & \underline{0.255} \\
+        \toprule[0.1em]
+        \end{tabular}
+    }
+    \label{tab:eg1}
+\end{table*}

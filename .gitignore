@@ -20,3 +20,18 @@ Thumbs.db
 
 .claude/
 .workbuddy/
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.out
+*.toc
+*.lof
+*.lot
+*.idx
+*.ilg
+*.ind

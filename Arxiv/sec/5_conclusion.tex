@@ -1,0 +1,28 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+This paper shows that long-horizon game agents benefit from coupling structured
+control with structured memory. \textbf{\method{}} uses adaptive dual control to reserve
+expensive strategic reasoning for planning and recovery, while leaving routine
+execution to a lightweight reactive controller. Together with Hierarchical
+Memory, this design improves success, cost, and recovery on Lite-100 and also
+transfers to RDR2 under different visual-domain and action-interface assumptions.
+Ablations further show that \textbf{event triggering}, \textbf{reactive
+override}, and \textbf{controller-specific memory} are complementary rather than
+interchangeable parts of the framework.
+
+\paragraph{Limitations and future work.}
+\label{sec:limitations}
+\method{} can still misroute control when progress is visually subtle, failure
+signals are noisy, when a game state changes without large screen differences,
+or when retrieved memory becomes stale. Its evidence is strongest on Lite-100
+and selected RDR2 tasks, so broader game styles, lower-level interfaces, and
+longer deployments remain important future tests. The current system uses visual
+observations and action history, while audio cues and richer multimodal feedback
+are not modeled. Although \method{} reduces unnecessary large-model calls,
+recovery and replanning still depend on explicit model invocations, leaving cost
+and latency as practical constraints for deployment. Future work should learn
+event-triggering and memory-writing policies from interaction data, add
+uncertainty-aware retrieval, incorporate additional task signals, and study
+whether training or demonstrations can improve the lightweight controller
+without sacrificing adaptability.

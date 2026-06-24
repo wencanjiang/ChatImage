@@ -1,0 +1,23 @@
+\begin{table}[H]
+    \centering
+    \small
+    \caption{\textbf{Human evaluation of image quality (IQ) and alignment
+    accuracy (AA)} on the \method{} benchmark, rated 1--5 (higher is better).
+    ``Planned-only'' uses layout bounds without vision alignment;
+    ``Text-only'' rates the raw text answer's navigability on the same scale.
+    Entries report mean$\pm$std over annotators. \tbd{XX} marks pending
+    values; blue shading marks our full method.}
+    \label{tab:main_results}
+    \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lccc}
+        \toprule
+        Method & Image Quality (IQ) $\uparrow$ & Alignment Accuracy (AA) $\uparrow$ & Navigability $\uparrow$ \\
+        \midrule
+        Text-only (raw answer) & \na & \na & \tbd{XX\std{X}} \\
+        \method{} (Planned-only, no grounding) & \tbd{XX\std{X}} & \tbd{XX\std{X}} & \tbd{XX\std{X}} \\
+        \rowcolor{oursrowblue}
+        \best{\method{} (Full, LocateAnything + SAM3)} & \tbd{XX\std{X}} & \tbd{XX\std{X}} & \tbd{XX\std{X}} \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}

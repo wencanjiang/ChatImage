@@ -1,0 +1,22 @@
+\begin{table}[H]
+    \centering
+    \small
+    \caption{\textbf{Alignment ablation.} Alignment accuracy (AA, 1--5) under
+    different grounding configurations, holding the rest of the pipeline
+    fixed. ``Robustness'' keeps correctly-grounded modules when some fail,
+    rather than discarding all alignments. \tbd{XX} marks pending values.}
+    \label{tab:ablation_results}
+    \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lc}
+        \toprule
+        Configuration & Alignment Accuracy (AA) $\uparrow$ \\
+        \midrule
+        Planned bounds only (no grounding) & \tbd{XX\std{X}} \\
+        LocateAnything grounding (no SAM3) & \tbd{XX\std{X}} \\
+        LocateAnything + SAM3 refinement & \tbd{XX\std{X}} \\
+        \rowcolor{oursrowblue}
+        \best{Full pipeline + robustness design} & \tbd{XX\std{X}} \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}

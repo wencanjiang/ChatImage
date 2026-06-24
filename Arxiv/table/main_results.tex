@@ -1,0 +1,33 @@
+\begin{table}[H]
+    \centering
+    \small
+    \caption{\textbf{Main comparison on \stardojo{}.} ``Recovery/Stuck Ratio'' is
+    Recovery Rate divided by Stuck Rate.
+    Entries report mean $\pm$ standard deviation over three repeated
+    runs. 
+    Table~\mbox{\ref{tab:raw_recovery_events}} reports the raw stuck and
+    recovery statistics behind this ratio. Bold and underlined entries denote
+    the best and second-best results within each method group;
+    blue shading marks results from our method.}
+    \label{tab:main_results}
+    \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lccccc}
+        \toprule
+        Method & Lite-100 SR $\uparrow$ & Budgeted SR $\uparrow$ & Tokens / Task (k) $\downarrow$ & Latency / Step (s) $\downarrow$ & Recovery/Stuck Ratio $\uparrow$ \\
+        \midrule
+        ReAct-like~\citep{yao2023react} & {\normalsize \phantom{0}6.7\std{0.6\%}} & {\normalsize \phantom{0}9.6\std{0.6\%}} & {\normalsize \best{102.6\std{5.4}}} & {\normalsize \best{24.5\std{3.2}}} & {\normalsize 1.61\std{0.11}} \\
+        Reflexion-like~\citep{shinn2023reflexion} & {\normalsize \phantom{0}8.7\std{1.0\%}} & {\normalsize 10.4\std{0.6\%}} & {\normalsize 178.5\std{6.6}} & {\normalsize \second{35.9\std{3.8}}} & {\normalsize 2.02\std{0.14}} \\
+        Voyager-like~\citep{wang2024voyager} & {\normalsize \phantom{0}7.3\std{0.6\%}} & {\normalsize \phantom{0}8.1\std{1.0\%}} & {\normalsize 238.3\std{6.7}} & {\normalsize 56.5\std{6.0}} & {\normalsize 1.73\std{0.15}} \\
+        CRADLE~\citep{tan2024cradle} & {\normalsize \second{13.0\std{1.7\%}}} & {\normalsize 10.7\std{0.6\%}} & {\normalsize 372.5\std{8.8}} & {\normalsize 73.5\std{8.2}} & {\normalsize \second{2.49\std{0.18}}} \\
+        \stardojo{}~\citep{tan2025stardojo}  & {\normalsize 12.3\std{1.4\%}} & {\normalsize \second{12.3\std{1.4\%}}} & {\normalsize 295.9\std{8.4}} & {\normalsize 48.7\std{4.5}} & {\normalsize 2.37\std{0.18}} \\
+        \rowcolor{oursrowblue}
+        \best{\method{} (Default Qwen3.5-397B)} & {\normalsize \best{18.0\std{1.7\%}}} & {\normalsize \best{21.6\std{1.7\%}}} & {\normalsize \second{168.1\std{5.7}}} & {\normalsize 43.5\std{4.7}} & {\normalsize \best{2.75\std{0.12}}} \\
+        \hline
+        \rowcolor{oursrowblue}
+        \best{\method{} (GPT-5.4)} & {\normalsize \best{20.3\std{1.7\%}}} & {\normalsize \best{23.7\std{1.4\%}}} & {\normalsize \best{107.8\std{2.1}}} & {\normalsize \best{27.9\std{4.3}}} & {\normalsize \best{3.50\std{0.29}}} \\
+        \rowcolor{oursrowblue}
+        \best{\method{} (Gemini-3.1-pro)} & {\normalsize \second{17.7\std{1.4\%}}} & {\normalsize \second{20.3\std{1.4\%}}} & {\normalsize \second{134.3\std{3.2}}} & {\normalsize \second{33.8\std{3.3}}} & {\normalsize \second{2.66\std{0.19}}} \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}

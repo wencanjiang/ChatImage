@@ -1,0 +1,32 @@
+\begin{table}[t!]
+    \centering
+    \small
+    \caption{\textbf{Raw stuck and recovery statistics on Lite-100.} ``Stuck Events''
+    counts move-blocked and empty-action events from the execution logs.
+    ``Recovered Events'' counts stuck events after which the agent returns to a
+    normal task-execution state within the next three environment steps. Raw
+    fields are populated from the same runs used for
+    Table~\mbox{\ref{tab:main_results}}; auxiliary model rows follow Appendix
+    Sec.~\mbox{\ref{sec:appendix_model_token_note}}.}
+    \label{tab:raw_recovery_events}
+    \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lrrrrccc}
+        \toprule
+        Method & Total Steps & Stuck Events & Recovered Events & Stuck Rate $\downarrow$ & Recovery Rate $\uparrow$ & Recovery/Stuck Ratio $\uparrow$ \\
+        \midrule
+        ReAct-like~\citep{yao2023react} & 5875\std{31} & 2115\std{16} & \best{1227\std{9}}\phantom{0} & 36.0\% & 58.0\% & 1.61\std{0.11} \\
+        Reflexion-like~\citep{shinn2023reflexion} & 5820\std{22} & 1804\std{13} & 1129\std{8}\phantom{0} & 31.0\% & 62.6\% & 2.02\std{0.14} \\
+        Voyager-like~\citep{wang2024voyager} & 5842\std{46} & 1957\std{22} & \second{1135\std{10}} & 33.5\% & 58.0\% & 1.73\std{0.15} \\
+        CRADLE~\citep{tan2024cradle} & \second{5445\std{64}} & \second{1497\std{27}} & 1026\std{15} & \best{27.5\%} & \second{68.5\%} & \second{2.49\std{0.18}} \\
+        \stardojo{}~\citep{tan2025stardojo} & 5536\std{40} & 1550\std{15} & 1029\std{8}\phantom{0} & 28.0\% & 66.4\% & 2.37\std{0.18} \\
+        \rowcolor{oursrowblue}
+        \method{} (Ours) & \best{5195\std{43}} & \best{1434\std{22}} & 1089\std{12} & \second{27.6\%} & \best{75.9\%} & \best{2.75\std{0.12}} \\
+        \hline
+        \rowcolor{oursrowblue}
+        \method{} (GPT-5.4) & \best{4630\std{25}} & \best{912\std{11}} & \second{629\std{6}}\phantom{0} & \best{19.7\%} & \second{69.0\%} & \best{3.50\std{0.29}} \\
+        \rowcolor{oursrowblue}
+        \method{} (Gemini-3.1-pro) & \second{5215\std{38}} & \second{1413\std{20}} & \best{1022\std{14}} & \second{27.1\%} & \best{72.3\%} & \second{2.66\std{0.19}} \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}
