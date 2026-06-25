@@ -431,7 +431,7 @@
       panel: Boolean(options.focusPanel),
       preview: Boolean(options.focusPanel || options.animatePreview)
     });
-    if (options.focusPanel) startPreviewFlight(result, hotspot, preview);
+    if (options.focusPanel || options.animatePreview) startPreviewFlight(result, hotspot, preview);
   }
 
   const inferPreviewStrategy = previewStrategyModel.inferPreviewStrategy;
@@ -784,7 +784,16 @@
       const maskPlacedY = ((maskBounds.y - paddedBounds.y) / paddedBounds.height) * ch;
       maskCtx.drawImage(mask, maskPlacedX, maskPlacedY, maskPlacedW, maskPlacedH);
     } else {
-      return null;
+      // No SAM3 mask available (worker timeout / not configured). Instead of
+      // returning null (which degrades to a hard rectangle crop), draw a
+      // rounded-rect silhouette from the hotspot bounds so the preview still
+      // gets the dilate + feather + halo treatment. This ensures every
+      // hotspot preview looks organic, not a raw rectangle.
+      const inset = Math.round(Math.min(cw, ch) * 0.04);
+      const r = Math.round(Math.min(cw, ch) * 0.08);
+      maskCtx.fillStyle = "rgba(255,255,255,1)";
+      roundRectPath(maskCtx, inset, inset, cw - inset * 2, ch - inset * 2, r);
+      maskCtx.fill();
     }
     fillMaskAlphaHoles(maskCtx, cw, ch);
 
@@ -954,6 +963,19 @@
     }));
   }
 
+  // Draw a rounded-rectangle path on a 2D context.
+  function roundRectPath(ctx, x, y, w, h, r) {
+    if (!ctx) return;
+    const radius = Math.max(0, Math.min(r, w / 2, h / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + w, y, x + w, y + h, radius);
+    ctx.arcTo(x + w, y + h, x, y + h, radius);
+    ctx.arcTo(x, y + h, x, y, radius);
+    ctx.arcTo(x, y, x + w, y, radius);
+    ctx.closePath();
+  }
+
   function fillMaskAlphaHoles(ctx, width, height) {
     if (!ctx || width <= 0 || height <= 0) return;
     const imageData = ctx.getImageData(0, 0, width, height);
@@ -966,7 +988,7 @@
       const index = y * width + x;
       if (visited[index]) return;
       const alpha = data[index * 4 + 3];
-      if (alpha > 8) return;
+      if (alpha > 32) return;
       visited[index] = 1;
       queue.push(index);
     };
@@ -991,7 +1013,7 @@
     for (let index = 0; index < total; index += 1) {
       if (visited[index]) continue;
       const alphaIndex = index * 4 + 3;
-      if (data[alphaIndex] > 8) continue;
+      if (data[alphaIndex] > 32) continue;
       data[alphaIndex] = 255;
       changed = true;
     }
