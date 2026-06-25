@@ -228,6 +228,7 @@
           acceptedModules: usableAlignments.map((alignment) => alignment.moduleId),
           rejectedModules: [...normalizedPreRejected, ...qualityRejected],
           missingModules: missingAlignments.map((alignment) => alignment.moduleId),
+          allPlanned: usableAlignments.length === 0 && missingAlignments.length > 0,
           sourceCounts: summarizeAlignmentSources([...usableAlignments, ...missingAlignments]).sourceCounts
         }
       };
