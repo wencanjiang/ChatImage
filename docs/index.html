@@ -874,6 +874,7 @@
       shortMarkup,
       '<p class="long">'+escapeHtml(hotspot.detail||'No detail text is available for this region.')+'</p>'
     ].join('');
+    if(window.ChatImageI18n)window.ChatImageI18n.apply();
   }
 
   function renderHotspots(demo){
@@ -926,6 +927,7 @@
       lb.classList.add('open');
       lbTitle.textContent=card.dataset.title;
       lbSub.textContent='Loading preserved hotspot state...';
+      if(window.ChatImageI18n)window.ChatImageI18n.apply();
       lbImg.alt=card.dataset.title;
       if(demoHotspots)demoHotspots.innerHTML='';
       loadDemo(card).then(function(demo){
@@ -936,6 +938,7 @@
         var count=demo.hotspotCount||getHotspots(demo).length;
         lbSub.textContent=(demo.modeLabel||demo.visualMode||'interactive demo')+(count?' · '+count+' hotspots':'');
         renderHotspots(demo);
+        if(window.ChatImageI18n)window.ChatImageI18n.apply();
       });
     });
   });
