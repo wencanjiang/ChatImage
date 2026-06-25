@@ -47,13 +47,33 @@ async function runLocateAnythingHealth(serverConfig) {
   }
 }
 
+// Track preload failures so align requests can fast-fail instead of
+// waiting the full timeout when the worker is known-broken (e.g. proxy
+// down, model not cached). Reset when preload succeeds.
+let locateAnythingPreloadFailed = false;
+let locateAnythingPreloadError = null;
+
 async function runLocateAnythingPreload(serverConfig) {
   requireLocateAnythingLicenseAck(serverConfig);
-  return getLocateAnythingClient(serverConfig).request({ type: "preload" }, getTimeoutMs(serverConfig));
+  try {
+    const result = await getLocateAnythingClient(serverConfig).request({ type: "preload" }, getTimeoutMs(serverConfig));
+    locateAnythingPreloadFailed = false;
+    locateAnythingPreloadError = null;
+    return result;
+  } catch (error) {
+    locateAnythingPreloadFailed = true;
+    locateAnythingPreloadError = error.message || String(error);
+    throw error;
+  }
 }
 
 async function runLocateAnythingAlignment(serverConfig, { imageUrl, imageWidth, imageHeight, modules, purpose }) {
   requireLocateAnythingLicenseAck(serverConfig);
+  // Fast-fail: if preload already failed (proxy down, model not cached),
+  // don't wait the full 240s timeout — let the fallback chain take over.
+  if (locateAnythingPreloadFailed) {
+    throw new Error(`LocateAnything preload previously failed: ${locateAnythingPreloadError || "unknown"}`);
+  }
   const normalizedModules = normalizeModules(modules);
   const tempDir = fs.mkdtempSync(path.join(require("os").tmpdir(), "chatimage-locateanything-"));
   try {
@@ -582,6 +602,13 @@ function isNamedCampusBuildingModule(module) {
 }
 
 async function runMimoVisionAlignmentFallback(serverConfig, request, modules, helpers) {
+  // The remote MiMo-vision API cannot fetch localhost image-cache URLs.
+  // If the URL is a local path, skip MiMo-vision (it will 400) and let the
+  // fallback chain continue to local-ocr or planned.
+  const imageUrl = String(request.imageUrl || "");
+  if (/^https?:\/\/(127\.|localhost|0\.0\.0\.0)/i.test(imageUrl) || imageUrl.startsWith("/image-cache/")) {
+    throw new Error("MiMo-vision fallback requires a publicly accessible image URL, got local/localhost URL");
+  }
   const normalizedModules = normalizeModules(modules);
   const content = buildMimoVisionAlignmentPrompt({
     imageWidth: request.imageWidth,
