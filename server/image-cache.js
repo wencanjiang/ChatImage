@@ -101,6 +101,7 @@ async function cacheRemoteImage(imageUrl, options = {}) {
       }
     }
 
+    pruneCache(cacheDir, options.maxCacheBytes || 2 * 1024 * 1024 * 1024).catch(() => {});
     return {
       localUrl: urlPrefix + filename,
       filePath,
@@ -115,4 +116,31 @@ async function cacheRemoteImage(imageUrl, options = {}) {
   }
 }
 
+
+// Best-effort LRU: if the cache directory exceeds maxBytes, delete the
+// oldest-accessed files until under the limit. Errors are swallowed
+// (best-effort) so caching never breaks generation.
+async function pruneCache(cacheDir, maxBytes) {
+  let entries;
+  try {
+    entries = await fsp.readdir(cacheDir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  const stats = [];
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    try {
+      const st = await fsp.stat(path.join(cacheDir, entry.name));
+      stats.push({ name: entry.name, size: st.size, atime: st.atimeMs });
+    } catch {}
+  }
+  let total = stats.reduce((s, e) => s + e.size, 0);
+  if (total <= maxBytes) return;
+  stats.sort((a, b) => a.atime - b.atime);
+  for (const e of stats) {
+    if (total <= maxBytes) break;
+    try { await fsp.unlink(path.join(cacheDir, e.name)); total -= e.size; } catch {}
+  }
+}
 module.exports = { cacheRemoteImage, isRemoteHttpUrl, guessExtensionFromUrl };
