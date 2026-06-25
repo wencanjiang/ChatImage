@@ -56,6 +56,19 @@ async function cacheRemoteImage(imageUrl, options = {}) {
   }
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
+  // SSRF guard: reject private/loopback/link-local hosts before fetching.
+  try {
+    const _u = new URL(imageUrl);
+    const _h = _u.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    if (_h === "localhost" || _h.endsWith(".localhost") || _h === "::1" || _h === "::") return null;
+    const _m = _h.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+    if (_m) {
+      const [a, b] = [Number(_m[1]), Number(_m[2])];
+      if (a === 0 || a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) ||
+          (a === 192 && b === 168) || (a === 169 && b === 254) || a >= 224) return null;
+    }
+  } catch {}
+
   try {
     const response = await fetchImpl(imageUrl, { signal: controller.signal });
     if (!response || !response.ok) return null;

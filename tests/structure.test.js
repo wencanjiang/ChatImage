@@ -816,7 +816,7 @@ function main() {
   assert.match(combinedPrompt, /hand-drawn maps/);
   assert.match(combinedPrompt, /grid, map, scene, or poster/);
   assert.match(combinedPrompt, /resource model/);
-  assert.match(combinedPrompt, /User question: ChatImage value/);
+  assert.match(combinedPrompt, /<user_question>ChatImage value<\/user_question>/);
 
   const combined = normalizeAnswerStructure(
     {
@@ -857,11 +857,58 @@ function main() {
   testTopicFallbackDoesNotEchoLongQuestion();
   testSanitizeModuleTitleRejectsPunctuationOnly();
   testHotspotDetailsAreUserFacingNotMetaInstructions();
+  testHotspotDetailStripsClickHereMetaClause();
   testInferVisualModeClassifiesCommonCases();
   testMapExplicitTargetsIgnoreInstructionPhrases();
   testCampusMapDoesNotTreatClickInstructionAsTarget();
 
   console.log("structure.test.js passed");
+}
+
+function testHotspotDetailStripsClickHereMetaClause() {
+  const polluted =
+    "\u96f7\u5cf0\u5854\u4f4d\u4e8e\u897f\u6e56\u5357\u5cb8\uff0c\u548c\u6e56\u9762\u3001\u5c71\u8272\u4e00\u8d77\u5f62\u6210\u660e\u786e\u7684\u89c6\u89c9\u7126\u70b9\u3002" +
+    "\u70b9\u51fb\u8fd9\u91cc\u65f6\uff0c\u8be6\u60c5\u8981\u8bf4\u660e\u5b83\u5728\u5730\u56fe\u4e2d\u7684\u4f4d\u7f6e\u3001\u548c\u5468\u8fb9\u8def\u7ebf\u7684\u5173\u7cfb\u3001\u7528\u6237\u4e3a\u4ec0\u4e48\u4f1a\u5148\u5230\u6216\u5148\u770b\u8fd9\u91cc\uff0c\u4ee5\u53ca\u5b83\u5982\u4f55\u51b3\u5b9a\u6574\u4e2a\u6e38\u89c8\u8282\u594f\u3002" +
+    "\u5854\u8eab\u3001\u5915\u7167\u548c\u6e56\u9762\u5012\u5f71\u662f\u8be5\u533a\u57df\u6700\u91cd\u8981\u7684\u89c2\u5bdf\u7ebf\u7d22\u3002";
+  const spec = normalizeVisualSpec(
+    {
+      title: "\u897f\u6e56\u5bfc\u89c8\u56fe",
+      summary: "\u897f\u6e56\u666f\u70b9",
+      relationType: "hierarchy",
+      visualMode: "map",
+      modules: [
+        {
+          title: "\u96f7\u5cf0\u5854",
+          imageText: "\u96f7\u5cf0\u5854",
+          detail: polluted,
+          regionKind: "building"
+        },
+        {
+          title: "\u767d\u5824\u65ad\u6865",
+          imageText: "\u767d\u5824\u65ad\u6865",
+          detail:
+            "\u767d\u5824\u65ad\u6865\u4f4d\u4e8e\u897f\u6e56\u5317\u4fa7\uff0c\u8fde\u63a5\u5cb8\u7ebf\u3001\u5824\u8def\u548c\u6e56\u9762\u89c6\u7ebf\u3002\u8fd9\u4e00\u533a\u57df\u9002\u5408\u8868\u73b0\u6e38\u5ba2\u6cbf\u5824\u884c\u8d70\u65f6\u7684\u89c6\u89d2\u53d8\u5316\uff0c\u4e5f\u80fd\u4ea4\u4ee3\u5317\u5cb8\u5165\u53e3\u4e0e\u6e56\u533a\u7684\u5173\u7cfb\u3002",
+          regionKind: "route"
+        },
+        {
+          title: "\u4e09\u6f6d\u5370\u6708",
+          imageText: "\u4e09\u6f6d\u5370\u6708",
+          detail:
+            "\u4e09\u6f6d\u5370\u6708\u662f\u6e56\u5fc3\u5c9b\u4e0e\u77f3\u5854\u7ec4\u6210\u7684\u89c2\u666f\u533a\u57df\uff0c\u9700\u8981\u4e0e\u6e38\u8239\u8def\u7ebf\u548c\u5468\u8fb9\u6c34\u9762\u4e00\u8d77\u7406\u89e3\u3002\u5b83\u5728\u5730\u56fe\u4e2d\u5e94\u6210\u4e3a\u6e56\u9762\u4e2d\u90e8\u7684\u53ef\u70b9\u51fb\u89c2\u5bdf\u70b9\uff0c\u800c\u4e0d\u662f\u5cb8\u8fb9\u5efa\u7b51\u3002",
+          regionKind: "landmark"
+        }
+      ]
+    },
+    "\u897f\u6e56\u5bfc\u89c8\u56fe",
+    polluted
+  );
+  const detail = spec.modules.find((module) => module.title === "\u96f7\u5cf0\u5854").detail;
+  assert.match(detail, /\u96f7\u5cf0\u5854/);
+  assert.match(detail, /\u5854\u8eab/);
+  assert.doesNotMatch(detail, /\u70b9\u51fb\u8fd9\u91cc\u65f6/);
+  assert.doesNotMatch(detail, /\u8be6\u60c5\u8981\u8bf4\u660e/);
+  assert.doesNotMatch(detail, /\u7528\u6237\u4e3a\u4ec0\u4e48\u4f1a\u5148\u5230/);
+  assert.doesNotMatch(detail, /\u4ee5\u53ca\u5b83\u5982\u4f55\u51b3\u5b9a/);
 }
 
 // Regression: inferVisualMode must correctly classify common map/scene/poster

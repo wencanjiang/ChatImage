@@ -997,6 +997,11 @@ class LocateAnythingJsonlClient {
     this.pending = new Map();
     this.buffer = "";
     this.child = null;
+    this.lastActivityAt = 0;
+    // Recycle the worker if it has been idle longer than this (ms). A long-idle
+    // worker may have leaked GPU memory or wedged; recycling forces a fresh start
+    // on the next request. 0 = disabled.
+    this.idleRecycleMs = Number(this.serverConfig.locateAnythingIdleRecycleMs || 120000);
   }
 
   request(payload, timeoutMs) {
@@ -1033,7 +1038,16 @@ class LocateAnythingJsonlClient {
   }
 
   ensureStarted() {
-    if (this.child && !this.child.killed && this.child.exitCode === null && !this.child.stdin.destroyed) return;
+    // Recycle a long-idle worker to reclaim leaked GPU memory and recover from
+    // a silently-wedged state (process alive but unresponsive).
+    if (this.child && !this.child.killed && this.child.exitCode === null && !this.child.stdin.destroyed) {
+      if (this.idleRecycleMs > 0 && this.lastActivityAt > 0 &&
+          Date.now() - this.lastActivityAt > this.idleRecycleMs) {
+        this.stopChild();
+      } else {
+        return;
+      }
+    }
     const workerPath = this.serverConfig.locateAnythingWorkerPath;
     if (!workerPath || !fs.existsSync(workerPath)) {
       const error = new Error(`LocateAnything worker not found: ${workerPath || "(empty)"}`);
@@ -1055,6 +1069,7 @@ class LocateAnythingJsonlClient {
     if (Number.isFinite(Number(this.serverConfig.locateAnythingMaxNewTokens)) && Number(this.serverConfig.locateAnythingMaxNewTokens) > 0) {
       args.push("--max-new-tokens", String(this.serverConfig.locateAnythingMaxNewTokens));
     }
+    this.lastActivityAt = Date.now();
     this.child = spawn(python, args, { windowsHide: true });
     this.child.stdout.on("data", (chunk) => this.onStdout(chunk));
     this.child.stderr.on("data", (chunk) => {
