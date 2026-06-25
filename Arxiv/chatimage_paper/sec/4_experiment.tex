@@ -50,7 +50,7 @@ which test structured flow and layered layouts. Map questions cover spatial
 guidance (e.g., ``draw a hand-drawn guide map of West Lake''), testing
 geographic region placement and route hotspots. Scene questions cover
 illustrated layouts (e.g., ``illustrate a museum scene''), testing object
-localization in a less rigidly structured image. Each question is run through
+localization in a less rigidly structured image. Each question was run through
 the full \method{} pipeline with real text, image, and vision providers.
 Representative qualitative results are shown in
 Figure~\ref{fig:qualitative}.
@@ -68,9 +68,9 @@ Figure~\ref{fig:qualitative}.
 \subsection{Human Evaluation}
 \label{sec:experiments_human}
 
-Because image quality and region alignment are perceptual, we conduct a human
-evaluation. Annotators are shown the generated interactive visual image (with
-hotspots) alongside the original question and raw answer, and rate two
+Because image quality and region alignment are perceptual, we conducted a human
+evaluation. Annotators were shown the generated interactive visual image (with
+hotspots) alongside the original question and raw answer, and rated two
 dimensions on a 1--5 Likert scale:
 
 \begin{itemize}[leftmargin=*,topsep=2pt,itemsep=1pt]
@@ -82,7 +82,7 @@ dimensions on a 1--5 Likert scale:
     (1=completely misaligned, 5=perfectly aligned.)
 \end{itemize}
 
-Each question is evaluated by \tbd{K} annotators; we report the mean score and
+Each question was evaluated by \tbd{K} annotators; we report the mean score and
 inter-annotator agreement (Krippendorff's $\alpha$).
 Table~\ref{tab:main_results} reports the overall scores and per-mode breakdown.
 As baselines, we compare against (i)~a \textbf{planned-only} variant that uses
@@ -97,13 +97,13 @@ interactive format.
 \subsection{Alignment Ablation}
 \label{sec:experiments_ablation}
 
-To isolate the contribution of the two-pass vision alignment, we ablate the
+To isolate the contribution of the two-pass vision alignment, we ablated the
 grounding source while keeping the rest of the pipeline fixed.
 Table~\ref{tab:ablation_results} compares: (a)~planned bounds only (no
 grounding), (b)~LocateAnything grounding without SAM3 refinement, (c)~full
 pipeline with SAM3 mask refinement, and (d)~the robustness design (keeping
 far-from-planned groundings, falling back only for header/cross-panel rejects
-and missing modules). We expect grounding to substantially improve alignment
+and missing modules). We expected grounding to substantially improve alignment
 accuracy over planned-only bounds, since the latter assume layout fidelity that
 generative models do not provide. The robustness ablation tests whether
 preserving correctly-grounded modules when some fail (rather than discarding
