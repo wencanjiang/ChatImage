@@ -5,6 +5,7 @@
   var DICT = null;
   var origCaptured = false;
   var META = null;
+  var currentLang = "en";
 
   function captureOrig() {
     if (origCaptured) return;
@@ -33,6 +34,7 @@
     if (!DICT) return;
     captureOrig();
     var isZh = lang === "zh";
+    currentLang = isZh ? "zh" : "en";
     document.documentElement.lang = isZh ? "zh-CN" : "en";
     if (META) {
       document.title = isZh ? META.zh.title : META.en.title;
@@ -52,6 +54,10 @@
     });
     var node;
     while ((node = tw.nextNode())) {
+      // First-time discovery (e.g. nodes added after page load by demo
+      // rendering). Capture their original English so we can restore on
+      // a later EN switch.
+      if (node._i18nOrig === undefined) node._i18nOrig = node.nodeValue;
       var orig = node._i18nOrig;
       if (orig === undefined) continue;
       var key = orig.trim();
@@ -69,6 +75,14 @@
     var btn = document.getElementById("langToggle");
     if (btn) btn.textContent = isZh ? "EN" : "中文";
     try { localStorage.setItem("ci.lang", isZh ? "zh" : "en"); } catch (e) {}
+  }
+
+  // Public API: re-apply the currently-active language. Callers (e.g. the
+  // demo lightbox after injecting hotspot detail HTML) invoke this so newly
+  // added text nodes are captured and translated immediately.
+  function applyCurrent() {
+    if (!DICT) return;
+    setLang(currentLang);
   }
 
   function init() {
@@ -94,4 +108,11 @@
   } else {
     init();
   }
+
+  // Public API for dynamic-content consumers (e.g. demo lightbox).
+  window.ChatImageI18n = {
+    apply: applyCurrent,
+    setLang: setLang,
+    getLang: function () { return currentLang; }
+  };
 })();
