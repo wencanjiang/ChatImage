@@ -89,6 +89,7 @@ function createStore(databasePath) {
             provider_raw_json = excluded.provider_raw_json,
             alignment_raw_json = excluded.alignment_raw_json,
             updated_at = excluded.updated_at
+          where chat_images.updated_at <= excluded.updated_at
         `).run(
           result.id,
           result.question || "",

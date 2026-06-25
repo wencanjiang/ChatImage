@@ -1196,6 +1196,7 @@
             "Transport/cableway/station/entrance: visible station/cableway/vehicle marker or compact legend item.",
             "Do not draw numeric callout markers, numbered pins, circled numbers, index labels, or 01/02 style scenic spot numbers on the map.",
             "Do not draw a right-side scenic spot list, legend column, itinerary ranking, sidebar panel, catalog strip, or landscape-arrangement panel.",
+            "The canvas aspect ratio must match the provided target ratio exactly; do not crop or letterbox.",
             "Do not draw artificial segmentation outlines, neon contour strokes, or pink/white mask-like borders around full map regions. Separate regions with natural terrain, water/shoreline, paths, vegetation, buildings, labels, shadows, or subtle tonal changes instead.",
             "Do not draw big cards, numbered badges, GUI panels, table blocks, or flow arrows."
           ]
