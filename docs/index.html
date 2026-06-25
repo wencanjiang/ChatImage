@@ -385,15 +385,15 @@
   }
   .lightbox.open{display:flex}
   .lightbox-inner{
-    width:min(98vw,1480px);
+    width:min(98vw,1520px);
     max-height:94vh;
     position:relative;
     text-align:left;
   }
   .interactive-viewer{
     display:grid;
-    grid-template-columns:minmax(0,1fr) minmax(320px,390px);
-    gap:14px;
+    grid-template-columns:minmax(0,1fr) minmax(340px,410px);
+    gap:18px;
     align-items:stretch;
   }
   .demo-stage{
@@ -401,7 +401,8 @@
     overflow:hidden;
     border-radius:8px;
     background:#fffaf0;
-    box-shadow:0 24px 80px rgba(0,0,0,.32);
+    border:1px solid rgba(255,250,240,.34);
+    box-shadow:0 30px 90px rgba(0,0,0,.34);
     aspect-ratio:16/9;
   }
   .demo-stage img{
@@ -439,16 +440,20 @@
     box-shadow:none;
     transform:none;
   }
+  .demo-hotspot:focus-visible{
+    outline:2px solid rgba(180,74,34,.86);
+    outline-offset:2px;
+  }
   .demo-detail{
     min-height:0;
     max-height:min(72vh,620px);
     overflow:auto;
     border-radius:8px;
-    border:1px solid rgba(255,250,240,.28);
-    background:#fffaf0;
-    padding:22px;
+    border:1px solid rgba(66,58,48,.12);
+    background:#fffdf8;
+    padding:24px;
     color:var(--text);
-    box-shadow:0 24px 70px rgba(0,0,0,.2);
+    box-shadow:0 24px 70px rgba(0,0,0,.22);
   }
   .demo-detail-kicker{
     margin:0 0 8px;
@@ -460,7 +465,7 @@
   }
   .demo-detail h3{
     margin:0 0 10px;
-    font-size:20px;
+    font-size:21px;
     line-height:1.25;
   }
   .demo-detail .short{
@@ -475,8 +480,8 @@
     line-height:1.78;
   }
   .demo-detail-intro{
-    padding-bottom:14px;
-    margin-bottom:14px;
+    padding-bottom:16px;
+    margin-bottom:16px;
     border-bottom:1px solid var(--line-soft);
   }
   .demo-detail-body{
@@ -526,6 +531,12 @@
     .demo-hotspot::after{display:none}
     footer .wrap{align-items:flex-start}
   }
+
+  .lang-toggle{margin-left:8px;border:1px solid var(--line);background:var(--panel);
+    color:var(--text);font:600 13px/1 inherit;padding:7px 12px;border-radius:8px;
+    cursor:pointer;transition:border-color .15s ease,color .15s ease,background .15s ease}
+  .lang-toggle:hover{border-color:var(--accent);color:var(--accent-strong);background:var(--accent-soft)}
+  .lang-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -539,6 +550,7 @@
       <a href="#quickstart" class="hide-sm">Get started</a>
       <a href="TECHNICAL_REPORT.md" class="hide-sm" target="_blank" rel="noopener">Docs</a>
       <a class="btn btn-ghost btn-sm" href="https://github.com/wencanjiang/ChatImage" target="_blank" rel="noopener">GitHub</a>
+      <button id="langToggle" class="lang-toggle" type="button" aria-label="Switch language">中文</button>
     </div>
   </div>
 </nav>
@@ -646,53 +658,52 @@
       <button class="filter-tab active" type="button" data-filter="all">All (5)</button>
       <button class="filter-tab" type="button" data-filter="map">Maps</button>
       <button class="filter-tab" type="button" data-filter="scene">Scene</button>
-      <button class="filter-tab" type="button" data-filter="technical">Technical</button>
       <button class="filter-tab" type="button" data-filter="business">Business</button>
     </div>
     <div class="demo-grid">
-      <article class="demo reveal" data-cat="map" data-demo="assets/demos/real-west-lake-tour-map.json" data-img="assets/demos/real-west-lake-tour-map.png" data-title="West Lake tour map">
-        <div class="shot"><img src="assets/demos/real-west-lake-tour-map.png" alt="West Lake tour map real generated demo" loading="lazy" /></div>
+      <article class="demo reveal" data-cat="map" data-demo="assets/demos/real-west-lake-tour-map.json" data-img="assets/demos/real-west-lake-tour-map.png" data-title="West Lake hand-drawn tour map">
+        <div class="shot"><img src="assets/demos/real-west-lake-tour-map.png" alt="West Lake hand-drawn tour map real generated demo" loading="lazy" /></div>
         <div class="body">
-          <h3>West Lake tour map</h3>
-          <p class="q">New run. A complete hand-drawn West Lake tour map with natural landmarks, routes, water, bridges, hills, and clickable scenic areas.</p>
-          <div class="meta"><span>new real generated map</span><span>9 hotspots</span></div>
-          <button class="copy-q" type="button" data-copy="???????????????????????????????????????????????????????????????????????????????????????????????????????????">Copy question</button>
+          <h3>West Lake hand-drawn tour map</h3>
+          <p class="q">Verified run. A complete hand-drawn West Lake map with natural landmarks, water, bridges, hills, and clickable scenic areas.</p>
+          <div class="meta"><span>verified real generated map</span><span>9 hotspots</span></div>
+          <button class="copy-q" type="button" data-copy="Create a hand-drawn West Lake tour map as one coherent landscape image. Do not draw numbered pins, a right-side attraction list, or pre-split region borders. Let users click natural scenic areas to inspect their travel value.">Copy question</button>
+        </div>
+      </article>
+      <article class="demo reveal" data-cat="business" data-demo="assets/demos/real-household-budget-plan.json" data-img="assets/demos/real-household-budget-plan.png" data-title="Young family monthly budget">
+        <div class="shot"><img src="assets/demos/real-household-budget-plan.png" alt="Young family monthly budget real generated demo" loading="lazy" /></div>
+        <div class="body">
+          <h3>Young family monthly budget</h3>
+          <p class="q">Verified daily case. A household budget visual covering income, bills, groceries, transport, emergency savings, and discretionary spending.</p>
+          <div class="meta"><span>verified daily planning case</span><span>7 hotspots</span></div>
+          <button class="copy-q" type="button" data-copy="Create a visual monthly household budget plan for a young family. Cover income, fixed bills, groceries, transport, emergency savings, discretionary spending, and month-end review.">Copy question</button>
         </div>
       </article>
       <article class="demo reveal" data-cat="scene" data-demo="assets/demos/real-future-museum-scene.json" data-img="assets/demos/real-future-museum-scene.png" data-title="Future museum scene">
         <div class="shot"><img src="assets/demos/real-future-museum-scene.png" alt="Future museum scene real generated demo" loading="lazy" /></div>
         <div class="body">
           <h3>Future museum scene</h3>
-          <p class="q">New run. A single illustrated museum hall with a core exhibit, visitor path, guide robot, and immersive display targets.</p>
-          <div class="meta"><span>new real generated scene</span><span>4 hotspots</span></div>
-          <button class="copy-q" type="button" data-copy="???????????????????????????????????????????????????????????????????????????????????AI ???????">Copy question</button>
+          <p class="q">Verified run. A single illustrated museum hall with a core exhibit, visitor path, guide robot, and immersive display targets.</p>
+          <div class="meta"><span>verified real generated scene</span><span>4 hotspots</span></div>
+          <button class="copy-q" type="button" data-copy="Create an immersive future museum illustration as one coherent scene. Avoid flowchart cards and pre-split borders. Let users click the core exhibit, visitor path, guide robot, and immersive screen.">Copy question</button>
         </div>
       </article>
-      <article class="demo reveal" data-cat="technical" data-demo="assets/demos/real-oauth2-flow.json" data-img="assets/demos/real-oauth2-flow.png" data-title="OAuth 2.0 authorization code flow">
-        <div class="shot"><img src="assets/demos/real-oauth2-flow.png" alt="OAuth 2.0 authorization code flow real generated demo" loading="lazy" /></div>
+      <article class="demo reveal" data-cat="scene" data-demo="assets/demos/real-smart-home-living-room.json" data-img="assets/demos/real-smart-home-living-room.png" data-title="Smart home living room">
+        <div class="shot"><img src="assets/demos/real-smart-home-living-room.png" alt="Smart home living room real generated demo" loading="lazy" /></div>
         <div class="body">
-          <h3>OAuth 2.0 authorization code flow</h3>
-          <p class="q">New run. A technical authorization-code flow with user, client, auth server, resource server, tokens, and scope.</p>
-          <div class="meta"><span>new real generated flow</span><span>7 hotspots</span></div>
-          <button class="copy-q" type="button" data-copy="?? OAuth 2.0 ???????????????????????????????????Access Token?Refresh Token ? scope???????????????????????????????">Copy question</button>
+          <h3>Smart home living room</h3>
+          <p class="q">Verified visual scene. An isometric home scene with clickable sofa, TV wall, robot vacuum, smart speaker, plants, and entrance area.</p>
+          <div class="meta"><span>verified visual scene</span><span>6 hotspots</span></div>
+          <button class="copy-q" type="button" data-copy="Create an isometric smart-home living room scene. Let users click the sofa area, TV wall, robot vacuum, smart speaker, window plants, and entrance area to inspect their role in the home experience.">Copy question</button>
         </div>
       </article>
-      <article class="demo reveal" data-cat="technical" data-demo="assets/demos/real-kubernetes-architecture.json" data-img="assets/demos/real-kubernetes-architecture.png" data-title="Kubernetes deployment architecture">
-        <div class="shot"><img src="assets/demos/real-kubernetes-architecture.png" alt="Kubernetes deployment architecture real generated demo" loading="lazy" /></div>
+      <article class="demo reveal" data-cat="scene" data-demo="assets/demos/real-boutique-coffee-scene.json" data-img="assets/demos/real-boutique-coffee-scene.png" data-title="Boutique coffee shop scene">
+        <div class="shot"><img src="assets/demos/real-boutique-coffee-scene.png" alt="Boutique coffee shop scene real generated demo" loading="lazy" /></div>
         <div class="body">
-          <h3>Kubernetes deployment architecture</h3>
-          <p class="q">Stable real run. A deployment architecture diagram with Deployment, ReplicaSet, Pod, Service, Ingress, ConfigMap, and scaling controls.</p>
-          <div class="meta"><span>real generated architecture</span><span>5 hotspots</span></div>
-          <button class="copy-q" type="button" data-copy="??? Kubernetes ?????????? Deployment?ReplicaSet?Pod?Service?Ingress?ConfigMap?Secret ??????">Copy question</button>
-        </div>
-      </article>
-      <article class="demo reveal" data-cat="business" data-demo="assets/demos/real-ecommerce-funnel.json" data-img="assets/demos/real-ecommerce-funnel.png" data-title="E-commerce conversion funnel">
-        <div class="shot"><img src="assets/demos/real-ecommerce-funnel.png" alt="E-commerce conversion funnel real generated demo" loading="lazy" /></div>
-        <div class="body">
-          <h3>E-commerce conversion funnel</h3>
-          <p class="q">Stable real run. A business funnel with traffic, product detail, add-to-cart intent, checkout, payment success, and repurchase.</p>
-          <div class="meta"><span>real generated business graphic</span><span>5 hotspots</span></div>
-          <button class="copy-q" type="button" data-copy="??????????????????????????????????????????">Copy question</button>
+          <h3>Boutique coffee shop scene</h3>
+          <p class="q">Verified visual scene. A cafe layout with clickable barista, espresso machine, pastry case, window seats, pickup shelf, and queue.</p>
+          <div class="meta"><span>verified visual scene</span><span>6 hotspots</span></div>
+          <button class="copy-q" type="button" data-copy="Create an isometric boutique coffee shop scene. Let users click the barista, espresso machine, pastry case, window seating, pickup shelf, and entrance queue to inspect how the space works.">Copy question</button>
         </div>
       </article>
     </div>
@@ -928,6 +939,38 @@
       });
     });
   });
+  function openDemoFromCard(card){
+    lb.classList.add('open');
+    lbTitle.textContent=card.dataset.title;
+    lbSub.textContent='Loading preserved hotspot state...';
+    lbImg.alt=card.dataset.title;
+    if(demoHotspots)demoHotspots.innerHTML='';
+    loadDemo(card).then(function(demo){
+      activeDemo=demo;
+      lbImg.src=demo.image||card.dataset.img;
+      lbImg.alt=demo.title||card.dataset.title;
+      lbTitle.textContent=demo.title||card.dataset.title;
+      var count=demo.hotspotCount||getHotspots(demo).length;
+      lbSub.textContent=(demo.modeLabel||demo.visualMode||'interactive demo')+(count?' · '+count+' hotspots':'');
+      renderHotspots(demo);
+    });
+  }
+
+  document.querySelectorAll('.demo[data-img]').forEach(function(card){
+    card.setAttribute('tabindex','0');
+    card.setAttribute('role','button');
+    card.addEventListener('click',function(e){
+      if(e.target&&e.target.closest&&(e.target.closest('.copy-q')||e.target.closest('.shot')))return;
+      openDemoFromCard(card);
+    });
+    card.addEventListener('keydown',function(e){
+      if(e.key==='Enter'||e.key===' '){
+        e.preventDefault();
+        openDemoFromCard(card);
+      }
+    });
+  });
+
   function close(){
     lb.classList.remove('open');
     lbImg.src='';
@@ -964,6 +1007,7 @@
   });
 })();
 </script>
+<script src="assets/i18n.js"></script>
 </body>
 </html>
 
