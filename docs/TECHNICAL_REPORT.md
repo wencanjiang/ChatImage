@@ -480,7 +480,7 @@ POST /api/chatimages/:id/hotspots/:hotspotId/thread
 
 ### 数据库
 
-- 引擎：`better-sqlite3`
+- 引擎：内置 `node:sqlite`（`DatabaseSync`，需 Node 22.5+）
 - 路径：`CHATIMAGE_DATABASE_PATH`，默认 `tmp/chatimage.sqlite`
 - 外键：已启用（`PRAGMA foreign_keys = ON`）
 

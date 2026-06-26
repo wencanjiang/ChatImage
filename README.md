@@ -14,7 +14,7 @@
   <a href="docs/TECHNICAL_REPORT.md"><img src="https://img.shields.io/badge/Tech%20Report-Docs-25a36a?style=flat-square&logo=googledocs" alt="Tech Report" /></a>
   <a href="https://github.com/wencanjiang/ChatImage/actions"><img src="https://img.shields.io/badge/Tests-passing-2da44e?style=flat-square&logo=githubactions" alt="Tests" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square&logo=opensourceinitiative" alt="License" /></a>
-  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=flat-square&logo=nodedotjs" alt="Node.js 18+" /></a>
+  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-22.5%2B-339933?style=flat-square&logo=nodedotjs" alt="Node.js 22.5+" /></a>
 </p>
 
 > Turn a long-form LLM answer into an interactive visual image — structured infographics with clickable hotspots, per-region detail panels, and in-context follow-up threads.
@@ -95,7 +95,7 @@ Rejected or weak cases are tracked in `docs/demo-eligibility.md` so the paper be
 
 ## Prerequisites
 
-- **Node.js** 18 or newer
+- **Node.js** 22.5 or newer (the backend uses the built-in `node:sqlite` module)
 - **npm**
 - Optional: **Python 3.9+** if you enable local OCR or LocateAnything-based vision alignment
 - Optional: a CUDA-capable GPU if you run LocateAnything / SAM3 workers locally
@@ -103,7 +103,7 @@ Rejected or weak cases are tracked in `docs/demo-eligibility.md` so the paper be
 Verify your toolchain:
 
 ```bash
-node -v   # v18 or newer
+node -v   # v22.5 or newer
 npm -v
 git --version
 python --version   # only if using local OCR / LocateAnything
@@ -253,7 +253,7 @@ CHATIMAGE_API_KEY=your_key_here npm run test:api
 
 - **Frontend**: vanilla JS (browser globals), no framework, no bundler runtime
 - **Backend**: Node.js HTTP server (no external web framework)
-- **Persistence**: SQLite (via `better-sqlite3`)
+- **Persistence**: SQLite (via the built-in `node:sqlite` module; no native dependencies)
 - **Vision alignment**: LocateAnything (visual grounding), MiMo-vision, local OCR, optional SAM3 mask refinement
 - **Build**: single zero-dependency concat/minify script → `dist/`
 - **Testing**: Node `assert` + headless Chrome/CDP browser assertions
