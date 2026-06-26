@@ -1,102 +1,89 @@
-# Findings: Interactive Visual Works Modes
+# ChatImage Real Demo Expansion Findings
 
-## 2026-06-09
+## Existing Real Run Findings
+- Real API text and image smoke passed.
+- Existing successful artifacts:
+  - West Lake map: `ci_656c1418-06bf-40ff-b547-43775450873d`, 9 hotspots, `mimo-vision` source, no contamination.
+  - Future museum scene: `ci_97e23852-2a5f-4893-824c-3fa9371e0f98`, 4 hotspots, `mimo-vision` source, no contamination.
+  - Campus map: `ci_3cb69180-ebe6-4992-961d-4d7039bee375`, 6 hotspots, but all `planned`; not a strong demo candidate until manually verified or rerun with better visual alignment.
+- SAM3 repeatedly timed out during full real-case runs, so demo promotion should not rely on SAM mask success unless the result artifact proves it.
 
-- Current stable template has been pushed to `origin/main` at commit `a31e037`.
-- The current system already supports variable module counts from 3 to 6 after the latest stable commit.
-- Existing data path is:
-  - `src/structure.js` creates `visualSpec`.
-  - `src/layout.js` derives rectangular regions and image prompts.
-  - `src/alignment.js` and server vision providers align hotspots.
-  - `src/render.js` displays thought process, image, hotspots, debug output, and details.
-- The current image prompt is primarily infographic/card-oriented and still references cards, card numbers, OCR anchors, and module cards.
-- To support hand-drawn maps/posters/scenes without breaking current behavior, the safest extension point is a new `visualMode` field with mode-specific prompt wording.
-- Mask/polygon interaction should be a later phase. Phase 1 can preserve rectangular hotspots while using semantic `regionKind` and `regionPrompt` for better grounding.
+## Demo Selection Bias
+- Prefer everyday cases that produce clean infographic/card-like layouts because they are more likely to align reliably.
+- Keep a few semantic visual works such as map/scene only when visual alignment is confirmed.
 
-## 2026-06-11
+## Pipeline Contract
+- `scripts/generate-real-demo-cases.js` contains the runnable real-case pool and supports `CHATIMAGE_REAL_DEMO_CASES`.
+- `scripts/generate-doc-demos.js` exports only hardcoded curated `chatImageId` values from the SQLite store into `docs/assets/demos`.
+- Promotion flow must therefore be: add case, run real generation, audit artifact, then add the winning `chatImageId` to `generate-doc-demos.js`.
 
-- MiMo `mimo-v2.5` can be used as a visual model through the same MiMo base URL/key family as `mimo-v2.5-pro`.
-- Existing remote vision code already supports OpenAI-style chat messages with `image_url`, so the likely minimal integration is config/defaults plus provider-chain wiring, not a new HTTP adapter from scratch.
-- Current strict audit correctly separates:
-  - true semantic box source (`locateanything`, `locateanything-crop`, remote vision)
-  - layout-guided box source
-  - SAM3 mask source
-- The key quality target is not just “有框”，而是 “box 是否语义上框中目标，SAM3 mask 是否在 box 内抠出主体”。
-- Correct deployment shape is not `CHATIMAGE_VISION_MODE=mimo-vision` for the full chain, because that would skip LocateAnything/SAM3. For the intended chain, keep `CHATIMAGE_VISION_MODE=locateanything` and set `CHATIMAGE_VISION_FALLBACK_MODE=mimo-vision`.
-- In the current West Lake audit, MiMo vision filled most semantic boxes while SAM3 produced masks for every region. This is progress over planned fallback, but visual review of overlays/previews should remain part of the test flow because a box can exist and still be semantically wrong.
+## Common Case Batch A
+- Run directory: `tmp/real-demo-run-20260625-common-a`.
+- `household-budget-plan`: generated, `ci_62aebdae-4001-4d01-b761-fd58e805d43e`, 7 hotspots. It was a temporary candidate under the older no-planned rule, but is rejected under the current strict SAM gate because it lacks SAM mask assets and has four unknown alignment sources.
+- `weekly-meal-prep-plan`: failed, wait predicate timeout.
+- `electric-toothbrush-comparison`: failed, image task timeout / wait predicate timeout.
+- `ielts-study-roadmap`: generated, `ci_66df88f0-b248-4b87-b731-1f7448159ae0`, but labels are generic and source is `local-ocr:2, planned:3`; reject for showcase.
 
-## 2026-06-14
+## Common Case Batch B
+- Run directory: `tmp/real-demo-run-20260625-common-b`.
+- `react-performance-debug-flow`: failed after image/alignment because `/api/chatimages` returned 413 request body too large; likely oversized result payload from masks/alignment data. Rerun may need higher `CHATIMAGE_MAX_JSON_BODY_BYTES` or payload trimming.
+- `interview-prep-plan`: generated, `ci_a57ab1f3-2573-4c99-af45-3ae79aad2ccb`, but all hotspots were `planned`; reject for showcase.
+- `home-moving-checklist`: failed in this batch with a wait predicate timeout.
 
-- The "分割变巨差" regression is **not** a SAM3 quality problem. SAM3 dutifully produces a mask and a cutoutImage for every hotspot in map/scene images because it is asked to. The bug is in the *preview* layer: `buildHotspotPreview` decided context-crop vs cutout using only `hotspot.regionKind`, so any hotspot that lost its `regionKind` (old saved data, model not emitting the field) fell through to the transparent cutout, shredding 宝石山 into fragments.
-- Correct division of labor confirmed by this fix:
-  - LocateAnything / MiMo vision → produce the box (where the target is).
-  - SAM3 → refine the mask inside the box.
-  - Preview layer (`inferPreviewStrategy`) → decide *how to show* the preview: transparent cutout only for independent subjects (object/person/product), context crop for everything else in map/scene/poster.
-- The decision function must be whole-image aware, not just per-hotspot. A single missing `regionKind` must not opt a hotspot into the cutout path when the whole output is a map/scene.
-- `inferPreviewStrategy` is now a pure function in `src/preview-strategy.js` (UMD: `module.exports` + `window.ChatImagePreviewStrategy`), so it is unit-testable in Node without a browser. This is the right home for any future preview-policy logic.
-- The preview caption (主体抠图预览 / 区域上下文预览 / 路线区域预览) is recomputed by `buildHotspotPreview` on every render from the strategy, so old saved captions (including the mojibake `涓讳綋鎶犲浘棰勮`) are overwritten in the UI without needing a DB migration.
-- Windows `rmWithRetry` EPERM: the Chrome subprocess can keep profile file handles open for >2s after `kill()`. Throwing on cleanup failure is wrong — leftover temp dirs are not a test failure. Degrade to a warning on win32.
+## Common Case Batch C
+- Run directory: `tmp/real-demo-run-20260625-common-c`.
+- Raised default JSON body limit to 32 MB before rerun; this fixed the React save failure.
+- `react-performance-debug-flow`: generated, `ci_44d90e56-eb2f-4f61-8575-688cfed4d5fe`, 7 hotspots, no detail contamination or bad bounds; accepted as a technical workflow demo after manual screenshot check.
+- `weekend-hangzhou-itinerary`: generated, `ci_13495a8c-22aa-4344-b6e8-b99841072493`, 13 hotspots, mostly visual-aligned, but one label leaked a truncated prompt fragment; reject for showcase.
+- `home-moving-checklist`: generated, `ci_47bea92b-e6c6-424d-be9e-edde4f3536a6`, but only 3 generic fallback labels; reject for showcase.
 
-## 2026-06-14 Organic Feathered Previews
+## Promoted Docs Demos
+- `real-west-lake-tour-map`: regenerated as `ci_2e77c4cd-1f49-405f-832f-b3f6af1a0d74`; nine hotspots pass the current strict SAM gate.
+- `real-smart-home-living-room`: `ci_3f5f7110-a7e8-46f2-b9a4-20c4911d25fe`.
+- `real-boutique-coffee-scene`: `ci_b7051ddb-7cf9-49ec-8bc7-d6c22fb39d1f`.
+- `real-sunny-reading-nook`: `ci_7318affc-7a63-44b1-9bbb-97d93165a630`.
+- `real-record-store-corner`: `ci_0a52d845-827e-4b3f-ad08-8b8d4d1943a8`.
+- `real-plant-care-corner`: `ci_1a6baf46-031e-40ae-9e08-76941ac395f1`.
+- Removed the old `real-west-lake-tour-map` export, `real-household-budget-plan`, and `real-future-museum-scene` from the current docs showcase because they lacked SAM mask/cutout/organic preview assets under the current strict gate.
+- Removed `real-react-performance-debug-flow`, `real-oauth2-flow`, `real-ecommerce-funnel`, and `real-kubernetes-architecture` from the docs showcase because they included `planned` or `sam3-refined-planned` hotspot sources and are not reliable enough for visual-alignment proof.
 
-- The first "context crop" fix was only a stopgap. A flat rectangle still dilutes the visual focus and looks bad. The user's real ask: an **irregular shape** that hugs the region contour, with original-image fill and a soft feathered edge, plus a small adaptive buffer so a bit of surrounding context is visible.
-- Critical realization: **the mask data was already correct end-to-end**. SAM3 worker runs `cv2.findContours` + `approxPolyDP` to extract a real polygon (up to 96 points) plus a bounds-cropped alpha PNG for every region. The SVG polygon hotspot layer already renders irregular clickable areas. The whole problem was confined to the preview renderer.
-- The preview now has three modes, decided by `inferPreviewStrategy` + mask availability:
-  1. Transparent SAM3 cutout — independent subjects only (object/person/product).
-  2. Organic feathered preview — map/scene/poster regions with a mask. Built on a client canvas: original image + dilated+blurred alpha mask via `destination-in`. Buffer scales as `√(maskArea) × 0.15` (clamped 4–22%).
-  3. Mask-CSS fallback — while the organic canvas is still rendering, the preview is already irregular via CSS `mask-image` (hard-edged), then swaps to the soft organic version.
-- `ctx.filter = "blur(Npx)"` on a copy-back draw is the cheapest reliable feather in canvas2d; no extra dependency. Pair it with a cheap 8-direction dilate so the silhouette grows before blurring, otherwise blur alone just erodes the edge.
-- The organic preview is async (image decode + canvas work), so the first render uses the CSS-mask fallback and hydrate re-renders once the organic PNG is cached. Cache key includes the kind (`organic` vs `cutout`) so the same mask data doesn't collide between the two builders.
-- Polygon hotspot layer and preview are now visually consistent: both follow the SAM3 contour. No data-shape changes, so old saved history is repaired on the fly.
+## 2026-06-25 Alignment Re-audit
+- User reported some docs demos still had failed visual alignment.
+- Tightened promotion rule at that time to reject `planned` source keys. This was later found insufficient because old demos could have visual sources but no SAM mask assets.
+- Current strict promoted source counts are recomputed from hotspot `alignmentSource`:
+  - West Lake: `mimo-vision:9`
+  - Smart home: `mimo-vision:5, locateanything-crop:1`
+  - Boutique coffee: `mimo-vision:5, locateanything-crop:1`
+  - Sunny reading nook: `locateanything:1, mimo-vision:4`
+  - Record store corner: `mimo-vision:5`
+  - Plant care corner: `mimo-vision:5`
+- Generated overlay audit sheet at `tmp/demo-alignment-audit-strict/contact-sheet.jpg`.
 
+## 2026-06-25 Fresh Daily Case Expansion
+- Added fresh non-flowchart cases to the real generator: compact home office desk, capsule wardrobe flatlay, family emergency kit, smartphone photography corner, fridge meal-prep shelf, bike commuter maintenance, skincare shelf routine, and farmers market shopping map.
+- Strict visual alignment health check passed after environment repair: LocateAnything ok, SAM ok, CUDA ok, checkpoint present.
+- Fresh batch A first case `compact-home-office-desk` failed and was rejected:
+  - Run dir: `tmp/real-demo-run-20260625-fresh-a`.
+  - Failure: every module failed strict visual alignment.
+  - Root cause 1: SAM environment initially lacked `cv2`, so masks were rejected.
+  - Root cause 2: LocateAnything did not locate the desktop objects and fell back to `mimo-vision`/`planned`.
+- Repaired SAM environment by installing `opencv-python-headless==4.10.0.84` and restoring `numpy==1.26.4`, because latest OpenCV had pulled incompatible `numpy==2.5.0`.
+- Fresh batch C rejected:
+  - `farmers-market-shopping-map`: rejected. Several modules lacked real SAM mask images or fell back to `sam3-refined-planned`; one truncated prompt-fragment module leaked into the structure.
+  - `home-kitchen-cooking-zones`: rejected. All modules were `sam3-refined-planned`, meaning SAM tightened planned areas but no primary visual locator succeeded.
+  - `acoustic-guitar-anatomy`: rejected. Part-level targets fell back to `mimo-vision` and lacked SAM masks.
+  - `neighborhood-library-map`: rejected. Mimo/planned fallback and truncated prompt fragments remained before the truncation-filter fix.
+- Fixed strict primary-source policy to match the current demo curation rule: `locateanything` and `mimo-vision` may be accepted as primary visual grounding sources, but `planned` and `sam3-refined-planned` are rejected. A real SAM mask image and organic preview are still required.
+- Fixed the truncated-question filter after review: legal object titles that appear in the user prompt are kept; only strong prompt-fragment signals such as leading `-` fragments and imperative prompt starts like `Create a ...` are removed.
+- Fresh batch D2 accepted after the fixes:
+  - `sunny-reading-nook`: `ci_7318affc-7a63-44b1-9bbb-97d93165a630`, 5 hotspots, `locateanything:1, mimo-vision:4`, all hotspot regions have mask and organic preview, no visible detail contamination found.
+  - `record-store-corner`: `ci_0a52d845-827e-4b3f-ad08-8b8d4d1943a8`, 5 hotspots, `mimo-vision:5`, all hotspot regions have mask and organic preview, no visible detail contamination found.
+  - `plant-care-corner`: `ci_1a6baf46-031e-40ae-9e08-76941ac395f1`, 5 hotspots, `mimo-vision:5`, all hotspot regions have mask and organic preview, no visible detail contamination found.
+- Docs showcase now exports 6 strict SAM-backed demos: West Lake, smart home, boutique coffee, sunny reading nook, record store corner, and indoor plant care corner.
 
-## 2026-06-16 Semantic Locate Hit Quality
-
-- LocateAnything worker had a real root-cause issue: it queried each module with one phrase, parsed every returned box, then chose the largest box. This explains failures where a top header strip, a cross-panel strip, or a neighboring module was accepted even though a better card-sized box existed.
-- The worker also had multiple `build_semantic_hint` definitions. The later simplified definition overrode the earlier card-aware definition, so explanatory words like "health check" could bias an infographic card toward a sensor/object target instead of "the complete card".
-- Crop-stage grounding dropped original Chinese target names in practice because the prompt leaned on English semantic hints. For maps, the crop prompt must explicitly carry `label` and `regionPrompt`; otherwise targets such as 三潭映月, 柳浪闻莺, or 曲院风荷 can drift even inside a planned crop.
-- Better LocateAnything usage is not just "more fallback". The improved approach is: ask several targeted queries, score every returned box, penalize known bad shapes, keep planned bounds as a geometry prior, and only then pass the chosen box to SAM3 for mask refinement.
-- Windows worker JSONL output must not depend on GBK. A real rerun produced a model answer containing `U+FFFD`, and `print(json.dumps(..., ensure_ascii=False))` failed before Node could parse the worker result. Fix: reconfigure stdout/stderr to UTF-8 and emit JSON with `ensure_ascii=True`.
-- Frontend strict repair was overcorrecting good LocateAnything boxes. `repairClickableBounds` expanded every box narrower than `0.22` by `0.06`; real K8s cards around `0.145` wide were already clickable, but expansion made adjacent columns overlap and triggered `planned-strict-repair`. Fix: only pad boxes that are below the actual minimum click size.
-
-## 2026-06-16 Strict Repair Root Cause
-
-- The latest coverage failures were not simply "LocateAnything/SAM3 failed". In the Kubernetes and RAG real samples, the alignment response contained usable MiMo/Locate bounds and SAM3 masks, but `applyAlignmentsToLayout()` then ran `enforceStrictLayoutRegions()` against `core.validateLayoutRegions()`.
-- `core.validateLayoutRegions()` uses a very small absolute overlap threshold (`0.002`). That is useful for planned grid boxes, but too strict for real vision boxes that naturally overlap a little at card shadows, labels, routes, or soft map regions.
-- The correct quality gate is now split:
-  - `validateAlignmentRegions()` rejects only heavy semantic overlap or unsafe bounds.
-  - `auditHotspotHitTest()` verifies every hotspot still has a clickable sample point.
-  - Server persistence allows overlap when `clickBoundsSource=hotspot-derived` and hit-test is OK.
-- Result: keep good visual boxes and masks when overlap is reasonable; only locally repair modules that create heavy overlap or steal every clickable point.
-- Browser audit is necessary because source counts alone can lie. A result can show `mask=9/9` but still have a bad preview policy; the audit now clicks every hotspot and records preview class, detail length, and screenshot artifacts.
-
-## 2026-06-16 Locate Box vs SAM Mask Boundary
-
-- The latest incomplete cutout cases point to a box-context issue, not a pure segmentation issue. SAM3 can only segment what it is shown; if the LocateAnything/MiMo box is tight around the body or text core, labels and edge details are easy to miss.
-- The correct fix is not to enlarge the frontend click rectangle. Click bounds should stay stable for hit-testing and overlap control.
-- The better fix is to enlarge only the SAM3 input bounds:
-  - click area = original semantic box;
-  - SAM input area = semantic box plus adaptive context;
-  - preview mask = SAM result inside the larger input area.
-- This keeps interaction predictable while giving SAM3 enough pixels to capture complete subjects, attached labels, route names, and organic region edges.
-
-## 2026-06-16 Subject Box Scoring and Audit Accuracy
-
-- LocateAnything can return a plausible but incomplete box for scene subjects, especially a short label next to an object. If the box is near the planned area, overlap scoring alone can make that tiny label look like a good semantic hit.
-- Subject-like modules (`object-with-label`, `subject-with-label`, `object`, `person`, `product`) need their own size checks. A candidate that is tiny, has a very small side, or is far smaller than the planned semantic region should not end the search early.
-- MiMo vision fallback should be a reviewer/corrector, not an unconditional override for every `scene/map/poster`. Good LocateAnything boxes should remain the primary model result; MiMo should step in for low-score, layout-guided, tiny-subject, or obviously huge non-background candidates.
-- Test audits must not click only the center of each hotspot. Map/background/water areas can legitimately overlap landmarks, so the center may belong to a foreground hotspot. The correct audit point is `alignmentRaw.hitTest.modules[].clickablePoint`.
-
-## 2026-06-16 Security Handoff Gap Scan
-
-- The image API does require a bare `Authorization: <key>` header. Using `Bearer` would break upstream compatibility, but putting the same key in `?key=` by default is unnecessary leakage. The correct default is header-only auth with an explicit legacy query switch.
-- `.env.local` override behavior is fixed by preserving the original shell environment keys before loading `.env`, then loading `.env.local` with overwrite enabled but still preserving shell-provided values.
-- SQLite consistency risk is already addressed by wrapping chat image/thread writes in `begin immediate transaction` with rollback on failure. The duplicate-message regression test confirms failed thread writes do not erase the previous valid thread.
-- `no-store` on every static asset was too conservative for the built app. The safer split is long immutable cache only for hash-named `dist/` assets, with HTML/JSON/source maps/non-hash files staying `no-cache`.
-- Request-level logging is not enough for production debugging. Process-level `unhandledRejection` and `uncaughtException` handlers should log stack/context at the main entry point, while still letting uncaught exceptions terminate the process.
-
-## 2026-06-23 Showcase and Campus Target Cleanup
-
-- The public docs demo was wrong in a separate way from the main app: it only opened static screenshots, so users could not verify hotspot/detail behavior. The fix is to publish reusable demo state (`visualSpec`, layout, and hotspots) as JSON next to each SVG and let the docs page render the same clickable hotspot model.
-- Campus-map prompts exposed a structural parsing edge case: `点击区域后解释用途和风貌` matched the generic `点击 X` extractor, creating a fake target named `区域后解释用途和风貌`. Filtering instruction tails must happen both before list splitting and again on individual labels.
-- The latest multi-instance artifact should include campus-guide-map in addition to scenic/map/product/technical/business cases, because it directly guards the prior 图书馆 alignment/semantic-target issue.
+## 2026-06-26 Strict Export Correction
+- Connected `scripts/generate-doc-demos.js` to the current strict visual-alignment gate. Export now skips any stored ChatImage whose hotspots lack primary visual grounding plus SAM mask, cutout, organic preview, and expanded organic bounds.
+- The old West Lake, household budget, and future museum exports were rejected by this gate and removed from the public showcase.
+- A new West Lake run, `ci_2e77c4cd-1f49-405f-832f-b3f6af1a0d74`, passed the current gate and restored West Lake as the homepage hero.
+- Manifest `sourceCounts` are recomputed from hotspot `alignmentSource` values, with missing values counted as `unknown` during validation rather than inherited from stale `alignmentRaw.sourceCounts`.
+- The homepage hero uses the regenerated strict West Lake demo.
