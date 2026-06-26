@@ -46,7 +46,7 @@
 
 ## 快速开始
 
-体验 ChatImage 最快的方式是无密钥的 `mock` 模式：
+先启动本地 ChatImage 服务：
 
 ```bash
 git clone https://github.com/wencanjiang/ChatImage.git
@@ -55,7 +55,15 @@ npm install
 npm start
 ```
 
-然后打开：
+然后打开公开展示入口：
+
+```text
+http://127.0.0.1:5178/docs/index.html
+```
+
+展示页不是另一条产品路径。它展示的是同一套 ChatImage 生成与视觉对齐链路跑出来、再筛选出的高质量结果，并保存到 `docs/assets/demos/`，方便访问者在没有 API key、GPU 或本地模型权重的情况下直接检查交互效果。
+
+如果要用确定性的 mock provider 在本地生成新的 ChatImage，使用同一个应用入口并加上 `provider=mock`：
 
 ```text
 http://127.0.0.1:5178?provider=mock
@@ -67,6 +75,23 @@ http://127.0.0.1:5178?provider=mock
 cp .env.example .env.local   # Windows: Copy-Item .env.example .env.local
 npm start
 ```
+
+## 精选 Demo 展示
+
+公开展示页只放同一套 ChatImage 工作流生成出的当前最可信案例，而不是所有生成结果。一个 demo 只有满足当前严格视觉对齐门禁才可发布：主定位来自 LocateAnything 或 MiMo vision，包含 SAM 精修 mask、实心抠图预览、有机羽化预览，以及向外扩展后的 organic bounds。
+
+当前发布的案例：
+
+| Demo | 类型 | 入选原因 |
+| --- | --- | --- |
+| 西湖手绘游览地图 | 地图 | 自然景区区域清晰，无数字标号，首页首图可点击。 |
+| 智能家居客厅 | 场景 | 大物体和家居体验区域边界明确。 |
+| 精品咖啡店 | 场景 | 日常空间动线清楚，目标可分离。 |
+| 阳光阅读角 | 场景 | 单房间构图稳定，物体边界强。 |
+| 独立唱片店角落 | 场景 | 零售区域相对密集但仍可读。 |
+| 室内植物养护角 | 场景 | 日常护理工具和植物目标明确。 |
+
+被拒或表现弱的案例记录在 `docs/demo-eligibility.md`，用于保持论文 benchmark 与公开展示页对失败模式的诚实描述。
 
 ## 环境要求
 
