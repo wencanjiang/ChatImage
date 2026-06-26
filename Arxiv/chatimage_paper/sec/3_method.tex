@@ -67,7 +67,7 @@ proceeds in two passes (Figure~\ref{fig:architecture}):
 
 The key design principle is that \method{} \textbf{does not assume the image
 generator follows the planned layout}. Instead of requiring precise spatial
-control---which diffusion models do not reliably provide~\citep{feng2024layoutgpt}
+control---which diffusion models do not reliably provide~\citep{feng2023layoutgpt}
 ---the system \emph{generates first, then grounds}. This makes hotspot
 alignment robust to the layout imprecision of generative models.
 
@@ -108,22 +108,33 @@ The core technical contribution is aligning the structured regions to the
 generated image. \method{} sends the image, its real dimensions, the modules,
 and their planned bounds to a vision backend that runs a grounding pipeline:
 
-\paragraph{LocateAnything grounding (primary).}
-A visual grounding model (LocateAnything~\citep{wang2025locateanything}) takes
-the image and, for each module, one or more locator phrases built from the
-module's title, region prompt, and semantic hints. It outputs a bounding box
-per module in normalized coordinates, scored against the planned bounds to
+\paragraph{Grounding provider.}
+The grounding step is provider-agnostic: \method{} ships a JSONL worker
+interface and any model that returns a normalized bounding box per locator
+phrase can be plugged in. Our reference implementation supports two
+interchangeable backends. The default is a dedicated referring-localization
+model (\textbf{LocateAnything-3B}~\citep{nvidia2025locateanything}), launched
+through the \texttt{locateanything\_worker.py} worker. As an alternative we
+also support a general vision-language model used in a structured-output
+grounding mode (\textbf{MiMo-Vision}~\citep{xiaomi2025mimovl}); this is
+the path actually used by several of our released demos
+(Section~\ref{sec:experiments_benchmark}). For each module the backend is
+given the image and one or more locator phrases built from the module's
+title, region prompt, and semantic hints. It outputs a bounding box per
+module in normalized coordinates, scored against the planned bounds to
 select the best candidate (with optional crop-and-re-ground for low-confidence
 cases). This is a \emph{referring localization} step: we are localizing
 ``where the module labeled $X$ actually rendered,'' not detecting a
 predefined object class.
 
 \paragraph{Fallbacks.}
-When LocateAnything is unavailable, \method{} falls back to a general
-vision-language model for grounding~\citep{liu2024internvl}, then to local
-OCR, and finally to the planned bounds. Each module is tagged with its
-alignment source (e.g., \textit{vision}, \textit{planned-fallback},
-\textit{vision-low-confidence}) so the system can report alignment quality.
+When the grounding backend rejects a module or is unavailable, \method{}
+falls back along a graded chain: a general VLM-based grounding pass, then
+local OCR, and finally the planned bounds. Each module is tagged with its
+alignment source (e.g., \textit{locateanything}, \textit{mimo-vision},
+\textit{sam3-refined-planned}, \textit{planned-fallback},
+\textit{vision-low-confidence}) so the system can report alignment quality
+per region rather than as a single aggregate score.
 
 \paragraph{Robustness to partial failure.}
 A single missing or low-confidence grounding must not corrupt the whole
@@ -137,10 +148,12 @@ clickability---enforcing a minimum area and safe margin---before becoming a
 hotspot.
 
 \paragraph{SAM3 mask refinement (optional).}
-For tighter visual previews, a segmentation model (SAM3, following the SAM
-family~\citep{kirillov2023sam,ravi2024sam2}) takes each grounded box as a
-prompt and predicts a pixel mask, from which a tightened box and polygon are
-derived. The mask is used only for preview rendering (cutout, organic
+For tighter visual previews, an interactive box-prompted segmentation
+model in the SAM family~\citep{kirillov2023sam,ravi2024sam2}---we use the
+SAM3 image checkpoint released by Meta\footnote{\url{https://github.com/facebookresearch/sam3}}
+through the \texttt{sam3\_worker.py} worker---takes each grounded box as a
+prompt and predicts a pixel mask, from which a tightened box and polygon
+are derived. The mask is used only for preview rendering (cutout, organic
 feathering, soft fade); \emph{click hit-testing always uses the rectangular
 box}, keeping interaction robust even when masks are imperfect.
 
