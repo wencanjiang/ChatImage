@@ -1262,7 +1262,19 @@ function stopProcess(child) {
   return new Promise((resolve) => {
     if (child.exitCode !== null) return resolve();
     child.once("exit", resolve);
-    child.kill();
+    // On Windows child.kill() only signals the parent process; Chromium/Edge
+    // (--headless=new) leaves its renderer/gpu/utility/crashpad children
+    // running, which accumulate and exhaust the machine across many runs.
+    // taskkill /T kills the whole process tree.
+    if (process.platform === "win32" && child.pid) {
+      try {
+        spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore" });
+      } catch (error) {
+        child.kill();
+      }
+    } else {
+      child.kill();
+    }
     setTimeout(resolve, 2000);
   });
 }
