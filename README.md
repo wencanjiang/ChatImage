@@ -46,7 +46,7 @@ English | [简体中文](README_CN.md)
 
 ## Quick Start
 
-The fastest way to try ChatImage is the no-key `mock` mode:
+Start the local ChatImage server:
 
 ```bash
 git clone https://github.com/wencanjiang/ChatImage.git
@@ -55,7 +55,15 @@ npm install
 npm start
 ```
 
-Then open:
+Then open the public showcase entry:
+
+```text
+http://127.0.0.1:5178/docs/index.html
+```
+
+The showcase is not a separate product path. It presents selected high-quality outputs from the same ChatImage generation and visual-alignment pipeline, saved under `docs/assets/demos/` so visitors can inspect the interaction without API keys, a GPU, or local model weights.
+
+To generate a new ChatImage locally with deterministic mock providers, use the same app entry with `provider=mock`:
 
 ```text
 http://127.0.0.1:5178?provider=mock
@@ -67,6 +75,23 @@ To use real LLM / image / vision providers, copy the env example and fill in you
 cp .env.example .env.local   # Windows: Copy-Item .env.example .env.local
 npm start
 ```
+
+## Curated Demo Showcase
+
+The public showcase intentionally includes only the best verified examples produced by the normal ChatImage workflow, not every generated run. A demo is eligible only when its hotspots pass the current strict visual-alignment gate: primary grounding from LocateAnything or MiMo vision, SAM-refined mask data, solid cutout preview, organic feathered preview, and expanded organic bounds.
+
+Current published examples:
+
+| Demo | Type | Why it is included |
+| --- | --- | --- |
+| West Lake hand-drawn tour map | Map | Natural scenic regions, no numbered pins, homepage hero is clickable. |
+| Smart home living room | Scene | Clear large objects and home-experience regions. |
+| Boutique coffee shop scene | Scene | Everyday spatial workflow with visually separable targets. |
+| Sunny reading nook | Scene | Cozy single-room composition with strong object boundaries. |
+| Independent record store corner | Scene | Dense but still readable retail zones. |
+| Indoor plant care corner | Scene | Small daily-care setup with distinct tools and plants. |
+
+Rejected or weak cases are tracked in `docs/demo-eligibility.md` so the paper benchmark and the public demo page stay honest about failure modes.
 
 ## Prerequisites
 
