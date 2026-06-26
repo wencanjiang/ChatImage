@@ -2,15 +2,17 @@
   "meta": {
     "en": {
       "title": "ChatImage - Turn LLM answers into interactive visual images",
-      "desc": "ChatImage converts long-form LLM answers into interactive visual images with clickable hotspots, detail panels, and follow-up threads."
+      "desc": "ChatImage turns long LLM answers into generated images with clickable regions, clean detail panels, and reusable visual state."
     },
     "zh": {
       "title": "ChatImage - 把 LLM 回答转为可交互视觉图像",
-      "desc": "ChatImage 把长文本 LLM 回答转换为可交互的视觉图像，含可点击热点、详情面板和追问线程。"
+      "desc": "ChatImage 把长篇 LLM 回答变成带可点击区域、清晰详情面板和可复用视觉状态的生成图像。"
     }
   },
   "dict": {
-    "__hero": "把 LLM 回答转为<span class=\"hl\">可交互的视觉图像</span>",
+    "3": "3",
+    "8": "8",
+    "__hero": "ChatImage",
     "4 hotspots": "4 个热点",
     "6 hotspots": "6 个热点",
     "7 hotspots": "7 个热点",
@@ -19,7 +21,6 @@
     "A long-form answer is produced by the selected provider or by mock mode.": "由所选供应商或 mock 模式生成一段长文本回答。",
     "API keys to view": "查看无需密钥",
     "Align hotspots": "对齐热点",
-    "All (5)": "全部 (5)",
     "Ask a question": "提出问题",
     "Boutique coffee shop scene": "精品咖啡店场景",
     "Business": "商业",
@@ -39,7 +40,6 @@
     "Features": "功能",
     "From wall-of-text answer to explorable image": "把长文本回答变成可探索的图像",
     "Full config docs": "完整配置文档",
-    "Future museum scene": "未来博物馆场景",
     "Generate an answer": "生成回答",
     "Generated ChatImages, hotspots, calibration data, and follow-up threads are stored locally so work survives restarts.": "生成的 ChatImage、热点、校准数据和追问线程持久化到本地，重启后工作不丢。",
     "Get started": "快速开始",
@@ -79,7 +79,7 @@
     "Smart home living room": "智能家居客厅",
     "Tech report": "技术报告",
     "Technical": "技术",
-    "Technical report": "技术报告",
+    "Technical report": "技术文档",
     "The answer becomes structured modules, auxiliary modules, and region metadata.": "回答被归一化为主模块、辅助模块和区域元数据。",
     "The hosted showcase is exported from real local runs: the image, hotspot bounds, layout state, and region detail JSON are preserved together.": "线上展示均从真实本地运行导出：图像、热点边界、布局状态、区域详情 JSON 全部保留。",
     "The image provider draws the visual from the structured prompt.": "图像供应商根据结构化提示词绘制视觉内容。",
@@ -89,9 +89,7 @@
     "This demo image is available, but its reusable hotspot JSON could not be loaded.": "该案例图像可用，但可复用的热点 JSON 未能加载。",
     "Transparent, accurate regions are placed over the generated image so each section can be explored independently.": "透明、精确的区域叠加在生成图像上，使每一部分都可独立探索。",
     "Try it in 3 commands": "三条命令运行",
-    "Verified daily case. A household budget visual covering income, bills, groceries, transport, emergency savings, and discretionary spending.": "已验证日常案例。家庭月度预算视觉化，涵盖收入、账单、食杂、交通、应急储蓄与自由支出。",
     "Verified run. A complete hand-drawn West Lake map with natural landmarks, water, bridges, hills, and clickable scenic areas.": "已验证生成。完整手绘西湖地图，含天然地标、湖面、桥梁、山丘和可点击景点区域。",
-    "Verified run. A single illustrated museum hall with a core exhibit, visitor path, guide robot, and immersive display targets.": "已验证生成。插画风格的博物馆大厅，含核心展品、参观路线、导览机器人和沉浸式展示目标。",
     "Verified visual scene. A cafe layout with clickable barista, espresso machine, pastry case, window seats, pickup shelf, and queue.": "已验证视觉场景。咖啡店布局，含可点击咖啡师、意式咖啡机、糕点柜、窗边座位、取餐架与排队区。",
     "Verified visual scene. An isometric home scene with clickable sofa, TV wall, robot vacuum, smart speaker, plants, and entrance area.": "已验证视觉场景。等距视角家居场景，含可点击沙发、电视墙、扫地机器人、智能音箱、绿植和入口区域。",
     "View demos": "查看案例",
@@ -106,6 +104,34 @@
     "verified daily planning case": "已验证日常规划案例",
     "verified real generated map": "已验证真实生成地图",
     "verified real generated scene": "已验证真实生成场景",
-    "verified visual scene": "已验证视觉场景"
+    "verified visual scene": "已验证视觉场景",
+    "The interactive answer image": "可交互答案图像",
+    "Open source": "开源项目",
+    "Turn long LLM answers into generated images with clickable regions, clean detail panels, and reusable visual state.": "把长篇 LLM 回答变成带可点击区域、清晰详情面板和可复用视觉状态的生成图像。",
+    "View live demos": "查看交互案例",
+    "Run locally": "本地运行",
+    "Verified West Lake case": "已验证西湖案例",
+    "9 preserved regions": "9 个保留区域",
+    "Click to explore": "点击探索",
+    "Strict exported demos": "严格导出案例",
+    "Mask gaps published": "发布缺失 mask 数",
+    "Strict SAM-backed case": "严格 SAM 支持案例",
+    "6 preserved regions": "6 个保留区域",
+    "Sunny reading nook": "阳光阅读角",
+    "Independent record store corner": "独立唱片店角落",
+    "Indoor plant care corner": "室内植物养护角",
+    "Fresh daily scene. A quiet apartment corner with clickable armchair, bookshelf, floor lamp, window, and tea table.": "新鲜日常场景。安静公寓角落，包含可点击的扶手椅、书架、落地灯、窗户和茶几。",
+    "Fresh daily scene. A record-store corner with clickable listening station, vinyl bins, counter, new arrivals wall, and posters.": "新鲜日常场景。唱片店角落，包含可点击的试听台、黑胶唱片箱、柜台、新品墙和海报展示。",
+    "Fresh daily scene. A plant-care setup with clickable monstera, watering can, grow light, potting bench, and humidity tray.": "新鲜日常场景。植物养护布置，包含可点击的龟背竹、浇水壶、补光灯、换盆台和保湿托盘。",
+    "verified fresh daily scene": "已验证新鲜日常场景",
+    "5 hotspots": "5 个热点",
+    "Strict West Lake case": "严格西湖案例",
+    "All (6)": "全部 (6)",
+    "strict SAM-backed map": "严格 SAM 支持地图",
+    "Strict regenerated map. A hand-drawn West Lake tour image with SAM-backed clickable water, bridges, causeways, hills, and scenic areas.": "严格重新生成地图。一张西湖手绘游览图，湖面、桥梁、堤岸、山体和景区都带有 SAM 支持的可点击区域。",
+    "Region details": "区域详解",
+    "Select a region": "选择一个区域",
+    "Click a region on the image to inspect its preserved preview and explanation.": "点击图中的区域，查看保留下来的预览图和区域说明。",
+    "0 hotspots": "0 个热点"
   }
 }

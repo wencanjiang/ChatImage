@@ -8,29 +8,29 @@
 <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
 <style>
   :root{
-    --bg:#f7f3ea;
-    --panel:#fffaf0;
-    --panel-strong:#fffdf8;
-    --text:#25211c;
-    --muted:#6f685f;
-    --line:#dfd7ca;
-    --line-soft:#e7ddcf;
-    --accent:#c15f3c;
-    --accent-strong:#9f472b;
-    --accent-soft:#f7dfd2;
-    --accent-tint:#fff6f0;
-    --good:#397456;
-    --shadow:0 18px 46px rgba(59,46,34,.12);
-    --radius:14px;
-    --radius-sm:10px;
-    --maxw:1120px;
+    --bg:#fffaf5;
+    --panel:#ffffff;
+    --panel-strong:#ffffff;
+    --text:#080706;
+    --muted:rgba(8,7,6,.56);
+    --line:rgba(8,7,6,.12);
+    --line-soft:rgba(8,7,6,.08);
+    --accent:#e58522;
+    --accent-strong:#b75f11;
+    --accent-soft:rgba(229,133,34,.12);
+    --accent-tint:#fff4e8;
+    --good:#2f7d4f;
+    --shadow:0 28px 70px rgba(117,70,22,.12);
+    --radius:8px;
+    --radius-sm:8px;
+    --maxw:1200px;
     --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{
     margin:0;
-    background:radial-gradient(circle at top left,rgba(193,95,60,.08),transparent 32rem),var(--bg);
+    background:linear-gradient(180deg,#fff 0%,#fff7ef 620px,#fff 1180px);
     color:var(--text);
     font-family:"LXGW WenKai Mono","LXGW WenKai","Microsoft YaHei",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
     line-height:1.6;
@@ -47,12 +47,12 @@
     position:sticky;
     top:0;
     z-index:50;
-    background:rgba(255,250,240,.88);
-    backdrop-filter:blur(12px);
-    -webkit-backdrop-filter:blur(12px);
-    border-bottom:1px solid var(--line);
+    background:rgba(255,255,255,.82);
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+    border-bottom:1px solid rgba(8,7,6,.06);
   }
-  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:62px}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
   .brand{display:flex;align-items:center;gap:10px;font-weight:720;font-size:18px;color:var(--text)}
   .brand img{width:30px;height:30px}
   .nav-links{display:flex;align-items:center;gap:22px;font-size:15px}
@@ -64,7 +64,7 @@
     align-items:center;
     justify-content:center;
     gap:8px;
-    border-radius:var(--radius-sm);
+    border-radius:999px;
     padding:10px 18px;
     font-weight:700;
     font-size:15px;
@@ -78,42 +78,182 @@
     outline:3px solid rgba(193,95,60,.35);
     outline-offset:3px;
   }
-  .btn-primary{background:var(--accent);color:#fffaf0}
+  .btn-primary{background:#080706;color:#fff}
   .btn-primary:hover{background:var(--accent-strong)}
-  .btn-ghost{border-color:var(--line);background:var(--panel-strong);color:var(--text)}
+  .btn-ghost{border-color:rgba(8,7,6,.1);background:rgba(255,255,255,.8);color:var(--text)}
   .btn-ghost:hover{border-color:var(--accent);color:var(--accent-strong)}
   .btn-sm{padding:7px 14px;font-size:14px}
 
-  .hero{padding:84px 0 56px;text-align:center}
+  .hero{padding:92px 0 42px;text-align:center}
   .hero h1{
-    font-size:clamp(34px,5vw,56px);
-    line-height:1.12;
+    font-size:clamp(56px,9vw,94px);
+    line-height:.98;
     margin:0 0 18px;
-    font-weight:740;
+    font-weight:820;
+    letter-spacing:-.04em;
     text-wrap:balance;
   }
-  .hero h1 .hl{color:var(--accent-strong)}
+  .hero h1 .hl{color:var(--accent)}
   .hero .sub{
-    font-size:clamp(17px,2vw,21px);
+    font-size:clamp(17px,2vw,20px);
     color:var(--muted);
-    max-width:710px;
-    margin:0 auto 28px;
-    line-height:1.6;
+    max-width:680px;
+    margin:0 auto 26px;
+    line-height:1.55;
     text-wrap:pretty;
   }
-  .badges{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-bottom:30px}
-  .badges img{height:24px}
-  .hero-cta{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-bottom:48px}
-  .hero-shot{
-    border:1px solid var(--line);
-    border-radius:var(--radius);
-    overflow:hidden;
-    box-shadow:var(--shadow);
-    background:#fffdf8;
-    max-width:1040px;
-    margin:0 auto;
+  .badges{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:22px;
   }
-  .hero-shot img{width:100%}
+  .badges a,
+  .badges span{
+    display:inline-flex;
+    align-items:center;
+    min-height:30px;
+    border:1px solid rgba(229,133,34,.18);
+    border-radius:999px;
+    padding:5px 12px;
+    color:var(--accent-strong);
+    background:rgba(229,133,34,.1);
+    font-size:12px;
+    font-weight:760;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .badges a:hover{text-decoration:none;background:rgba(229,133,34,.16)}
+  .badges img{display:none}
+  .hero-cta{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-bottom:54px}
+  .hero-demo{
+    max-width:1180px;
+    margin:0 auto;
+    position:relative;
+  }
+  .hero-stage{
+    position:relative;
+    border-radius:14px;
+    overflow:hidden;
+    background:#fff6ec;
+    border:1px solid rgba(8,7,6,.08);
+    box-shadow:0 45px 90px rgba(8,7,6,.12),0 1px 0 rgba(255,255,255,.85) inset;
+  }
+  .hero-stage-img{display:block;width:100%;height:auto}
+  .hero-hotspots{position:absolute;inset:0;pointer-events:none}
+  .hero-hotspot{
+    position:absolute;
+    border:0;
+    background:transparent;
+    box-shadow:none;
+    cursor:pointer;
+    pointer-events:auto;
+    transition:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .hero-hotspot::before{
+    content:"";
+    display:none;
+  }
+  .hero-hotspot::after{
+    content:"";
+    display:none;
+  }
+  .hero-hotspot:hover,
+  .hero-hotspot.active{background:transparent;box-shadow:none}
+  .hero-hotspot:focus-visible{outline:2px solid rgba(180,74,34,.86);outline-offset:2px}
+  /* Popover that appears next to a clicked hotspot. */
+  .hero-popover{
+    position:absolute;
+    left:0;
+    top:0;
+    transform:translateY(6px) scale(.96);
+    transform-origin:var(--hero-popover-origin,top left);
+    width:min(360px,calc(100% - 24px));
+    max-width:360px;
+    background:#ffffff;
+    border:1px solid rgba(8,7,6,.08);
+    border-radius:14px;
+    box-shadow:0 24px 60px rgba(20,16,12,.22),0 6px 14px rgba(20,16,12,.12);
+    padding:14px 16px 16px;
+    pointer-events:auto;
+    opacity:0;
+    visibility:hidden;
+    transition:opacity .2s ease,transform .26s cubic-bezier(.2,.6,.2,1),visibility 0s linear .2s;
+    z-index:30;
+    text-align:left;
+  }
+  .hero-popover.open{
+    opacity:1;
+    visibility:visible;
+    transform:translateY(0) scale(1);
+    transition:opacity .2s ease,transform .26s cubic-bezier(.2,.6,.2,1),visibility 0s;
+  }
+  .hero-popover-preview{
+    width:100%;
+    aspect-ratio:16/10;
+    border-radius:10px;
+    overflow:hidden;
+    background:#fff6ec;
+    margin-bottom:12px;
+    box-shadow:0 6px 14px rgba(20,16,12,.1);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .hero-popover-preview img{display:block;width:100%;height:100%;object-fit:cover}
+  .hero-popover-preview.cutout{background:transparent;box-shadow:none}
+  .hero-popover-preview.cutout img{object-fit:contain;filter:drop-shadow(0 8px 18px rgba(20,16,12,.22))}
+  .hero-popover-body{display:flex;flex-direction:column;gap:6px}
+  .hero-popover-kicker{
+    margin:0;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent-strong);
+    font-weight:760;
+  }
+  .hero-popover-title{
+    margin:0;
+    font-size:18px;
+    font-weight:740;
+    letter-spacing:-.01em;
+    color:var(--text);
+  }
+  .hero-popover-detail{
+    margin:0;
+    color:var(--muted);
+    font-size:14px;
+    line-height:1.55;
+    max-height:200px;
+    overflow:auto;
+  }
+  .hero-popover-close{
+    position:absolute;
+    top:8px;
+    right:8px;
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    border:1px solid rgba(8,7,6,.1);
+    background:#fff;
+    color:var(--muted);
+    font-size:18px;
+    line-height:1;
+    cursor:pointer;
+    transition:background .15s ease,color .15s ease,border-color .15s ease;
+  }
+  .hero-popover-close:hover,.hero-popover-close:focus-visible{
+    background:var(--accent);
+    color:#fffaf0;
+    border-color:var(--accent);
+    outline:none;
+  }
+  @media (max-width:680px){
+    .hero-popover{width:calc(100% - 24px)}
+    .hero-popover-detail{max-height:160px}
+  }
 
   .sec-head{text-align:center;margin-bottom:44px}
   .sec-head h2{
@@ -146,7 +286,7 @@
   .card .icon{
     width:44px;
     height:44px;
-    border-radius:11px;
+    border-radius:var(--radius);
     display:grid;
     place-items:center;
     background:var(--accent-soft);
@@ -185,11 +325,11 @@
     gap:6px;
     margin:0 auto 40px;
     padding:6px;
-    background:var(--panel);
+    background:rgba(255,255,255,.84);
     border:1px solid var(--line-soft);
     border-radius:999px;
     max-width:max-content;
-    box-shadow:0 1px 0 rgba(59,46,34,.04) inset;
+    box-shadow:0 10px 28px rgba(8,7,6,.04);
   }
   .filter-tab{
     border:1px solid var(--line);
@@ -221,18 +361,18 @@
   .demo{
     background:var(--panel);
     border:1px solid var(--line-soft);
-    border-radius:20px;
+    border-radius:var(--radius);
     overflow:hidden;
     display:flex;
     flex-direction:column;
     transition:transform .25s cubic-bezier(.2,.6,.2,1),box-shadow .25s ease,border-color .2s ease;
-    box-shadow:0 1px 2px rgba(59,46,34,.04);
+    box-shadow:0 1px 2px rgba(8,7,6,.04);
     position:relative;
   }
   .demo:hover{
     transform:translateY(-6px);
     border-color:var(--accent-soft);
-    box-shadow:0 18px 38px -12px rgba(59,46,34,.18),0 4px 10px -4px rgba(59,46,34,.08);
+    box-shadow:0 22px 44px -18px rgba(8,7,6,.2),0 6px 14px -8px rgba(8,7,6,.1);
   }
   .demo:hover .tag{transform:translateY(0);opacity:1}
   .demo:hover .open-hint{transform:translateY(0);opacity:1}
@@ -243,7 +383,7 @@
     aspect-ratio:16/10;
     overflow:hidden;
     border-bottom:1px solid var(--line-soft);
-    background:linear-gradient(135deg,#fbf6ec,#f3e9d8);
+    background:#fff6ec;
     cursor:zoom-in;
   }
   .demo .shot::before{
@@ -282,7 +422,7 @@
     top:14px;
     left:14px;
     z-index:2;
-    background:rgba(255,250,240,.92);
+    background:rgba(255,255,255,.9);
     border:1px solid rgba(0,0,0,.04);
     border-radius:999px;
     padding:5px 12px;
@@ -311,10 +451,10 @@
     right:14px;
     bottom:14px;
     z-index:2;
-    color:#fffaf0;
-    background:var(--accent);
-    border:1px solid var(--accent);
-    border-radius:10px;
+    color:#fff;
+    background:#080706;
+    border:1px solid #080706;
+    border-radius:999px;
     padding:6px 11px;
     font-size:12px;
     font-weight:760;
@@ -419,16 +559,17 @@
     display:grid;
     grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
     gap:16px;
-    background:var(--panel);
-    border:1px solid var(--line-soft);
+    background:rgba(255,255,255,.82);
+    border:1px solid rgba(8,7,6,.08);
     border-radius:var(--radius);
-    padding:30px;
+    padding:22px;
+    box-shadow:0 14px 36px rgba(8,7,6,.04);
   }
   .stat{text-align:center}
   .stat .n{font-size:32px;font-weight:800;color:var(--accent-strong);line-height:1}
   .stat .l{color:var(--muted);font-size:13px;margin-top:6px}
   .cta-band{
-    background:linear-gradient(135deg,var(--accent-soft),var(--accent-tint));
+    background:linear-gradient(180deg,rgba(229,133,34,.12),rgba(229,133,34,.05));
     border:1px solid var(--accent-soft);
     border-radius:var(--radius);
     padding:48px 36px;
@@ -456,9 +597,9 @@
     display:none;
     align-items:center;
     justify-content:center;
-    background:rgba(37,33,28,.78);
-    backdrop-filter:blur(8px);
-    -webkit-backdrop-filter:blur(8px);
+    background:rgba(8,7,6,.74);
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
     padding:24px;
   }
   .lightbox.open{display:flex}
@@ -470,24 +611,29 @@
   }
   .interactive-viewer{
     display:grid;
-    grid-template-columns:minmax(0,1fr) minmax(340px,410px);
-    gap:18px;
+    grid-template-columns:minmax(0,1fr) minmax(320px,390px);
+    gap:12px;
     align-items:stretch;
+    padding:12px;
+    border:1px solid rgba(255,255,255,.16);
+    border-radius:14px;
+    background:rgba(255,255,255,.1);
+    box-shadow:0 34px 100px rgba(0,0,0,.34);
   }
   .demo-stage{
     position:relative;
     overflow:hidden;
-    border-radius:8px;
-    background:#fffaf0;
-    border:1px solid rgba(255,250,240,.34);
-    box-shadow:0 30px 90px rgba(0,0,0,.34);
+    border-radius:10px;
+    background:#fff;
+    border:1px solid rgba(255,255,255,.34);
+    box-shadow:none;
     aspect-ratio:16/9;
   }
   .demo-stage img{
     width:100%;
     height:100%;
     object-fit:contain;
-    background:#fffaf0;
+    background:#fff;
   }
   .demo-hotspots{
     position:absolute;
@@ -498,11 +644,11 @@
     position:absolute;
     border:0;
     background:transparent;
-    border-radius:8px;
     box-shadow:none;
     cursor:pointer;
     pointer-events:auto;
     transition:none;
+    -webkit-tap-highlight-color:transparent;
   }
   .demo-hotspot::before{
     content:"";
@@ -513,67 +659,101 @@
     display:none;
   }
   .demo-hotspot:hover,
-  .demo-hotspot.active{
-    background:transparent;
-    box-shadow:none;
-    transform:none;
-  }
-  .demo-hotspot:focus-visible{
-    outline:2px solid rgba(180,74,34,.86);
-    outline-offset:2px;
-  }
+  .demo-hotspot.active{background:transparent;box-shadow:none}
+  .demo-hotspot:focus-visible{outline:2px solid rgba(180,74,34,.86);outline-offset:2px}
   .demo-detail{
     min-height:0;
-    max-height:min(72vh,620px);
-    overflow:auto;
-    border-radius:8px;
-    border:1px solid rgba(66,58,48,.12);
-    background:#fffdf8;
-    padding:24px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:10px;
+    background:#fff;
     color:var(--text);
-    box-shadow:0 24px 70px rgba(0,0,0,.22);
+    padding:16px;
+    overflow:auto;
+  }
+  .demo-detail-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding-bottom:12px;
+    border-bottom:1px solid rgba(8,7,6,.08);
   }
   .demo-detail-kicker{
-    margin:0 0 8px;
-    color:var(--accent-strong);
-    font-size:12px;
-    font-weight:800;
-    letter-spacing:.08em;
+    margin:0 0 4px;
+    font-size:11px;
+    letter-spacing:.12em;
     text-transform:uppercase;
+    color:var(--accent-strong);
+    font-weight:760;
   }
-  .demo-detail h3{
-    margin:0 0 10px;
+  .demo-detail-title{
+    margin:0;
     font-size:21px;
-    line-height:1.25;
+    line-height:1.18;
+    font-weight:780;
+    letter-spacing:0;
   }
-  .demo-detail .short{
-    margin:0 0 12px;
-    color:#4b443d;
-    font-weight:680;
+  .demo-detail-count{
+    flex:0 0 auto;
+    border:1px solid rgba(8,7,6,.1);
+    border-radius:999px;
+    padding:6px 10px;
+    color:var(--muted);
+    font-size:12px;
+    font-weight:720;
+    white-space:nowrap;
   }
-  .demo-detail .long{
+  .demo-detail-preview{
+    width:100%;
+    aspect-ratio:16/10;
+    border-radius:10px;
+    overflow:hidden;
+    background:#fff6ec;
+    border:1px solid rgba(8,7,6,.08);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .demo-detail-preview img{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:contain;
+  }
+  .demo-detail-preview.fallback img{object-fit:cover}
+  .demo-detail-preview.cutout{background:linear-gradient(135deg,#fff 0%,#fff7ef 100%)}
+  .demo-detail-preview.cutout img{filter:drop-shadow(0 10px 20px rgba(20,16,12,.18))}
+  .demo-detail-body{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .demo-detail-text{
     margin:0;
     color:var(--muted);
-    font-size:15px;
-    line-height:1.78;
+    font-size:14px;
+    line-height:1.62;
   }
-  .demo-detail-intro{
-    padding-bottom:16px;
-    margin-bottom:16px;
-    border-bottom:1px solid var(--line-soft);
-  }
-  .demo-detail-body{
-    padding-top:2px;
+  .demo-detail-empty{
+    margin:auto;
+    max-width:30ch;
+    color:var(--muted);
+    text-align:center;
+    font-size:14px;
+    line-height:1.55;
   }
   .lightbox-close{
     position:absolute;
-    top:10px;
-    right:10px;
+    top:-14px;
+    right:-14px;
     width:36px;
     height:36px;
-    border-radius:50%;
+    border-radius:999px;
     border:0;
-    background:var(--accent);
+    background:#080706;
     color:#fff;
     font-size:20px;
     cursor:pointer;
@@ -590,6 +770,7 @@
     .qs-grid{grid-template-columns:1fr}
     .interactive-viewer{grid-template-columns:1fr}
     .demo-detail{max-height:34vh}
+    .hero-shot-toolbar{align-items:flex-start;flex-direction:column}
   }
   @media(max-width:640px){
     .wrap{padding:0 18px}
@@ -605,13 +786,15 @@
     .lightbox{padding:14px}
     .lightbox-inner{width:96vw}
     .lightbox-close{top:-10px;right:-8px}
+    .hero-shot-toolbar span{display:none}
+    .hero-shot-action{right:12px;bottom:12px}
     .demo-hotspot::before{width:14px;height:14px}
     .demo-hotspot::after{display:none}
     footer .wrap{align-items:flex-start}
   }
 
   .lang-toggle{margin-left:8px;border:1px solid var(--line);background:var(--panel);
-    color:var(--text);font:600 13px/1 inherit;padding:7px 12px;border-radius:8px;
+    color:var(--text);font:600 13px/1 inherit;padding:7px 12px;border-radius:999px;
     cursor:pointer;transition:border-color .15s ease,color .15s ease,background .15s ease}
   .lang-toggle:hover{border-color:var(--accent);color:var(--accent-strong);background:var(--accent-soft)}
   .lang-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -636,19 +819,34 @@
 <header class="hero" id="top">
   <div class="wrap">
     <div class="badges">
-      <a href="https://arxiv.org/abs/XXXX.XXXXX" target="_blank" rel="noopener"><img src="https://img.shields.io/badge/arXiv-Paper-b31b1b?style=flat-square&logo=arxiv" alt="arXiv paper" /></a>
-      <a href="https://github.com/wencanjiang/ChatImage" target="_blank" rel="noopener"><img src="https://img.shields.io/badge/GitHub-Repo-1f6feb?style=flat-square&logo=github" alt="GitHub repository" /></a>
-      <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square&logo=opensourceinitiative" alt="MIT license" />
-      <img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=flat-square&logo=nodedotjs" alt="Node.js 18 or newer" />
+      <span>The interactive answer image</span>
+      <a href="https://github.com/wencanjiang/ChatImage" target="_blank" rel="noopener">Open source</a>
+      <a href="TECHNICAL_REPORT.md" target="_blank" rel="noopener">Technical report</a>
     </div>
-    <h1>Turn LLM answers into <span class="hl">interactive visual images</span></h1>
-    <p class="sub">ChatImage converts a long answer into a structured image with clickable regions, per-region detail panels, and contextual follow-up threads. The showcase below uses real generated images exported from recent runs.</p>
+    <h1>ChatImage</h1>
+    <p class="sub">Turn long LLM answers into generated images with clickable regions, clean detail panels, and reusable visual state.</p>
     <div class="hero-cta">
-      <a class="btn btn-primary" href="#quickstart">Try it in 3 commands</a>
-      <a class="btn btn-ghost" href="#demos">View demos</a>
+      <a class="btn btn-primary" href="#demos">View live demos</a>
+      <a class="btn btn-ghost" href="#quickstart">Run locally</a>
     </div>
-    <div class="hero-shot reveal">
-      <img src="assets/demos/real-west-lake-tour-map.png" alt="ChatImage real generated West Lake tour map demo" />
+        <div class="hero-demo reveal"
+         id="heroDemo"
+         data-demo="assets/demos/real-west-lake-tour-map.json"
+         data-img="assets/demos/real-west-lake-tour-map.png"
+         data-title="West Lake hand-drawn tour map">
+      <div class="hero-stage" id="heroStage">
+        <img class="hero-stage-img" id="heroStageImg" src="assets/demos/real-west-lake-tour-map.png" alt="West Lake hand-drawn tour map" />
+        <div class="hero-hotspots" id="heroHotspots"></div>
+        <div class="hero-popover" id="heroPopover" role="dialog" aria-hidden="true">
+          <div class="hero-popover-preview" id="heroPopoverPreview"></div>
+          <div class="hero-popover-body">
+            <p class="hero-popover-kicker">Interactive region</p>
+            <h3 class="hero-popover-title" id="heroPopoverTitle"></h3>
+            <p class="hero-popover-detail" id="heroPopoverDetail"></p>
+          </div>
+          <button type="button" class="hero-popover-close" id="heroPopoverClose" aria-label="Close region preview">&times;</button>
+        </div>
+      </div>
     </div>
   </div>
 </header>
@@ -656,8 +854,8 @@
 <section style="padding-top:0">
   <div class="wrap">
     <div class="stats reveal">
-      <div class="stat"><div class="n">5</div><div class="l">Real exported demos</div></div>
-      <div class="stat"><div class="n">4</div><div class="l">Content types</div></div>
+      <div class="stat"><div class="n">6</div><div class="l">Strict exported demos</div></div>
+      <div class="stat"><div class="n">0</div><div class="l">Mask gaps published</div></div>
       <div class="stat"><div class="n">0</div><div class="l">API keys to view</div></div>
       <div class="stat"><div class="n">100%</div><div class="l">Reusable JSON state</div></div>
     </div>
@@ -733,37 +931,18 @@
       <p>These curated cases use actual ChatImage generated PNGs and exported hotspot state. Open a demo, click its regions, and reuse the preserved JSON state when needed.</p>
     </div>
     <div class="filter-tabs reveal" aria-label="Demo filters">
-      <button class="filter-tab active" type="button" data-filter="all">All (5)</button>
+      <button class="filter-tab active" type="button" data-filter="all">All (6)</button>
       <button class="filter-tab" type="button" data-filter="map">Maps</button>
       <button class="filter-tab" type="button" data-filter="scene">Scene</button>
-      <button class="filter-tab" type="button" data-filter="business">Business</button>
     </div>
     <div class="demo-grid">
       <article class="demo reveal" data-cat="map" data-demo="assets/demos/real-west-lake-tour-map.json" data-img="assets/demos/real-west-lake-tour-map.png" data-title="West Lake hand-drawn tour map">
         <div class="shot"><img src="assets/demos/real-west-lake-tour-map.png" alt="West Lake hand-drawn tour map real generated demo" loading="lazy" /></div>
         <div class="body">
           <h3>West Lake hand-drawn tour map</h3>
-          <p class="q">Verified run. A complete hand-drawn West Lake map with natural landmarks, water, bridges, hills, and clickable scenic areas.</p>
-          <div class="meta"><span>verified real generated map</span><span>9 hotspots</span></div>
+          <p class="q">Strict regenerated map. A hand-drawn West Lake tour image with SAM-backed clickable water, bridges, causeways, hills, and scenic areas.</p>
+          <div class="meta"><span>strict SAM-backed map</span><span>9 hotspots</span></div>
           <button class="copy-q" type="button" data-copy="Create a hand-drawn West Lake tour map as one coherent landscape image. Do not draw numbered pins, a right-side attraction list, or pre-split region borders. Let users click natural scenic areas to inspect their travel value.">Copy question</button>
-        </div>
-      </article>
-      <article class="demo reveal" data-cat="business" data-demo="assets/demos/real-household-budget-plan.json" data-img="assets/demos/real-household-budget-plan.png" data-title="Young family monthly budget">
-        <div class="shot"><img src="assets/demos/real-household-budget-plan.png" alt="Young family monthly budget real generated demo" loading="lazy" /></div>
-        <div class="body">
-          <h3>Young family monthly budget</h3>
-          <p class="q">Verified daily case. A household budget visual covering income, bills, groceries, transport, emergency savings, and discretionary spending.</p>
-          <div class="meta"><span>verified daily planning case</span><span>7 hotspots</span></div>
-          <button class="copy-q" type="button" data-copy="Create a visual monthly household budget plan for a young family. Cover income, fixed bills, groceries, transport, emergency savings, discretionary spending, and month-end review.">Copy question</button>
-        </div>
-      </article>
-      <article class="demo reveal" data-cat="scene" data-demo="assets/demos/real-future-museum-scene.json" data-img="assets/demos/real-future-museum-scene.png" data-title="Future museum scene">
-        <div class="shot"><img src="assets/demos/real-future-museum-scene.png" alt="Future museum scene real generated demo" loading="lazy" /></div>
-        <div class="body">
-          <h3>Future museum scene</h3>
-          <p class="q">Verified run. A single illustrated museum hall with a core exhibit, visitor path, guide robot, and immersive display targets.</p>
-          <div class="meta"><span>verified real generated scene</span><span>4 hotspots</span></div>
-          <button class="copy-q" type="button" data-copy="Create an immersive future museum illustration as one coherent scene. Avoid flowchart cards and pre-split borders. Let users click the core exhibit, visitor path, guide robot, and immersive screen.">Copy question</button>
         </div>
       </article>
       <article class="demo reveal" data-cat="scene" data-demo="assets/demos/real-smart-home-living-room.json" data-img="assets/demos/real-smart-home-living-room.png" data-title="Smart home living room">
@@ -782,6 +961,33 @@
           <p class="q">Verified visual scene. A cafe layout with clickable barista, espresso machine, pastry case, window seats, pickup shelf, and queue.</p>
           <div class="meta"><span>verified visual scene</span><span>6 hotspots</span></div>
           <button class="copy-q" type="button" data-copy="Create an isometric boutique coffee shop scene. Let users click the barista, espresso machine, pastry case, window seating, pickup shelf, and entrance queue to inspect how the space works.">Copy question</button>
+        </div>
+      </article>
+      <article class="demo reveal" data-cat="scene" data-demo="assets/demos/real-sunny-reading-nook.json" data-img="assets/demos/real-sunny-reading-nook.png" data-title="Sunny reading nook">
+        <div class="shot"><img src="assets/demos/real-sunny-reading-nook.png" alt="Sunny reading nook real generated demo" loading="lazy" /></div>
+        <div class="body">
+          <h3>Sunny reading nook</h3>
+          <p class="q">Fresh daily scene. A quiet apartment corner with clickable armchair, bookshelf, floor lamp, window, and tea table.</p>
+          <div class="meta"><span>verified fresh daily scene</span><span>5 hotspots</span></div>
+          <button class="copy-q" type="button" data-copy="Create a cozy illustrated reading nook scene in a small apartment. Naturally show five large visible targets: armchair, bookshelf, floor lamp, window, and side table with tea.">Copy question</button>
+        </div>
+      </article>
+      <article class="demo reveal" data-cat="scene" data-demo="assets/demos/real-record-store-corner.json" data-img="assets/demos/real-record-store-corner.png" data-title="Independent record store corner">
+        <div class="shot"><img src="assets/demos/real-record-store-corner.png" alt="Independent record store corner real generated demo" loading="lazy" /></div>
+        <div class="body">
+          <h3>Independent record store corner</h3>
+          <p class="q">Fresh daily scene. A record-store corner with clickable listening station, vinyl bins, counter, new arrivals wall, and posters.</p>
+          <div class="meta"><span>verified fresh daily scene</span><span>5 hotspots</span></div>
+          <button class="copy-q" type="button" data-copy="Create an illustrated independent record store corner. Naturally show five large visible targets: listening station, vinyl bins, staff counter, new arrivals wall, and poster display.">Copy question</button>
+        </div>
+      </article>
+      <article class="demo reveal" data-cat="scene" data-demo="assets/demos/real-plant-care-corner.json" data-img="assets/demos/real-plant-care-corner.png" data-title="Indoor plant care corner">
+        <div class="shot"><img src="assets/demos/real-plant-care-corner.png" alt="Indoor plant care corner real generated demo" loading="lazy" /></div>
+        <div class="body">
+          <h3>Indoor plant care corner</h3>
+          <p class="q">Fresh daily scene. A plant-care setup with clickable monstera, watering can, grow light, potting bench, and humidity tray.</p>
+          <div class="meta"><span>verified fresh daily scene</span><span>5 hotspots</span></div>
+          <button class="copy-q" type="button" data-copy="Create an illustrated indoor plant care corner for a beginner. Naturally show five large visible targets: monstera plant, watering can, grow light, potting bench, and humidity tray.">Copy question</button>
         </div>
       </article>
     </div>
@@ -842,7 +1048,7 @@
     <div class="brand"><img src="assets/logo.svg" alt="" />ChatImage</div>
     <div class="links">
       <a href="https://github.com/wencanjiang/ChatImage" target="_blank" rel="noopener">GitHub</a>
-      <a href="https://arxiv.org/abs/XXXX.XXXXX" target="_blank" rel="noopener">arXiv</a>
+      <a href="https://github.com/wencanjiang/ChatImage/tree/main/Arxiv/chatimage_paper" target="_blank" rel="noopener">Paper (draft)</a>
       <a href="TECHNICAL_REPORT.md" target="_blank" rel="noopener">Tech report</a>
       <a href="https://github.com/wencanjiang/ChatImage/issues" target="_blank" rel="noopener">Issues</a>
     </div>
@@ -858,14 +1064,17 @@
         <img id="lightboxImg" src="" alt="" />
         <div class="demo-hotspots" id="demoHotspots"></div>
       </div>
-      <aside class="demo-detail">
-        <div class="demo-detail-intro">
-          <p class="demo-detail-kicker">Interactive regions</p>
-          <h3 id="demoPanelTitle">Select a hotspot</h3>
-          <p class="short" id="demoPanelSub">Each preserved demo state includes reusable hotspot bounds and region text.</p>
+      <aside class="demo-detail" id="demoDetail" aria-live="polite">
+        <div class="demo-detail-head">
+          <div>
+            <p class="demo-detail-kicker">Region details</p>
+            <h3 class="demo-detail-title" id="demoDetailTitle">Select a region</h3>
+          </div>
+          <span class="demo-detail-count" id="demoDetailCount">0 hotspots</span>
         </div>
-        <div class="demo-detail-body" id="demoDetail" aria-live="polite">
-          <p class="long">Open a demo card and choose a highlighted region to inspect its region-specific explanation.</p>
+        <div class="demo-detail-preview fallback" id="demoDetailPreview" aria-hidden="true"></div>
+        <div class="demo-detail-body">
+          <p class="demo-detail-text" id="demoDetailText">Click a region on the image to inspect its preserved preview and explanation.</p>
         </div>
       </aside>
     </div>
@@ -873,6 +1082,9 @@
   </div>
 </div>
 
+<script src="assets/preview-strategy.js"></script>
+<script src="assets/hero-demo.js" defer></script>
+<script src="assets/demo-popover.js" defer></script>
 <script>
 (function(){
   var els=document.querySelectorAll('.reveal');
@@ -909,10 +1121,8 @@
   var lbTitle=document.getElementById('lightboxTitle');
   var lbSub=document.getElementById('lightboxSub');
   var demoHotspots=document.getElementById('demoHotspots');
-  var demoDetail=document.getElementById('demoDetail');
-  var demoPanelTitle=document.getElementById('demoPanelTitle');
-  var demoPanelSub=document.getElementById('demoPanelSub');
   var lbClose=document.getElementById('lightboxClose');
+  var demoStageEl=document.getElementById('demoStage');
   var activeDemo=null;
   var activeButtons=[];
 
@@ -931,34 +1141,12 @@
     return [];
   }
 
-  function setDetail(hotspot,index){
-    if(!demoDetail)return;
-    if(!hotspot){
-      if(demoPanelTitle)demoPanelTitle.textContent='No hotspot state';
-      if(demoPanelSub)demoPanelSub.textContent='This demo image is available, but its reusable hotspot JSON could not be loaded.';
-      demoDetail.innerHTML='<p class="long">The static image remains visible as a fallback.</p>';
-      return;
-    }
-    activeButtons.forEach(function(btn,i){btn.classList.toggle('active',i===index)});
-    var label=String(hotspot.label||'Untitled region');
-    var shortText=String(hotspot.shortText||hotspot.regionKind||'').trim();
-    if(demoPanelTitle)demoPanelTitle.textContent=activeDemo&&activeDemo.title?activeDemo.title:'Interactive demo';
-    if(demoPanelSub)demoPanelSub.textContent=(getHotspots(activeDemo).length||0)+' clickable regions preserved from the generated state.';
-    var shortMarkup=shortText&&shortText!==label
-      ? '<p class="short">'+escapeHtml(shortText)+'</p>'
-      : '';
-    demoDetail.innerHTML=[
-      '<h3>'+escapeHtml(label)+'</h3>',
-      shortMarkup,
-      '<p class="long">'+escapeHtml(hotspot.detail||'No detail text is available for this region.')+'</p>'
-    ].join('');
-    if(window.ChatImageI18n)window.ChatImageI18n.apply();
-  }
-
   function renderHotspots(demo){
     if(!demoHotspots)return;
     demoHotspots.innerHTML='';
     activeButtons=[];
+    var hooks=window.__chatimageLightboxHooks;
+    if(hooks&&hooks.closePopover)hooks.closePopover();
     var hotspots=getHotspots(demo);
     hotspots.forEach(function(hotspot,index){
       var bounds=hotspot.bounds||hotspot;
@@ -975,14 +1163,14 @@
       btn.style.zIndex=String(10+Number(hotspot.zIndex||index));
       btn.addEventListener('click',function(e){
         e.stopPropagation();
-        setDetail(hotspot,index);
+        var h=window.__chatimageLightboxHooks;
+        if(h&&h.openPopover)h.openPopover(activeDemo,hotspot,index,activeButtons);
       });
       demoHotspots.appendChild(btn);
       activeButtons.push(btn);
     });
-    setDetail(hotspots[0],0);
+    if(hooks&&hooks.closePopover)hooks.closePopover();
   }
-
   function loadDemo(card){
     var fallback={
       title:card.dataset.title,
@@ -998,29 +1186,7 @@
       .catch(function(){return fallback});
   }
 
-  document.querySelectorAll('.demo[data-img]').forEach(function(card){
-    var shot=card.querySelector('.shot');
-    if(!shot)return;
-    shot.addEventListener('click',function(){
-      lb.classList.add('open');
-      lbTitle.textContent=card.dataset.title;
-      lbSub.textContent='Loading preserved hotspot state...';
-      if(window.ChatImageI18n)window.ChatImageI18n.apply();
-      lbImg.alt=card.dataset.title;
-      if(demoHotspots)demoHotspots.innerHTML='';
-      loadDemo(card).then(function(demo){
-        activeDemo=demo;
-        lbImg.src=demo.image||card.dataset.img;
-        lbImg.alt=demo.title||card.dataset.title;
-        lbTitle.textContent=demo.title||card.dataset.title;
-        var count=demo.hotspotCount||getHotspots(demo).length;
-        lbSub.textContent=(demo.modeLabel||demo.visualMode||'interactive demo')+(count?' · '+count+' hotspots':'');
-        renderHotspots(demo);
-        if(window.ChatImageI18n)window.ChatImageI18n.apply();
-      });
-    });
-  });
-  function openDemoFromCard(card){
+  function openInteractiveDemo(card){
     lb.classList.add('open');
     lbTitle.textContent=card.dataset.title;
     lbSub.textContent='Loading preserved hotspot state...';
@@ -1034,25 +1200,28 @@
       var count=demo.hotspotCount||getHotspots(demo).length;
       lbSub.textContent=(demo.modeLabel||demo.visualMode||'interactive demo')+(count?' · '+count+' hotspots':'');
       renderHotspots(demo);
+      if(window.ChatImageI18n)window.ChatImageI18n.apply();
     });
   }
 
-  document.querySelectorAll('.demo[data-img]').forEach(function(card){
-    card.setAttribute('tabindex','0');
-    card.setAttribute('role','button');
+  document.querySelectorAll('.demo[data-demo][data-img]').forEach(function(card){
+    if(!card.hasAttribute('tabindex'))card.setAttribute('tabindex','0');
+    if(!card.hasAttribute('role'))card.setAttribute('role','button');
     card.addEventListener('click',function(e){
-      if(e.target&&e.target.closest&&(e.target.closest('.copy-q')||e.target.closest('.shot')))return;
-      openDemoFromCard(card);
+      if(e.target&&e.target.closest&&e.target.closest('.copy-q'))return;
+      openInteractiveDemo(card);
     });
     card.addEventListener('keydown',function(e){
       if(e.key==='Enter'||e.key===' '){
         e.preventDefault();
-        openDemoFromCard(card);
+        openInteractiveDemo(card);
       }
     });
   });
 
   function close(){
+    var h=window.__chatimageLightboxHooks;
+    if(h&&h.closePopover)h.closePopover();
     lb.classList.remove('open');
     lbImg.src='';
     activeDemo=null;
@@ -1074,15 +1243,18 @@
         btn.textContent='Copied';
         setTimeout(function(){btn.classList.remove('copied');btn.textContent='Copy question'},2000);
       }
-      if(navigator.clipboard&&navigator.clipboard.writeText){
-        navigator.clipboard.writeText(text).then(copied);
-      }else{
+      function fallbackCopy(){
         var ta=document.createElement('textarea');
         ta.value=text;
         document.body.appendChild(ta);
         ta.select();
         try{document.execCommand('copy');copied()}catch(err){}
         document.body.removeChild(ta);
+      }
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(copied).catch(fallbackCopy);
+      }else{
+        fallbackCopy();
       }
     });
   });

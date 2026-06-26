@@ -281,8 +281,71 @@ const CASES = [
       "Avoid numbered pins, a ranked vendor list, or a right-side legend. Make it a cheerful hand-drawn market map where stalls and walking paths are visible as natural areas.",
     question:
       "Create a hand-drawn farmers market shopping map for a Saturday morning. Naturally show the produce stall, bakery table, flower stand, coffee cart, cheese stall, community notice board, seating corner, and exit path. Each clickable region should explain what to buy there, best timing, and how it relates to the walking route."
+  },
+  {
+    id: "home-kitchen-cooking-zones",
+    category: "scene",
+    extraInstruction:
+      "Do not draw a process flow or instruction board. Make one coherent kitchen scene with large visible zones and appliances, no numbered markers and no legend.",
+    question:
+      "Create an illustrated home kitchen cooking setup for a weeknight dinner. Naturally show the stove area, sink, prep island, cutting board, spice rack, refrigerator, pantry shelf, and dish drying rack. Each clickable region should explain what happens there, how it supports cooking flow, and one organization tip."
+  },
+  {
+    id: "acoustic-guitar-anatomy",
+    category: "scene",
+    extraInstruction:
+      "Do not make a flowchart or separate cards. Draw one large acoustic guitar close-up on a clean table, with parts clearly visible as physical regions and no numbered callouts.",
+    question:
+      "Create a large illustrated acoustic guitar anatomy view for a beginner. Naturally show the headstock, tuning pegs, nut, fretboard, frets, sound hole, bridge, saddle, strings, and body. Each clickable part should explain its role in sound, tuning, or playability."
+  },
+  {
+    id: "mirrorless-camera-anatomy",
+    category: "scene",
+    extraInstruction:
+      "Do not make a comparison chart or manual page. Draw one large mirrorless camera close-up with visible physical controls and no numbered labels.",
+    question:
+      "Create a large illustrated mirrorless camera anatomy view for a beginner photographer. Naturally show the lens, focus ring, shutter button, mode dial, viewfinder, rear screen, grip, hot shoe, memory card door, and battery compartment. Each clickable part should explain what it controls and one beginner mistake to avoid."
+  },
+  {
+    id: "neighborhood-library-map",
+    category: "map",
+    extraInstruction:
+      "Avoid numbered pins, right-side legends, and split panels. Make it a warm hand-drawn floor map with rooms and paths as large visible regions.",
+    question:
+      "Create a hand-drawn neighborhood library floor map for a first-time visitor. Naturally show the entrance desk, children's corner, quiet reading room, computer area, magazine shelves, study tables, event room, and cafe nook. Each clickable region should explain what users do there, noise level, and how to navigate from the entrance."
+  },
+  {
+    id: "sunny-reading-nook",
+    category: "scene",
+    extraInstruction:
+      "Use only five clickable targets. Do not add overview, legend, notes, context panels, or numbered labels.",
+    question:
+      "Create a cozy illustrated reading nook scene in a small apartment. Naturally show five large visible targets: armchair, bookshelf, floor lamp, window, and side table with tea. Each clickable target should explain its comfort role, placement logic, and one setup tip."
+  },
+  {
+    id: "record-store-corner",
+    category: "scene",
+    extraInstruction:
+      "Use only five clickable targets. Keep the scene as one coherent record store corner, not a flowchart or product grid.",
+    question:
+      "Create an illustrated independent record store corner. Naturally show five large visible targets: listening station, vinyl bins, staff counter, new arrivals wall, and poster display. Each clickable target should explain how shoppers use it and how it shapes the store experience."
+  },
+  {
+    id: "plant-care-corner",
+    category: "scene",
+    extraInstruction:
+      "Use only five clickable targets. Avoid small flat-lay tools and do not add a legend or notes panel.",
+    question:
+      "Create an illustrated indoor plant care corner for a beginner. Naturally show five large visible targets: monstera plant, watering can, grow light, potting bench, and humidity tray. Each clickable target should explain its care role, placement, and common mistake."
   }
 ];
+
+const REAL_DEMO_UNIVERSAL_INSTRUCTION = [
+  "For this real demo run, create clickable modules only for concrete visual objects or regions explicitly requested by the user.",
+  "Do not add extra clickable modules such as input context, external tools, legend, overview, instruction panel, notes, source prompt, or meta explanation.",
+  "Do not place numeric markers, numbered pins, visible segmentation borders, or side legends into the generated image unless the user explicitly asks for them.",
+  "Keep every detail panel focused only on the clicked object or region, not on the full prompt."
+].join(" ");
 
 async function main() {
   const chromePath = findChrome();
@@ -381,7 +444,7 @@ async function runCase(cdp, baseUrl, outputDir, testCase) {
   const caseDir = path.join(outputDir, testCase.id);
   fs.mkdirSync(caseDir, { recursive: true });
   const startedAt = Date.now();
-  const question = [testCase.question, testCase.extraInstruction].filter(Boolean).join("\n\n");
+  const question = [testCase.question, testCase.extraInstruction, REAL_DEMO_UNIVERSAL_INSTRUCTION].filter(Boolean).join("\n\n");
   await cdp.send("Page.navigate", { url: `${baseUrl}/?provider=api&realDemoCase=${encodeURIComponent(testCase.id)}` });
   await cdp.waitFor("Page.loadEventFired", 10000);
   await installDiagnostics(cdp);
