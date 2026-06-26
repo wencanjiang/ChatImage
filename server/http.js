@@ -81,7 +81,7 @@ function requireApiKey(serverConfig) {
   throw error;
 }
 
-const DEFAULT_MAX_JSON_BODY_BYTES = 8 * 1024 * 1024;
+const DEFAULT_MAX_JSON_BODY_BYTES = 32 * 1024 * 1024;
 
 function readJson(req) {
   return new Promise((resolve, reject) => {

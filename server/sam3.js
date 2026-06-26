@@ -161,6 +161,7 @@ async function refineAlignmentWithSam3(serverConfig, alignmentResult, request) {
         organicBounds: refinedMask.organicBounds || null,
         organicAspectRatio: refinedMask.organicAspectRatio || null,
         maskPixels: refinedMask.maskPixels,
+        quality: refinedMask.quality || null,
         polygon: refinedMask.polygon || [],
         strategy: refinedMask.strategy || "sam3-mask"
       }
@@ -237,6 +238,78 @@ function chooseEffectiveProvider(sourceCounts) {
     }
   }
   return best || (Number(counts.planned || 0) ? "planned" : "unknown");
+}
+
+function enforceStrictVisualAlignment(serverConfig, alignmentResult) {
+  if (serverConfig && serverConfig.strictVisualAlignment === false) return alignmentResult;
+  const failures = getStrictVisualAlignmentFailures(alignmentResult);
+  if (!failures.length) return alignmentResult;
+  const error = new Error(`视觉对齐失败：${failures.join("；")}`);
+  error.statusCode = 422;
+  error.strictVisualAlignmentFailure = true;
+  error.alignmentRaw = alignmentResult || null;
+  throw error;
+}
+
+function getStrictVisualAlignmentFailures(alignmentResult) {
+  const failures = [];
+  const modules = Array.isArray(alignmentResult && alignmentResult.modules) ? alignmentResult.modules : [];
+  if (!modules.length) return ["没有可交互区域通过 LocateAnything + SAM 双重对齐"];
+  const acceptedSam3 = new Set(
+    Array.isArray(alignmentResult && alignmentResult.acceptedSam3Modules)
+      ? alignmentResult.acceptedSam3Modules.map((item) => String(item))
+      : []
+  );
+  const rejectedSam3 = Array.isArray(alignmentResult && alignmentResult.rejectedSam3Modules)
+    ? alignmentResult.rejectedSam3Modules
+    : [];
+  for (const module of modules) {
+    const moduleId = String((module && module.moduleId) || "").trim() || "(unknown)";
+    const label = String((module && module.label) || "").trim();
+    const name = label ? `${moduleId}(${label})` : moduleId;
+    const source = String((module && module.source) || "").trim().toLowerCase();
+    if (!isStrictPrimaryGroundingSource(source)) {
+      failures.push(`${name} 未通过视觉定位，当前来源是 ${source || "unknown"}`);
+    }
+    const mask = module && module.mask;
+    if (!mask || mask.provider !== "sam3") {
+      failures.push(`${name} 未通过 SAM mask`);
+      continue;
+    }
+    if (acceptedSam3.size && !acceptedSam3.has(moduleId)) {
+      failures.push(`${name} 不在 SAM acceptedModules 中`);
+    }
+    if (!mask.image) failures.push(`${name} 缺少 SAM mask 图，不能用空 mask/语义框替代`);
+    if (!mask.cutoutImage) failures.push(`${name} 缺少 SAM cutout 预览`);
+    if (!mask.organicImage || !mask.organicBounds) failures.push(`${name} 缺少基于 mask 边缘外扩的预览`);
+    if (!boundsExpands(mask.organicBounds, mask.bounds)) failures.push(`${name} 的外扩预览没有覆盖到 mask 边缘之外`);
+    const quality = mask.quality;
+    if (quality && Number(quality.holeCount || 0) > 0) failures.push(`${name} 的 SAM mask 仍有 ${quality.holeCount} 个内部空腔`);
+  }
+  for (const item of rejectedSam3) {
+    const moduleId = String((item && item.moduleId) || "").trim();
+    if (!moduleId) continue;
+    failures.push(`${moduleId} 被 SAM 拒绝：${String((item && item.reason) || "unknown")}`);
+  }
+  return failures;
+}
+
+function isStrictPrimaryGroundingSource(source) {
+  return /locateanything|mimo-vision/.test(String(source || "").toLowerCase());
+}
+
+function boundsExpands(outer, inner) {
+  const a = normalizeLooseBounds(outer);
+  const b = normalizeLooseBounds(inner);
+  if (!a || !b) return false;
+  const epsilon = 0.0005;
+  const covers =
+    a.x <= b.x + epsilon &&
+    a.y <= b.y + epsilon &&
+    a.x + a.width >= b.x + b.width - epsilon &&
+    a.y + a.height >= b.y + b.height - epsilon;
+  const grows = boundsArea(a) > boundsArea(b) * 1.015 || a.width > b.width + epsilon || a.height > b.height + epsilon;
+  return covers && grows;
 }
 
 function unionBounds(a, b) {
@@ -588,9 +661,9 @@ function createSam3Config(serverConfig) {
         fs.existsSync(serverConfig.sam3Checkpoint) &&
         hasSam3LicenseAck(serverConfig)
     ),
-    sam3Checkpoint: serverConfig.sam3Checkpoint || "",
     sam3LicenseAck: hasSam3LicenseAck(serverConfig),
-    sam3CudaAvailable: enabled ? checkSam3CudaAvailable(serverConfig) : false
+    sam3CudaAvailable: enabled ? checkSam3CudaAvailable(serverConfig) : false,
+    strictVisualAlignment: serverConfig.strictVisualAlignment !== false
   };
 }
 
@@ -811,6 +884,7 @@ function normalizeSam3Output(value, requestedModules) {
       organicBounds: normalizeOptionalBounds(item.organicBounds, moduleId, "organicBounds"),
       organicAspectRatio: normalizeOptionalPositiveNumber(item.organicAspectRatio),
       maskPixels: Math.max(0, Math.round(Number(item.maskPixels || 0))),
+      quality: normalizeMaskQuality(item.quality),
       polygon: normalizePolygon(item.polygon, moduleId)
     });
   }
@@ -857,6 +931,18 @@ function normalizeOptionalBounds(bounds, moduleId, label) {
 function normalizeOptionalPositiveNumber(value) {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? number : null;
+}
+
+function normalizeMaskQuality(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const normalized = {
+    holeCount: Math.max(0, Math.round(Number(value.holeCount || 0))),
+    componentCount: Math.max(0, Math.round(Number(value.componentCount || 0))),
+    filledHolePixels: Math.max(0, Math.round(Number(value.filledHolePixels || 0))),
+    contiguous: value.contiguous !== false,
+    solid: value.solid !== false
+  };
+  return normalized;
 }
 
 function normalizeScore(value, moduleId) {
@@ -921,6 +1007,7 @@ module.exports = {
   REQUIRED_LICENSE_ACK,
   checkSam3CudaAvailable,
   createSam3Config,
+  enforceStrictVisualAlignment,
   hasSam3LicenseAck,
   isSam3Enabled,
   normalizeSam3Output,

@@ -406,22 +406,37 @@
   }
 
   function createLayoutPlanner({ layoutModel, uid }) {
+    const resolvedLayoutModel = resolveLayoutModel(layoutModel, ["createLayout"]);
     return {
       create(spec) {
-        return layoutModel.createLayout(spec, { uid });
+        return resolvedLayoutModel.createLayout(spec, { uid });
       }
     };
   }
 
+  function resolveLayoutModel(layoutModel, requiredMethods = []) {
+    const resolved = layoutModel || global.ChatImageLayout;
+    if (!resolved) {
+      throw new Error("ChatImage layout model is not available");
+    }
+    for (const method of requiredMethods) {
+      if (typeof resolved[method] !== "function") {
+        throw new Error(`ChatImage layout model is missing ${method}`);
+      }
+    }
+    return resolved;
+  }
+
   function createImageProvider({ shouldUseApi, apiPost, getRuntimeConfig, providerConfig, layoutModel, mockSvg, sleep }) {
+    const resolvedLayoutModel = resolveLayoutModel(layoutModel, ["buildImagePrompt"]);
     return {
       async generate(spec, layout) {
         if (await shouldUseApi()) {
           const runtimeConfig = getRuntimeConfig ? await getRuntimeConfig() : null;
           const prompt =
-            typeof layoutModel.buildApiImagePrompt === "function"
-              ? layoutModel.buildApiImagePrompt(spec, layout)
-              : layoutModel.buildStyleImagePrompt(spec, layout);
+            typeof resolvedLayoutModel.buildApiImagePrompt === "function"
+              ? resolvedLayoutModel.buildApiImagePrompt(spec, layout)
+              : resolvedLayoutModel.buildStyleImagePrompt(spec, layout);
           const apiSize = (runtimeConfig && runtimeConfig.imageApiSize) || `${layout.canvas.width}x${layout.canvas.height}`;
           try {
             const image = await apiPost(providerConfig.endpoints.imageGeneration, {
@@ -436,7 +451,7 @@
         }
         await sleep(520);
         const svg = mockSvg.renderSvg(spec, layout);
-        const prompt = layoutModel.buildImagePrompt(spec, layout);
+        const prompt = resolvedLayoutModel.buildImagePrompt(spec, layout);
         return {
           imageUrl: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
           width: layout.canvas.width,
@@ -450,118 +465,6 @@
   }
 
   function createAlignmentProvider({ shouldUseApi, apiPost, getRuntimeConfig, providerConfig, alignmentModel, sleep }) {
-    return {
-      async requireReadyForApiImage() {
-        if (!(await shouldUseApi())) return;
-        if (!getRuntimeConfig) return;
-        const runtimeConfig = await getRuntimeConfig();
-        if (runtimeConfig && runtimeConfig.visionApiAvailable === false) {
-          throw new Error("真实生图热点对齐需要配置 CHATIMAGE_VISION_ENDPOINT；当前普通文本接口不能读取图片。");
-        }
-      },
-
-      async align({ image, spec, layout }) {
-        if (!(await shouldUseApi()) || !image.usedApi) {
-          await sleep(0);
-          return {
-            layout,
-            alignmentRaw: {
-              provider: "mock-alignment",
-              skipped: true,
-              reason: image.usedApi ? "api-disabled" : "mock-image"
-            }
-          };
-        }
-        const imageDimensions = alignmentModel.assertImageDimensions(image.width, image.height);
-        const prompt = alignmentModel.buildAlignmentPrompt({
-          imageUrl: image.imageUrl,
-          imageWidth: imageDimensions.width,
-          imageHeight: imageDimensions.height,
-          spec,
-          layout
-        });
-        const data = await apiPost(providerConfig.endpoints.visionAlignment, {
-          purpose: "vision_align",
-          responseFormat: "json",
-          imageUrl: image.imageUrl,
-          imageWidth: imageDimensions.width,
-          imageHeight: imageDimensions.height,
-          visualMode: spec.visualMode || "infographic",
-          modules: getAlignableModules(spec, alignmentModel).map((module, index) => ({
-            moduleId: module.id,
-            label: module.title,
-            order: index + 1,
-            visualMode: spec.visualMode || "infographic",
-            text: module.imageText,
-            regionKind: module.regionKind || "card",
-            regionPrompt: module.regionPrompt || module.title,
-            visualEvidence: module.visualEvidence || [],
-            maskPolicy: module.maskPolicy || "",
-            spatialHint: module.spatialHint || "",
-            locatorQueries: module.locatorQueries || [],
-            componentHints: module.componentHints || [],
-            components: module.components || [],
-            detail: module.detail || "",
-            sourceExcerpt: module.sourceExcerpt || ""
-          })),
-          content: prompt
-        });
-        let parsed;
-        try {
-          parsed = alignmentModel.parseAlignmentResponse(data.content, getAlignableModules(spec, alignmentModel));
-        } catch (error) {
-          error.alignmentRaw = {
-            provider: "vision-api-align",
-            imageUrl: image.imageUrl,
-            imageWidth: imageDimensions.width,
-            imageHeight: imageDimensions.height,
-            moduleCount: getAlignableModules(spec, alignmentModel).length,
-            prompt,
-            response: data.content,
-            error: error.message || String(error)
-          };
-          throw error;
-        }
-        let alignedLayout;
-        try {
-          alignedLayout = alignmentModel.applyAlignmentsToLayout(layout, parsed.alignments, parsed.rejectedModules);
-        } catch (error) {
-          error.alignmentRaw = {
-            provider: "vision-api-align",
-            imageUrl: image.imageUrl,
-            imageWidth: imageDimensions.width,
-            imageHeight: imageDimensions.height,
-            moduleCount: getAlignableModules(spec, alignmentModel).length,
-            prompt,
-            response: data.content,
-            alignments: parsed.alignments,
-            layoutError: error.message || String(error),
-            layoutAlignment: error.alignment || null
-          };
-          throw error;
-        }
-        return {
-          layout: alignedLayout,
-          alignmentRaw: {
-            provider: "vision-api-align",
-            imageUrl: image.imageUrl,
-            imageWidth: imageDimensions.width,
-            imageHeight: imageDimensions.height,
-            moduleCount: getAlignableModules(spec, alignmentModel).length,
-            prompt,
-            response: data.content,
-            alignments: parsed.alignments,
-            layoutProvider: alignedLayout.alignment && alignedLayout.alignment.provider,
-            acceptedModules: (alignedLayout.alignment && alignedLayout.alignment.acceptedModules) || [],
-            rejectedModules: (alignedLayout.alignment && alignedLayout.alignment.rejectedModules) || [],
-            originalValidationErrors: (alignedLayout.alignment && alignedLayout.alignment.originalValidationErrors) || []
-          }
-        };
-      }
-    };
-  }
-
-  function createAlignmentProviderV2({ shouldUseApi, apiPost, getRuntimeConfig, providerConfig, alignmentModel, sleep }) {
     return {
       async requireReadyForApiImage() {
         if (!(await shouldUseApi())) return;
@@ -764,6 +667,151 @@
     return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, stripLargeDataUrls(item)]));
   }
 
+  function filterGroundingScaffoldModules(spec, question = "") {
+    if (!spec || typeof spec !== "object") return spec;
+    const visualMode = String(spec.visualMode || "").trim().toLowerCase();
+    const strictVisualTarget = ["scene", "map", "poster"].includes(visualMode);
+    const removed = [];
+    const filterList = (modules, listName) => {
+      if (!Array.isArray(modules)) return modules;
+      return modules.filter((module, index) => {
+        const reason = getGroundingScaffoldReason(module, { strictVisualTarget, question });
+        if (!reason) return true;
+        removed.push({
+          list: listName,
+          index,
+          id: module && module.id ? module.id : "",
+          title: module && module.title ? module.title : "",
+          regionPrompt: module && module.regionPrompt ? module.regionPrompt : "",
+          reason
+        });
+        return false;
+      });
+    };
+    const modules = filterList(spec.modules, "modules");
+    const auxiliaryModules = filterList(spec.auxiliaryModules, "auxiliaryModules");
+    if (!removed.length) return spec;
+    const warnings = Array.isArray(spec.qualityWarnings) ? spec.qualityWarnings.slice() : [];
+    warnings.push(`grounding_scaffold_filtered:${removed.length}`);
+    return {
+      ...spec,
+      modules,
+      auxiliaryModules,
+      qualityWarnings: warnings,
+      groundingFilter: {
+        provider: "scaffold-module-filter",
+        removed,
+        keptModuleCount: Array.isArray(modules) ? modules.length : 0,
+        keptAuxiliaryModuleCount: Array.isArray(auxiliaryModules) ? auxiliaryModules.length : 0
+      }
+    };
+  }
+
+  function getGroundingScaffoldReason(module, options = {}) {
+    if (!module || typeof module !== "object") return "invalid module";
+    const title = String(module.title || "").trim();
+    const imageText = String(module.imageText || "").trim();
+    const regionPrompt = String(module.regionPrompt || module.visualPrompt || "").trim();
+    const regionKind = String(module.regionKind || "").trim().toLowerCase();
+    const iconHint = String(module.iconHint || "").trim().toLowerCase();
+    const text = [title, imageText, regionPrompt].join("\n");
+    if (isTruncatedQuestionScaffold(title, options.question)) return "truncated question fragment";
+    if (isScaffoldTitle(title) || isScaffoldTitle(imageText)) return "scaffold title";
+    if (isScaffoldPrompt(regionPrompt)) return "abstract scaffold regionPrompt";
+    if (regionKind === "legend" && !isConcreteLegendTarget(text)) return "scaffold region kind";
+    if (regionKind === "panel" && isAbstractPanelText(text)) return "abstract panel module";
+    if (iconHint === "source" && isScaffoldTitle(title)) return "source/meta module";
+    if (options.strictVisualTarget && !regionPrompt && isAbstractModuleText(text)) return "missing concrete regionPrompt";
+    return "";
+  }
+
+  // A `legend` region kind is normally an abstract scaffold panel, but concrete
+  // transport/lodging legends (cableway entrances, stations, mountain lodging)
+  // are real clickable map targets with dedicated layout slots
+  // (transportLegend / lodgingLegend in src/layout.js), so keep those.
+  function isConcreteLegendTarget(text) {
+    return /交通|索道|缆车|车站|入口|巴士|高铁|接驳|住宿|酒店|宾馆|客栈|房屋|床位|补给|cableway|ropeway|station|transport|bus|rail|hotel|lodging|accommodation/i.test(
+      String(text || "")
+    );
+  }
+
+  function isScaffoldTitle(value) {
+    const text = normalizeScaffoldText(value);
+    if (!text) return false;
+    const exact = new Set([
+      "legend",
+      "input context",
+      "external tools",
+      "external tool",
+      "tools",
+      "context",
+      "notes",
+      "note",
+      "reference",
+      "references",
+      "source",
+      "sources",
+      "source context",
+      "source prompt",
+      "disclaimer",
+      "overview",
+      "instructions",
+      "instruction",
+      "input environment",
+      "external resources",
+      "meta"
+    ]);
+    if (exact.has(text)) return true;
+    return /^(input|external|source|reference|context|meta)\s+(context|tools?|resources?|prompt|panel|notes?)$/.test(text) ||
+      /图例|输入上下文|外部工具|参考资料|来源提示词|来源上下文|免责声明|说明面板|元信息|外部资源/.test(String(value || ""));
+  }
+
+  function isScaffoldPrompt(value) {
+    const text = normalizeScaffoldText(value);
+    if (!text) return false;
+    // A prompt that describes a concrete transport/lodging legend (e.g. a
+    // cableway-entrance or mountain-lodging map symbol) is a real clickable
+    // target, not an abstract scaffold panel, even if it mentions "图例"/"legend".
+    if (isConcreteLegendTarget(value)) return false;
+    return /\b(input context|external tools?|legend|source prompt|source context|instruction panel|overview panel|notes panel|quality control panel|warning chips|meta panel)\b/.test(text) ||
+      /图例|输入上下文|外部工具|说明面板|提示词|元信息/.test(String(value || ""));
+  }
+
+  function isAbstractPanelText(value) {
+    const text = normalizeScaffoldText(value);
+    return /\b(context|overview|legend|notes?|source|references?|instructions?|quality control|warning chips|metrics)\b/.test(text);
+  }
+
+  function isAbstractModuleText(value) {
+    const text = normalizeScaffoldText(value);
+    return !text || /\b(context|overview|legend|notes?|source|references?|instructions?|tools?|external|meta)\b/.test(text);
+  }
+
+  function isTruncatedQuestionScaffold(title, question) {
+    const raw = String(title || "").trim();
+    if (/^-/.test(raw)) return true;
+    const text = normalizeScaffoldText(title);
+    if (!text) return false;
+    if (/^(create|draw|design|explain|compare|make|generate)\s+(a|an|the|one)?\b/.test(text)) return true;
+    return false;
+  }
+
+  function normalizeScaffoldText(value) {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ");
+  }
+
+  function isStrictVisualAlignmentError(error) {
+    if (!error) return false;
+    if (error.strictVisualAlignmentFailure) return true;
+    if (Number(error.statusCode) === 422) return true;
+    const message = String(error.message || "");
+    return /视觉对齐失败|strict visual alignment/i.test(message);
+  }
+
   function createFollowupProvider({ shouldUseApi, apiPost, providerConfig, sleep }) {
     return {
       async ask(context) {
@@ -882,6 +930,7 @@
     imageProvider,
     onStatus
   }) {
+    const resolvedLayoutModel = resolveLayoutModel(layoutModel, ["applyTextBudgets", "buildImagePrompt"]);
     const status = typeof onStatus === "function" ? onStatus : () => {};
     status("structuring");
     const visualQuestion = buildFollowupVisualQuestion(context, message);
@@ -892,11 +941,11 @@
 
     status("layout");
     const layout = layoutPlanner.create(spec);
-    const visualSpec = layoutModel.applyTextBudgets(spec, layout);
+    const visualSpec = resolvedLayoutModel.applyTextBudgets(spec, layout);
 
     status("image");
     const image = await imageProvider.generate(visualSpec, layout);
-    const imagePrompt = image.prompt || layoutModel.buildImagePrompt(visualSpec, layout);
+    const imagePrompt = image.prompt || resolvedLayoutModel.buildImagePrompt(visualSpec, layout);
 
     return {
       id: uid("followup_image"),
@@ -1036,6 +1085,7 @@
     alignmentProvider,
     followupProvider
   }) {
+    const resolvedLayoutModel = resolveLayoutModel(layoutModel, ["applyTextBudgets", "deriveHotspots"]);
     return {
       async create(question, onStatus, options = {}) {
         const displayQuestion = options.displayQuestion || question;
@@ -1046,13 +1096,13 @@
         if (answerStructureProvider) {
           const combined = await answerStructureProvider.create(question);
           rawAnswer = combined.rawAnswer;
-          spec = combined.visualSpec;
+          spec = filterGroundingScaffoldModules(combined.visualSpec, question);
           spec.textModelUsed = combined.textModelUsed || spec.textModelUsed || "";
           spec.textModelFallbackReason = combined.textModelFallbackReason || spec.textModelFallbackReason || "";
         } else {
           rawAnswer = await llmProvider.answer(question);
           onStatus("structuring");
-          spec = await structureProvider.parse(question, rawAnswer);
+          spec = filterGroundingScaffoldModules(await structureProvider.parse(question, rawAnswer), question);
         }
 
         if (answerStructureProvider) {
@@ -1062,7 +1112,7 @@
         onStatus("layout");
         await sleep(220);
         const layout = layoutPlanner.create(spec);
-        const visualSpec = layoutModel.applyTextBudgets(spec, layout);
+        const visualSpec = resolvedLayoutModel.applyTextBudgets(spec, layout);
 
         if (alignmentProvider.requireReadyForApiImage) {
           await alignmentProvider.requireReadyForApiImage();
@@ -1070,13 +1120,14 @@
 
         onStatus("image");
         const image = await imageProvider.generate(visualSpec, layout);
-        const imagePrompt = image.prompt || layoutModel.buildImagePrompt(visualSpec, layout);
+        const imagePrompt = image.prompt || resolvedLayoutModel.buildImagePrompt(visualSpec, layout);
 
         onStatus("align");
         let alignment;
         try {
           alignment = await alignmentProvider.align({ image, spec: visualSpec, layout });
         } catch (error) {
+          if (isStrictVisualAlignmentError(error)) throw error;
           alignment = {
             layout,
             alignmentRaw: {
@@ -1088,9 +1139,9 @@
           };
         }
         const finalLayout = alignment.layout;
-        const hotspots = layoutModel.deriveHotspots(
-          typeof layoutModel.getInteractiveModules === "function"
-            ? layoutModel.getInteractiveModules(visualSpec)
+        const hotspots = resolvedLayoutModel.deriveHotspots(
+          typeof resolvedLayoutModel.getInteractiveModules === "function"
+            ? resolvedLayoutModel.getInteractiveModules(visualSpec)
             : visualSpec.modules,
           finalLayout
         );
@@ -1229,7 +1280,7 @@
       mockSvg: deps.mockSvg,
       sleep: deps.sleep
     });
-    const alignmentProvider = createAlignmentProviderV2({
+    const alignmentProvider = createAlignmentProvider({
       shouldUseApi: deps.shouldUseApi,
       apiPost: deps.apiPost,
       providerConfig: deps.providerConfig,
@@ -1298,7 +1349,8 @@
     createLlmProvider,
     createMockLlmProvider,
     createPersistence,
-    createStructureProvider
+    createStructureProvider,
+    filterGroundingScaffoldModules
   };
 
   if (typeof module !== "undefined" && module.exports) {

@@ -43,7 +43,7 @@
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || `API request failed: ${response.status}`);
+        throwApiError(response, data);
       }
       return data;
     }
@@ -56,7 +56,7 @@
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || `API request failed: ${response.status}`);
+        throwApiError(response, data);
       }
       return data;
     }
@@ -65,7 +65,7 @@
       const response = await fetch(url, { method: "DELETE" });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || `API request failed: ${response.status}`);
+        throwApiError(response, data);
       }
       return data;
     }
@@ -74,9 +74,16 @@
       const response = await fetch(url, { cache: "no-store" });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || `API request failed: ${response.status}`);
+        throwApiError(response, data);
       }
       return data;
+    }
+
+    function throwApiError(response, data) {
+      const error = new Error(data.error || `API request failed: ${response.status}`);
+      error.statusCode = response.status;
+      error.payload = data;
+      throw error;
     }
 
     return {

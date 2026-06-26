@@ -14,7 +14,7 @@ const {
   runLocateAnythingHealth,
   runLocateAnythingPreload
 } = require("./server/locateanything");
-const { refineAlignmentWithSam3, runSam3Health, runSam3Preload } = require("./server/sam3");
+const { enforceStrictVisualAlignment, refineAlignmentWithSam3, runSam3Health, runSam3Preload } = require("./server/sam3");
 const { cacheRemoteImage } = require("./server/image-cache");
 const {
   loadEnvFile,
@@ -117,6 +117,7 @@ function createConfig(overrides = {}) {
     sam3Device: process.env.CHATIMAGE_SAM3_DEVICE || "cuda",
     sam3TimeoutMs: Number(process.env.CHATIMAGE_SAM3_TIMEOUT_MS || 120_000),
     sam3LicenseAck: process.env.CHATIMAGE_SAM3_LICENSE_ACK || "",
+    strictVisualAlignment: parseEnvBoolean(process.env.CHATIMAGE_STRICT_VISUAL_ALIGNMENT, true),
     databasePath: process.env.CHATIMAGE_DATABASE_PATH || path.join(rootDir, "tmp", "chatimage.sqlite"),
     staticDir: process.env.CHATIMAGE_STATIC_DIR || rootDir,
     imageCacheEnabled: parseEnvBoolean(process.env.CHATIMAGE_IMAGE_CACHE_ENABLED, true),
@@ -178,7 +179,7 @@ function createServer(serverConfig = config) {
     runLocateAnythingAlignment: (...args) =>
       runLocateAnythingAlignmentWithFallback(...args, helpers).then((alignment) =>
         refineAlignmentWithSam3(serverConfig, alignment, args[1] || args[0] || {})
-      ),
+      ).then((alignment) => enforceStrictVisualAlignment(serverConfig, alignment)),
     runLocateAnythingHealth,
     runLocateAnythingPreload,
     runSam3Health,

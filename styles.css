@@ -2203,7 +2203,9 @@ textarea:focus {
 .modal {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  /* Must sit above the composer (25) and sidebar (30) so the zoom view is never
+     covered when opened. */
+  z-index: 100;
 }
 
 .modal[hidden] {
@@ -2317,6 +2319,11 @@ textarea:focus {
 
 .detail-panel.is-preview-entering .detail-preview {
   animation: detail-preview-float-in 560ms cubic-bezier(0.18, 0.78, 0.2, 1) both;
+}
+
+.detail-panel.is-preview-flight-running .detail-preview {
+  opacity: 0;
+  animation: none !important;
 }
 
 .detail-panel.is-preview-entering .detail-summary {
@@ -2538,6 +2545,9 @@ textarea:focus {
   }
 
   .detail-panel {
+    /* On mobile the sidebar is static/inline, so re-center the panel on the
+       viewport instead of offsetting by the (now unused) desktop sidebar width. */
+    left: 50%;
     width: calc(100vw - 20px);
     height: min(82vh, 720px);
   }
