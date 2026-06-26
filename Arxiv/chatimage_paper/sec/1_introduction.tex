@@ -12,7 +12,7 @@ interaction-poor: it is not navigable by region, not visually structured, and
 offers no way to drill into a single sub-topic in context.
 
 Parallel advances in text-to-image generation~\citep{ramesh2022dalle2,saharia2022imagen,podell2024sdxl}
-and vision-language understanding~\citep{liu2024llava,liu2024internvl} suggest
+and vision-language understanding~\citep{liu2023llava,chen2024internvl} suggest
 an alternative: \emph{render the answer as an image}. A generated infographic,
 map, or scene can convey structure at a glance---modules, flow, hierarchy,
 layout---far more compactly than prose. However, a plain generated image loses
@@ -20,7 +20,7 @@ the answer's detail: it shows \emph{what} the regions are but not the full
 explanation behind each, and it offers no way to ask follow-ups about a
 specific region. Naively overlaying text on an image does not solve this
 either, because generative models do not reliably place content at specified
-coordinates~\citep{feng2024layoutgpt,cheng2024intelligent}, so any fixed
+coordinates~\citep{feng2023layoutgpt,cheng2024intelligent}, so any fixed
 clickable region may not align with the actual rendered content.
 
 \begin{figure*}[t!]
@@ -50,9 +50,7 @@ actually rendered in the image, and the hotspots are placed at those grounded
 coordinates---rather than assuming the image generator followed the layout.
 This decouples \emph{content structure} (decided by \method{}) from
 \emph{visual placement} (discovered after generation), making hotspots robust
-to the layout imprecision of generative models.
-
-\method{} further makes each region \emph{explorable}: clicking a hotspot
+to the layout imprecision of generative models.\method{} further makes each region \emph{explorable}: clicking a hotspot
 opens a detail panel with the module's explanation, a localized preview crop,
 and a follow-up thread scoped to that hotspot's context. This turns a static
 answer into a navigable artifact---the user can jump to any region, read its
@@ -70,12 +68,14 @@ hotspots. Our contributions are:
     hotspots, detail panels, and per-region follow-up threads.
     \item \textbf{Two-pass vision alignment.} We decouple structured content
     from visual placement via a generate-then-ground pipeline
-    (LocateAnything grounding, optional SAM3 mask refinement), so hotspots
-    align with actual rendered content rather than a hard-coded grid.
+    (referring-localization grounding with optional SAM-family mask
+    refinement), so hotspots align with actual rendered content rather than
+    a hard-coded grid.
     \item \textbf{Open-source reference system.} We release a complete,
-    provider-agnostic implementation with 13+ built-in demo topics across
-    infographic, map, and scene modes, a local SQLite store, and a calibration
-    mode for hotspot correction.
+    provider-agnostic implementation with a topic-specific structured-answer
+    fallback library covering 13 content-grounded mock topics across
+    infographic, map, and scene modes, a local SQLite store, and a
+    calibration mode for hotspot correction.
     \item \textbf{Benchmark and human evaluation.} We assemble a question
     benchmark spanning multiple content types and conduct a human evaluation of
     image quality and visual-alignment accuracy.

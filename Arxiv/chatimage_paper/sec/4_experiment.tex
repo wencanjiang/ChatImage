@@ -11,9 +11,10 @@ and \textbf{visual-alignment accuracy} (do the clickable hotspots land on the
 correct regions of the generated image?). We assemble a benchmark spanning
 multiple content types and conduct a human evaluation, since both image
 quality and region alignment are inherently perceptual and not captured by a
-single automatic metric. Quantitative values are reported as mean$\pm$std over
-multiple runs; entries marked \tbd{XX} are pending completion of the full
-evaluation and are left as placeholders in this version.
+single automatic metric. Quantitative values are reported as mean$\pm$std
+across annotators (with per-question scores averaged before aggregation);
+entries marked \tbd{XX} are pending completion of the full evaluation and
+are left as placeholders in this version.
 
 \subsection{Benchmark}
 \label{sec:experiments_benchmark}
@@ -43,17 +44,25 @@ evaluation and are left as placeholders in this version.
 
 We assemble a benchmark of \tbd{N} questions designed to exercise different
 visual modes and content types, summarized in
-Table~\ref{tab:benchmark_split}. Infographic questions cover technical
-processes and comparisons (e.g., ``compare REST and GraphQL,'' ``explain the
-RAG retrieval pipeline,'' ``draw the OAuth\,2.0 authorization-code flow''),
-which test structured flow and layered layouts. Map questions cover spatial
-guidance (e.g., ``draw a hand-drawn guide map of West Lake''), testing
-geographic region placement and route hotspots. Scene questions cover
-illustrated layouts (e.g., ``illustrate a museum scene''), testing object
-localization in a less rigidly structured image. Each question was run through
-the full \method{} pipeline with real text, image, and vision providers.
-Representative qualitative results are shown in
-Figure~\ref{fig:qualitative}.
+Table~\ref{tab:benchmark_split}. The current public showcase contains selected
+outputs from the same \method{} workflow after strict visual-alignment
+screening: a hand-drawn West Lake tour map and daily-life illustrated scenes
+such as a smart-home living room, boutique coffee shop, sunny reading nook,
+independent record-store corner, and indoor plant-care corner. Map questions
+test geographic region placement and route-like scenic areas, while scene
+questions test object localization in less rigidly structured images. The
+broader benchmark also includes infographic-style planning and
+decision-support prompts to measure how compact analytical regions behave,
+but only runs that pass the current strict grounding and mask-quality gate are
+promoted to the public demo page. Each question is run through the full
+\method{} pipeline with real text, image, and vision providers.
+Because the grounding step is provider-agnostic
+(Section~\ref{sec:method_alignment}), individual benchmark items may be
+served by different grounding backends; we report the per-module alignment
+source distribution alongside the aggregate scores so the contribution of
+each backend (LocateAnything-3B, MiMo-Vision, SAM3-refined planned bounds,
+and planned-fallback) is visible. Representative qualitative results are
+shown in Figure~\ref{fig:qualitative}.
 
 \begin{figure}[t!]
     \centering
