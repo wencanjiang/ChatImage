@@ -103,6 +103,13 @@ def main():
                     "polygon": polygon,
                     "score": score,
                     "maskPixels": 12345,
+                    "quality": {
+                        "holeCount": 0,
+                        "componentCount": 1,
+                        "filledHolePixels": 0,
+                        "contiguous": True,
+                        "solid": True,
+                    },
                 }
             )
         respond(

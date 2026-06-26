@@ -66,18 +66,25 @@ async function testHttpHelpers() {
     await readJson(invalid);
   }, SyntaxError);
 
-  await assert.rejects(
-    async () => {
-      const oversized = Readable.from([Buffer.alloc(8 * 1024 * 1024 + 1, "x")]);
-      oversized.headers = {};
-      await readJson(oversized);
-    },
-    (error) => {
-      assert.strictEqual(error.statusCode, 413);
-      assert.match(error.message, /too large/i);
-      return true;
-    }
-  );
+  const previousLimit = process.env.CHATIMAGE_MAX_JSON_BODY_BYTES;
+  process.env.CHATIMAGE_MAX_JSON_BODY_BYTES = String(1024 * 1024);
+  try {
+    await assert.rejects(
+      async () => {
+        const oversized = Readable.from([Buffer.alloc(1024 * 1024 + 1, "x")]);
+        oversized.headers = {};
+        await readJson(oversized);
+      },
+      (error) => {
+        assert.strictEqual(error.statusCode, 413);
+        assert.match(error.message, /too large/i);
+        return true;
+      }
+    );
+  } finally {
+    if (previousLimit === undefined) delete process.env.CHATIMAGE_MAX_JSON_BODY_BYTES;
+    else process.env.CHATIMAGE_MAX_JSON_BODY_BYTES = previousLimit;
+  }
 
   assert.throws(() => requireApiKey({ apiKey: "" }), /CHATIMAGE_API_KEY/);
   assert.doesNotThrow(() => requireApiKey({ apiKey: "key" }));

@@ -83,7 +83,15 @@ function main() {
   assert.ok(sceneTargets.modules[0].componentHints.some((item) => item.kind === "object"));
   assert.ok(sceneTargets.modules[0].componentHints.some((item) => item.kind === "label"));
   assert.ok(sceneTargets.modules[0].locatorQueries.some((item) => /object\/person plus attached label/.test(item)));
+  // Open-vocabulary grounding: the bare concrete object noun must lead the locatorQueries.
+  assert.strictEqual(sceneTargets.modules[0].locatorQueries[0], "Guide robot");
   assert.strictEqual(sceneTargets.modules[1].maskPolicy, "subject");
+  assert.strictEqual(sceneTargets.modules[1].locatorQueries[0], "Main exhibit");
+  assert.doesNotMatch(
+    sceneTargets.modules[1].locatorQueries[0],
+    /^complete |^visible /,
+    "subject targets must not lead with a verbose descriptive sentence"
+  );
 
   const contaminatedSceneDetail = normalizeVisualSpec(
     {

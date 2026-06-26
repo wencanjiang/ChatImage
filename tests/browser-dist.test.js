@@ -84,9 +84,9 @@ async function main() {
     await cdp.waitFor("Page.loadEventFired", 10000);
 
     const loadedScripts = await cdp.evaluate(`
-      performance.getEntriesByType("resource")
-        .map((entry) => entry.name)
-        .filter((name) => name.includes("/assets/chatimage.") && name.endsWith(".min.js"))
+      Array.from(document.scripts)
+        .map((script) => script.getAttribute("src") || "")
+        .filter((name) => name.startsWith("assets/chatimage.") && name.endsWith(".min.js"))
     `);
     assert.strictEqual(loadedScripts.length, 1);
     const sourceScripts = await cdp.evaluate(`
