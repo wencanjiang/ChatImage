@@ -14,7 +14,7 @@
   <a href="docs/TECHNICAL_REPORT.md"><img src="https://img.shields.io/badge/技术报告-文档-25a36a?style=flat-square&logo=googledocs" alt="Tech Report" /></a>
   <a href="https://github.com/wencanjiang/ChatImage/actions"><img src="https://img.shields.io/badge/测试-通过-2da44e?style=flat-square&logo=githubactions" alt="Tests" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/许可证-MIT-blue?style=flat-square&logo=opensourceinitiative" alt="License" /></a>
-  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=flat-square&logo=nodedotjs" alt="Node.js 18+" /></a>
+  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-22.5%2B-339933?style=flat-square&logo=nodedotjs" alt="Node.js 22.5+" /></a>
 </p>
 
 > 把一段长篇 LLM 回答变成可交互的视觉图像——结构化信息图叠加可点击热点，每个区域有独立详解面板和上下文追问。
@@ -95,7 +95,7 @@ npm start
 
 ## 环境要求
 
-- **Node.js** 18 或更高
+- **Node.js** 22.5 或更高（后端使用内置 `node:sqlite` 模块）
 - **npm**
 - 可选：**Python 3.9+**（若启用本地 OCR 或基于 LocateAnything 的视觉对齐）
 - 可选：CUDA GPU（若本地运行 LocateAnything / SAM3 worker）
@@ -103,7 +103,7 @@ npm start
 校验工具链：
 
 ```bash
-node -v   # v18 或更高
+node -v   # v22.5 或更高
 npm -v
 git --version
 python --version   # 仅在使用本地 OCR / LocateAnything 时
@@ -251,7 +251,7 @@ CHATIMAGE_API_KEY=your_key_here npm run test:api
 
 - **前端**：原生 JS（浏览器全局变量），无框架，无打包运行时
 - **后端**：Node.js HTTP 服务器（无外部 Web 框架）
-- **持久化**：SQLite（经 `better-sqlite3`）
+- **持久化**：SQLite（经内置 `node:sqlite` 模块，无原生依赖）
 - **视觉对齐**：LocateAnything（视觉定位）、MiMo 视觉、本地 OCR、可选 SAM3 掩码精修
 - **构建**：单一零依赖拼接压缩脚本 → `dist/`
 - **测试**：Node `assert` + 无头 Chrome/CDP 浏览器断言
