@@ -1037,7 +1037,11 @@
   }
 
   function buildSemanticTargetLocatorQueries(title, regionKind, visualMode) {
-    const base = [title, `${title}完整区域`, `${title}短标签`];
+    // Lead with the bare concrete object noun for open-vocabulary grounding, matching the
+    // inferLocatorQueries path; the verbose region/label phrases stay as backups.
+    const concise = conciseObjectNoun(title);
+    const base = concise && concise !== title ? [concise, title] : [title];
+    base.push(`${title}完整区域`, `${title}短标签`);
     if (visualMode === "map") base.push(`${title}地图区域`);
     if (regionKind === "route") base.push(`${title}路线`);
     if (regionKind === "person") base.push(`${title}人物`);
@@ -2201,7 +2205,9 @@
       "- imageText 是图片内短文本，要短但信息密度高，优先使用具体动词、对象、条件、结果，不要写“了解背景”“进行分析”这类空泛词。",
       "- sourceExcerpt 用于追问上下文，不会直接展示；选取与 detail 最相关的原文片段。",
       "- visualComposition 必须先决定构图，不要只复述 relationType；要说明视觉焦点、哪些模块是主模块、哪些是辅助模块，以及如何避免模板感。",
-      "- auxiliaryModules 表示图中明显独立但不属于主序号卡片的区域，例如输入/环境信息、外部工具、状态说明、关键机制、底部图例。数量 0 到 4；不要在标题或 imageText 中写 01/02 序号。",
+      "- 仅 infographic 下，auxiliaryModules 可表示图中明显独立但不属于主序号卡片的抽象面板，例如输入/环境信息、外部工具、状态说明、关键机制、底部图例。数量 0 到 4。",
+      "- map/poster/scene 下，每个 auxiliaryModule 也必须是画面里具体可见、可点击的对象或区域，带自己的 regionKind 与 regionPrompt；不要把图例、输入、外部工具、备注、来源等抽象面板作为模块或辅助模块，因为它们没有可定位的视觉目标。",
+      "- auxiliaryModules 不要重复主模块，也不要在标题或 imageText 中写 01/02 序号。",
       `用户问题：${question}`,
       `原始回答：${rawAnswer}`
     ].join("\n\n");
@@ -2218,7 +2224,7 @@
       "JSON shape:",
       '{"rawAnswer":"complete answer text for the user","visualSpec":{"language":"same language as the user question, e.g. zh-CN or en","title":"short title","summary":"one sentence summary","relationType":"parallel|flow|compare|hierarchy|timeline|matrix","visualComposition":{"compositionType":"grid|swimlane-flow|hub-spoke|matrix|timeline|layered-cards|annotated-clusters","visualFocus":"main visual focus","primaryModules":["module_1"],"secondaryModules":["module_2"],"densityStrategy":"how to increase information hierarchy and avoid template-like design","moduleCountReason":"why this module count is appropriate"},"modules":[{"title":"short module title","imageText":"very short card text","detail":"detail shown after hotspot click","sourceExcerpt":"related excerpt from rawAnswer","iconHint":"target|nodes|layout|image|thread|idea|risk|step","priority":1}],"auxiliaryModules":[{"title":"unnumbered panel title","imageText":"short helper text","detail":"detail shown after hotspot click","sourceExcerpt":"related excerpt from rawAnswer","iconHint":"user|source|data|tool|summary|risk","priority":10}]}}',
       "Additional schema fields: visualSpec.visualMode is infographic|map|poster|scene. visualSpec.visualComposition.compositionType may also be hand-drawn-map, editorial-poster, or illustrated-scene. Each module may include regionKind and regionPrompt. Map regionKind may be water|route|landmark|building|mountain|axis|legend. Scene/poster regionKind may be object|object-with-label|person|foreground|background|panel.",
-      "Interactive target contract: each module may include visualEvidence, maskPolicy, spatialHint, locatorQueries, and componentHints. visualEvidence lists what must be visible in the image for this target to count as present. maskPolicy is card|full-region|subject|subject-with-label|route|legend. spatialHint is a rough position such as west/east/center/bottom. locatorQueries are short alternate phrases for visual grounding. componentHints are text-only hints such as object/person/label parts; do not invent exact pixel coordinates.",
+      "Interactive target contract: each module may include visualEvidence, maskPolicy, spatialHint, locatorQueries, and componentHints. visualEvidence lists what must be visible in the image for this target to count as present. maskPolicy is card|full-region|subject|subject-with-label|route|legend. spatialHint is a rough position such as west/east/center/bottom. locatorQueries are short alternate phrases for an open-vocabulary visual grounder; the first query must be a bare concrete object noun (2-4 words, no sentence), and include one concise English object noun even for non-English questions. componentHints are text-only hints such as object/person/label parts; do not invent exact pixel coordinates.",
       "Constraints:",
       "- rawAnswer, visualSpec.title, summary, modules.title, imageText, detail, and sourceExcerpt must use the same language as the user's question.",
       "- If the user asks in Chinese, use Chinese in the image. If the user asks in English, use English in the image.",
@@ -2227,7 +2233,7 @@
       "- The answer must directly address the user's subject matter, not describe how this product processes answers.",
       "- visualSpec.visualMode defaults to infographic. Use map for hand-drawn maps, tourist maps, geography, scenic guides, route maps, and clickable geographic regions. Use poster for poster-like visual works and scene for painterly/illustrated scenes.",
       "- For map/poster/scene, modules should be semantic clickable regions or objects, not necessarily GUI cards. Provide regionKind and regionPrompt for every module so a vision locator can identify the full region.",
-      "- For every map/poster/scene module, provide visualEvidence, maskPolicy, spatialHint, and 2-4 locatorQueries. These fields must describe the visible target, not internal UI mechanics.",
+      "- For every map/poster/scene module, provide visualEvidence, maskPolicy, spatialHint, and 2-4 locatorQueries. Lead locatorQueries with a short concrete object noun and add one concise English object noun, then optional backups; these fields must describe the visible target, not internal UI mechanics.",
       "- For map modules, do not merge two distant routes or places into one clickable module unless the visual target is one continuous drawn route. If a title would be 'A and B' and A/B are spatially separate, split them into separate modules.",
       "- For map modules about lodging, transport, cableways, stations, entrances, supplies, or practical notes, the image must contain a visible matching icon/legend/label region, not only mention it in the detail text.",
       "- For scene/poster targets that combine a visible object/person with a nearby short label or badge, use regionKind=object-with-label and write regionPrompt as both components, for example: 'the guide robot plus the attached AI personalized guide label badge'.",
@@ -2245,7 +2251,8 @@
       "- Avoid empty phrases such as 'understand the background', 'conduct analysis', 'improve efficiency' unless they are tied to specific objects, causes, or outcomes.",
       "- visualSpec.title must be a distilled topic title, not a direct copy of the user's question. Do not use ellipses or truncated question text.",
       "- visualSpec.visualComposition must make a concrete composition decision before image generation. It should name the composition type, layoutVariant, visual focus, primary/secondary modules, and density strategy. Do not merely repeat relationType.",
-      "- visualSpec.auxiliaryModules may contain 0 to 4 unnumbered but clickable regions when the image should include clearly separated panels beyond the numbered main cards, such as input/environment, external tools, status legend, key mechanism, notes, or source context.",
+      "- For infographic visualMode only, visualSpec.auxiliaryModules may contain 0 to 4 unnumbered but clickable panels beyond the numbered main cards, such as input/environment, external tools, status legend, key mechanism, notes, or source context.",
+      "- For map/poster/scene visualMode, every auxiliaryModule MUST also be a concrete visible clickable object or region in the illustration, with its own regionKind and regionPrompt. Never emit abstract scaffold panels (legend, input context, external tools, notes, reference, source, disclaimer) as modules or auxiliaryModules in map/poster/scene, because they have no groundable visual target.",
       "- auxiliaryModules must be semantic and useful for follow-up. Do not duplicate the main modules, and do not use 01/02 style numbers in their title or imageText.",
       "- layoutVariant must be one of compare-matrix, compare-split, asymmetric-focus-stack, swimlane-flow, timeline, grid, map, scene, or poster.",
       "- For REST vs GraphQL or API comparison questions, use real comparison dimensions such as resource model, query granularity, caching/performance, Schema/version evolution, and suitable scenarios. Do not use a generic background/current state/drivers/challenges/trends framework.",
@@ -2738,14 +2745,38 @@
     return normalizeTextList(base, 4, 120);
   }
 
+  function conciseObjectNoun(title) {
+    const raw = String(title || "").trim();
+    if (!raw) return "";
+    // Keep only the core object noun: drop descriptive tails after the first separator.
+    // Split on brackets/full-width commas, spaced dashes, and em-dashes, but NOT in-word
+    // hyphens so English compounds like "e-commerce" or "T-shirt" stay intact.
+    const head = raw.split(/[（(【\[:：,，、]|\s[-—]\s|—/)[0].trim() || raw;
+    return smartShortTitle(head, 20);
+  }
+
+  function conciseObjectQuery(context) {
+    return conciseObjectNoun(context && context.title);
+  }
+
   function inferLocatorQueries(context, evidence, maskPolicy) {
-    const queries = [context.title, context.regionPrompt, ...evidence];
-    if (String((context && context.regionKind) || "").toLowerCase() === "flow-strip") {
-      queries.unshift(`complete horizontal workflow strip including all connected nodes for ${context.title}`);
+    // LocateAnything is open-vocabulary: a bare concrete object noun grounds far better than a long
+    // descriptive sentence, so put the short noun (and any policy-specific phrase) in the lead slots
+    // and keep the verbose title/prompt/evidence as backups.
+    const concise = conciseObjectQuery(context);
+    const kind = String((context && context.regionKind) || "").toLowerCase();
+    const lead = [];
+    if (kind === "flow-strip") {
+      // A workflow strip is a whole connected region, not one object: lead with the strip phrase.
+      lead.push(`complete horizontal workflow strip including all connected nodes for ${context.title}`);
+    } else if (maskPolicy === "subject" || maskPolicy === "subject-with-label") {
+      // Dense small / part-level targets ground best from a bare concrete object noun.
+      if (concise) lead.push(concise);
     }
-    if (maskPolicy === "subject-with-label") queries.unshift(`complete object/person plus attached label for ${context.title}`);
-    if (maskPolicy === "route") queries.unshift(`visible route corridor for ${context.title}`);
-    if (maskPolicy === "legend") queries.unshift(`complete legend/info block for ${context.title}`);
+    if (maskPolicy === "subject-with-label") lead.push(`complete object/person plus attached label for ${context.title}`);
+    if (maskPolicy === "route") lead.push(`visible route corridor for ${context.title}`);
+    if (maskPolicy === "legend") lead.push(`complete legend/info block for ${context.title}`);
+    const queries = [...lead, concise, context.title, context.regionPrompt, ...evidence];
     return normalizeTextList(queries, 4, 160);
   }
 
@@ -3704,11 +3735,6 @@
       "核心驱动",
       "主要挑战",
       "未来趋势",
-      "鑳屾櫙鍩虹",
-      "褰撳墠鐜扮姸",
-      "鏍稿績椹卞姩",
-      "涓昏鎸戞垬",
-      "鏈潵瓒嬪娍"
     ]);
     return (modules || []).filter((module) => genericTitles.has(String(module && module.title ? module.title : "").trim())).length;
   }

@@ -107,6 +107,7 @@ class Sam3Worker:
         for module in modules:
             module_id = str(module.get("moduleId") or "")
             bounds = module.get("bounds") or {}
+            warnings = []
             try:
                 component_bounds = normalize_component_bounds(module.get("components"), bounds)
                 masks_out = []
@@ -127,13 +128,26 @@ class Sam3Worker:
                     masks_out.append(component_mask)
                     scores_out.append(float(to_numpy(scores).reshape(-1)[0]))
                 mask = np.logical_or.reduce(masks_out) if len(masks_out) > 1 else masks_out[0]
-                mask = postprocess_mask(mask, module)
+                processed = postprocess_mask(mask, module)
+                quality = None
+                if isinstance(processed, tuple):
+                    if len(processed) >= 3:
+                        mask, postprocess_warnings, quality = processed[:3]
+                    else:
+                        mask, postprocess_warnings = processed
+                    warnings.extend(postprocess_warnings)
+                else:
+                    mask = processed
+                if quality is None:
+                    quality = mask_quality(mask, module)
                 score = float(sum(scores_out) / max(1, len(scores_out)))
                 bbox = mask_to_normalized_bounds(mask, width, height)
                 if not bbox:
                     rejected.append({"moduleId": module_id, "reason": "empty mask"})
                     continue
                 organic_preview = mask_to_organic_preview(image, mask, module)
+                if organic_preview.get("warning"):
+                    warnings.append(organic_preview["warning"])
                 output.append(
                     {
                         "moduleId": module_id,
@@ -149,16 +163,20 @@ class Sam3Worker:
                         "score": max(0.0, min(1.0, score)),
                         "maskPixels": int(mask.sum()),
                         "componentCount": len(component_bounds),
+                        "quality": quality,
+                        "warnings": warnings,
                     }
                 )
             except Exception as error:
                 rejected.append({"moduleId": module_id, "reason": str(error)})
+                if warnings:
+                    rejected[-1]["warnings"] = warnings
         return {
             "ok": True,
             "provider": "sam3",
             "modules": output,
             "rejectedModules": rejected,
-            "warnings": [],
+            "warnings": [warning for item in output for warning in item.get("warnings", [])],
         }
 
 
@@ -299,17 +317,24 @@ def postprocess_mask(mask, module):
         alpha = cv2.morphologyEx(alpha, cv2.MORPH_CLOSE, kernel, iterations=close_iterations)
         if dilate_iterations:
             alpha = cv2.dilate(alpha, kernel, iterations=dilate_iterations)
-        # Fill interior holes so the cutout/mask is a solid silhouette instead of
-        # a fragmented shape with see-through cavities. MORPH_CLOSE above only
-        # seals small gaps; large internal holes (e.g. SAM leaving a gap where a
-        # logo or window sits inside the subject) survive it. Routes are skipped:
-        # a route is a thin/looping line whose enclosed area is not part of it,
-        # so RETR_EXTERNAL filling would wrongly flood the loop interior.
-        if policy != "route" and kind != "route":
-            alpha = fill_mask_holes(alpha)
-        return alpha > 0
-    except Exception:
-        return mask
+        # Fill interior holes so the cutout/mask is a solid silhouette instead
+        # of a fragmented shape with see-through cavities. MORPH_CLOSE above
+        # only seals small gaps; large internal holes survive it. This applies
+        # to routes too: public previews must never show hollow SAM fragments.
+        alpha = fill_mask_holes(alpha)
+        quality = mask_quality(alpha > 0, module, original_alpha=(mask.astype(np.uint8) * 255))
+        return alpha > 0, [], quality
+    except Exception as error:
+        module_id = str((module or {}).get("moduleId") or (module or {}).get("id") or "")
+        label = str((module or {}).get("label") or "")
+        context = f" for {module_id or label}" if (module_id or label) else ""
+        return mask, [f"SAM3 mask postprocess skipped{context}: {error}"], {
+            "holeCount": 1 if should_fill_mask_holes(module) else 0,
+            "componentCount": 0,
+            "filledHolePixels": 0,
+            "contiguous": False,
+            "solid": False,
+        }
 
 
 def to_numpy(value):
@@ -335,9 +360,7 @@ def mask_to_normalized_bounds(mask, width, height):
 
 
 def should_fill_mask_holes(module):
-    policy = str((module or {}).get("maskPolicy") or "").lower()
-    kind = str((module or {}).get("regionKind") or "").lower()
-    return policy != "route" and kind != "route"
+    return True
 
 
 def solid_preview_alpha(mask, module=None):
@@ -407,8 +430,13 @@ def mask_to_organic_preview(image, mask, module=None):
             expanded = np.maximum(expanded, source_alpha)
         else:
             expanded = expanded_solid
-    except Exception:
-        expanded = alpha
+    except Exception as error:
+        return {
+            "image": "",
+            "bounds": None,
+            "aspectRatio": None,
+            "warning": f"SAM3 organic preview expansion failed: {error}",
+        }
 
     ys, xs = np.where(expanded > 3)
     if xs.size == 0 or ys.size == 0:
@@ -438,17 +466,72 @@ def mask_to_organic_preview(image, mask, module=None):
 
 
 def fill_mask_holes(alpha):
+    import cv2
+
+    binary = ((alpha > 0).astype(np.uint8) * 255)
+    if not np.any(binary):
+        return binary
+    height, width = binary.shape
+    flood = binary.copy()
+    mask = np.zeros((height + 2, width + 2), np.uint8)
+    seeds = []
+    for x in range(width):
+        seeds.append((x, 0))
+        seeds.append((x, height - 1))
+    for y in range(1, height - 1):
+        seeds.append((0, y))
+        seeds.append((width - 1, y))
+    for seed in seeds:
+        if flood[seed[1], seed[0]] == 0:
+            cv2.floodFill(flood, mask, seed, 255)
+    exterior = (flood == 255) & (binary == 0)
+    holes = (~exterior) & (binary == 0)
+    filled = binary.copy()
+    filled[holes] = 255
+    return filled
+
+
+def mask_quality(mask, module=None, original_alpha=None):
+    alpha = (mask.astype(np.uint8) * 255) if mask.dtype != np.uint8 else mask
+    try:
+        import cv2
+
+        contours, hierarchy = cv2.findContours(alpha, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+        hole_count = 0
+        if hierarchy is not None:
+            for item in hierarchy[0]:
+                parent = int(item[3])
+                if parent >= 0:
+                    hole_count += 1
+        component_count = count_external_components(alpha)
+        filled_hole_pixels = 0
+        if original_alpha is not None:
+            filled_hole_pixels = max(0, int(np.count_nonzero(alpha > 0) - np.count_nonzero(original_alpha > 0)))
+        return {
+            "holeCount": int(hole_count),
+            "componentCount": int(component_count),
+            "filledHolePixels": int(filled_hole_pixels),
+            "contiguous": component_count <= 1,
+            "solid": hole_count == 0,
+        }
+    except Exception:
+        return {
+            "holeCount": 1,
+            "componentCount": 0,
+            "filledHolePixels": 0,
+            "contiguous": False,
+            "solid": False,
+        }
+
+
+def count_external_components(alpha):
     try:
         import cv2
 
         contours, _ = cv2.findContours(alpha, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if not contours:
-            return alpha
-        filled = np.zeros_like(alpha)
-        cv2.drawContours(filled, contours, -1, 255, thickness=cv2.FILLED)
-        return filled
+        return len(contours or [])
     except Exception:
-        return alpha
+        return 0
 
 
 def should_trim_region_boundary(module):

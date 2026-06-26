@@ -491,7 +491,9 @@
 
     // Independent subject: transparent SAM3 cutout (server or client canvas).
     if (!preferContextCrop && !contextPreviewShape) {
-      if (serverCutoutImage) {
+      // Old saved ChatImages may contain server cutouts generated before the
+      // solid-alpha repair. If a mask exists, wait for the local canvas rebuild.
+      if (serverCutoutImage && !maskImage) {
         return {
           imageUrl: result.imageUrl,
           cutoutUrl: serverCutoutImage,
@@ -709,7 +711,7 @@
     ctx.globalCompositeOperation = "destination-in";
     ctx.drawImage(mask, 0, 0, canvas.width, canvas.height);
     ctx.globalCompositeOperation = "source-over";
-    if (!strategy.route) fillMaskAlphaHoles(ctx, canvas.width, canvas.height);
+    fillMaskAlphaHoles(ctx, canvas.width, canvas.height);
     const tight = cropCanvasToAlpha(canvas, 10);
     if (!tight) return null;
     return {
@@ -1806,7 +1808,12 @@
 
   function initializeSidebarState() {
     if (!elements.appShell || !elements.sidebarCollapseButton) return;
-    const collapsed = window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === "true";
+    let collapsed = false;
+    try {
+      collapsed = window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === "true";
+    } catch (error) {
+      collapsed = false;
+    }
     applySidebarCollapsed(collapsed);
   }
 
@@ -1821,7 +1828,11 @@
     elements.sidebarCollapseButton.setAttribute("aria-expanded", collapsed ? "false" : "true");
     elements.sidebarCollapseButton.setAttribute("aria-label", collapsed ? "展开侧边栏" : "收起侧边栏");
     elements.sidebarCollapseButton.title = collapsed ? "展开侧边栏" : "收起侧边栏";
-    window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, collapsed ? "true" : "false");
+    try {
+      window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, collapsed ? "true" : "false");
+    } catch (error) {
+      /* storage may be unavailable (private mode / disabled); keep in-memory state only */
+    }
   }
 
   async function shareCurrentConversation() {
@@ -2004,6 +2015,12 @@
       bindImageInteractions(elements.resultArea);
       bindQualityActions(elements.resultArea);
       bindDebugActions(elements.resultArea);
+      // When a partial result is shown in the error state it renders the zoom/save
+      // controls too, so bind them when present (they are absent without a partial).
+      const partialZoomButton = document.getElementById("zoomButton");
+      if (partialZoomButton) partialZoomButton.addEventListener("click", openModal);
+      const partialSaveButton = document.getElementById("saveButton");
+      if (partialSaveButton) partialSaveButton.addEventListener("click", saveImage);
       document.getElementById("retryButton").addEventListener("click", retryLastQuestion);
     } finally {
       isGenerating = false;
