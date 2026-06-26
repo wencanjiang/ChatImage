@@ -33,6 +33,7 @@ async function main() {
   await testLowConfidenceLocalOcrFallsBackToPlanned();
   await testInvalidBoundsReject();
   await testVisionRoutesExposeLocateAnything();
+  await testStrictVisionRouteRejectsMissingSam();
   testSemanticHintUsesPrimaryChineseLabels();
   testInfographicCardSemanticHintIgnoresSensorWords();
   testNormalizeRejectsBadConfidence();
@@ -602,7 +603,7 @@ async function testInvalidBoundsReject() {
 
 async function testVisionRoutesExposeLocateAnything() {
   await withEnv("CHATIMAGE_FAKE_LOCATE_MODE", "success", async () => {
-    const server = createServer(createConfig({ port: 0 }));
+    const server = createServer(createConfig({ port: 0, strictVisualAlignment: false }));
     try {
       await listen(server);
       const { port } = server.address();
@@ -638,6 +639,31 @@ async function testVisionRoutesExposeLocateAnything() {
       assert.strictEqual(parsed.provider, "locateanything");
       assert.strictEqual(parsed.modules.length, 3);
       assert.deepStrictEqual(parsed.providerChain, ["locateanything"]);
+    } finally {
+      await close(server);
+    }
+  });
+}
+
+async function testStrictVisionRouteRejectsMissingSam() {
+  await withEnv("CHATIMAGE_FAKE_LOCATE_MODE", "success", async () => {
+    const server = createServer(createConfig({ port: 0, strictVisualAlignment: true }));
+    try {
+      await listen(server);
+      const { port } = server.address();
+      const alignResponse = await fetch(`http://127.0.0.1:${port}/api/vision`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrl: createHealthFixtureDataUrl(),
+          imageWidth: 640,
+          imageHeight: 360,
+          modules: createModules()
+        })
+      });
+      assert.strictEqual(alignResponse.status, 422);
+      const body = await alignResponse.json();
+      assert.match(body.error, /未通过 SAM mask/);
     } finally {
       await close(server);
     }

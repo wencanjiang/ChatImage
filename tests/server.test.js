@@ -20,7 +20,8 @@ async function main() {
     imageModel: "GPT-Image-2",
     textEndpoint: "https://api.wuyinkeji.com/api/chat/index",
     imageEndpoint: "https://api.wuyinkeji.com/api/async/image_gpt",
-    imageDetailEndpoint: "https://api.wuyinkeji.com/api/async/detail"
+    imageDetailEndpoint: "https://api.wuyinkeji.com/api/async/detail",
+    sam3Checkpoint: "C:\\Users\\Example\\.cache\\sam3\\sam3.pt"
   });
 
   await listen(server);
@@ -36,6 +37,7 @@ async function main() {
     assert.strictEqual(config.textModel, "gpt-5.5");
     assert.strictEqual(config.imageModel, "GPT-Image-2");
     assert.strictEqual(config.textRequestFormat, "");
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(config, "sam3Checkpoint"), false);
 
     const index = await fetch(`${baseUrl}/`);
     assert.strictEqual(index.status, 200);

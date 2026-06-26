@@ -12,6 +12,8 @@ const {
   createAlignmentProvider,
   createAnswerStructureProvider,
   createChatImageService,
+  createDefaultServices,
+  filterGroundingScaffoldModules,
   createPersistence
 } = require("../src/service");
 
@@ -58,12 +60,15 @@ function createSpec() {
 }
 
 async function main() {
+  testCreateDefaultServicesFallsBackToGlobalLayoutModel();
   await testCreateService();
   await testAnswerStructureProviderUsesOneTextCall();
   await testAnswerStructureProviderRepairsParseFailure();
   await testAnswerStructureProviderRepairsThinResult();
   await testFallbackAnswerStructureDoesNotLeakVisualPrompt();
+  await testScaffoldModulesAreFilteredBeforeGrounding();
   await testAlignmentFailureFallsBackToPlannedLayout();
+  await testStrictAlignmentFailureDoesNotFallBackToPlannedLayout();
   await testHitTestMatchesDomOrderWhenZIndexTies();
   await testAlignmentProviderUsesVisionEndpoint();
   await testAlignmentProviderRequiresImageDimensions();
@@ -139,6 +144,59 @@ async function testAlignmentFailureFallsBackToPlannedLayout() {
   assert.strictEqual(result.alignmentRaw.hitTest.ok, true);
   assert.strictEqual(result.visualQualityRaw.provider, "limited-local");
   assert.deepStrictEqual(result.visualQualityWarnings, []);
+}
+
+async function testStrictAlignmentFailureDoesNotFallBackToPlannedLayout() {
+  const uid = createUid();
+  const spec = createSpec();
+  const service = createChatImageService({
+    uid,
+    sleep: async () => {},
+    state: stateModel.createChatImageState(),
+    stateModel,
+    threadModel,
+    layoutModel,
+    persistence: {
+      async saveResult() {
+        throw new Error("strict alignment failures must not be saved");
+      },
+      async saveThread() {}
+    },
+    answerStructureProvider: {
+      async create() {
+        return { rawAnswer: "raw", visualSpec: spec };
+      }
+    },
+    llmProvider: {},
+    structureProvider: {},
+    layoutPlanner: {
+      create(inputSpec) {
+        return layoutModel.createLayout(inputSpec, { uid });
+      }
+    },
+    imageProvider: {
+      async generate(inputSpec, layout) {
+        return {
+          imageUrl: "data:image/png;base64,test",
+          width: layout.canvas.width,
+          height: layout.canvas.height,
+          providerRaw: { ok: true },
+          prompt: "prompt",
+          usedApi: true
+        };
+      }
+    },
+    alignmentProvider: {
+      async align() {
+        const error = new Error("视觉对齐失败：module_1 未通过 SAM mask");
+        error.statusCode = 422;
+        throw error;
+      }
+    },
+    followupProvider: {}
+  });
+
+  await assert.rejects(() => service.create("question", () => {}), /视觉对齐失败/);
 }
 
 async function testHitTestMatchesDomOrderWhenZIndexTies() {
@@ -249,6 +307,28 @@ async function testHitTestMatchesDomOrderWhenZIndexTies() {
   assert.deepStrictEqual(result.visualQualityWarnings, []);
 }
 
+function testCreateDefaultServicesFallsBackToGlobalLayoutModel() {
+  const services = createDefaultServices({
+    uid: createUid(),
+    sleep: async () => {},
+    shouldUseApi: async () => false,
+    apiPost: async () => ({}),
+    apiGet: async () => ({}),
+    apiPatch: async () => ({}),
+    apiDelete: async () => ({}),
+    providerConfig: { mode: "mock", endpoints: {} },
+    structureModel: {},
+    layoutModel: undefined,
+    mockSvg: {},
+    state: stateModel.createChatImageState(),
+    stateModel,
+    threadModel,
+    getRuntimeConfig: async () => ({})
+  });
+  const layout = services.layoutPlanner.create(createSpec());
+  assert.ok(layout && layout.canvas && layout.canvas.width > 0);
+}
+
 async function testFallbackAnswerStructureDoesNotLeakVisualPrompt() {
   const question =
     "画一张机场航站楼接驳指引图：值机柜台、安检、候机区、登机口、行李提取、地铁出租车接驳，需要每个区域都可以点击查看说明";
@@ -294,6 +374,148 @@ async function testFallbackAnswerStructureDoesNotLeakVisualPrompt() {
   assert.doesNotMatch(detailText, /需要先给出直接回答/);
   assert.doesNotMatch(detailText, /拆成若干可视化模块/);
   assert.doesNotMatch(detailText, /每个区域都可以点击查看说明/);
+}
+
+async function testScaffoldModulesAreFilteredBeforeGrounding() {
+  const uid = createUid();
+  const saved = [];
+  const pollutedSpec = {
+    title: "Fridge prep shelf",
+    summary: "A visual fridge organization scene.",
+    visualMode: "scene",
+    relationType: "parallel",
+    modules: [
+      {
+        id: "module_1",
+        title: "Protein Boxes",
+        imageText: "Protein",
+        detail: "Cooked protein boxes.",
+        regionKind: "object",
+        regionPrompt: "clear meal prep protein boxes on the fridge shelf"
+      },
+      {
+        id: "module_2",
+        title: "Input context",
+        imageText: "Prompt notes",
+        detail: "Meta prompt explanation.",
+        regionKind: "panel",
+        regionPrompt: "input context panel"
+      },
+      {
+        id: "module_3",
+        title: "Sauce Jars",
+        imageText: "Sauces",
+        detail: "Small sauce jars.",
+        regionKind: "object",
+        regionPrompt: "small sauce jars in the fridge door"
+      },
+      {
+        id: "module_4",
+        title: "External tools",
+        imageText: "Tools",
+        detail: "External tools that are not visible.",
+        regionKind: "panel",
+        regionPrompt: "external tools panel"
+      }
+    ],
+    auxiliaryModules: [
+      {
+        id: "aux_1",
+        title: "Legend",
+        imageText: "Legend",
+        detail: "Explains the diagram.",
+        regionKind: "legend",
+        regionPrompt: "legend panel"
+      }
+    ]
+  };
+  const filtered = filterGroundingScaffoldModules(pollutedSpec, "Create a fridge meal prep scene");
+  assert.deepStrictEqual(filtered.modules.map((module) => module.title), ["Protein Boxes", "Sauce Jars"]);
+  assert.deepStrictEqual(filtered.auxiliaryModules, []);
+  assert.strictEqual(filtered.groundingFilter.removed.length, 3);
+
+  const coffeeSpec = {
+    title: "Coffee shop",
+    visualMode: "scene",
+    modules: [
+      { title: "Barista", regionPrompt: "barista behind the coffee counter", detail: "Barista role." },
+      { title: "Espresso machine", regionPrompt: "large espresso machine on the bar", detail: "Machine role." },
+      { title: "Pastry case", regionPrompt: "glass pastry case near the counter", detail: "Pastry role." },
+      { title: "Window seating", regionPrompt: "window seating area", detail: "Seating role." },
+      { title: "Entrance queue", regionPrompt: "entrance queue by the door", detail: "Queue role." },
+      { title: "Create a h", regionPrompt: "create a h", detail: "Truncated prompt fragment." },
+      { title: "-drawn neighborhood libr", regionPrompt: "drawn neighborhood library fragment", detail: "Truncated prompt fragment." }
+    ]
+  };
+  const coffeeQuestion =
+    "Create an isometric boutique coffee shop scene. Let users click the barista, espresso machine, pastry case, window seating, pickup shelf, and entrance queue.";
+  const coffeeFiltered = filterGroundingScaffoldModules(coffeeSpec, coffeeQuestion);
+  assert.deepStrictEqual(coffeeFiltered.modules.map((module) => module.title), [
+    "Barista",
+    "Espresso machine",
+    "Pastry case",
+    "Window seating",
+    "Entrance queue"
+  ]);
+  assert.deepStrictEqual(
+    coffeeFiltered.groundingFilter.removed.map((item) => item.title),
+    ["Create a h", "-drawn neighborhood libr"]
+  );
+
+  const service = createChatImageService({
+    uid,
+    sleep: async () => {},
+    state: stateModel.createChatImageState(),
+    stateModel,
+    threadModel,
+    layoutModel,
+    persistence: {
+      async saveResult(result) {
+        saved.push(result);
+      },
+      async saveThread() {}
+    },
+    answerStructureProvider: {
+      async create() {
+        return { rawAnswer: "raw", visualSpec: pollutedSpec };
+      }
+    },
+    llmProvider: {},
+    structureProvider: {},
+    layoutPlanner: {
+      create(inputSpec) {
+        assert.deepStrictEqual(inputSpec.modules.map((module) => module.title), ["Protein Boxes", "Sauce Jars"]);
+        assert.deepStrictEqual(inputSpec.auxiliaryModules, []);
+        return layoutModel.createLayout(inputSpec, { uid });
+      }
+    },
+    imageProvider: {
+      async generate(inputSpec, layout) {
+        assert.deepStrictEqual(inputSpec.modules.map((module) => module.title), ["Protein Boxes", "Sauce Jars"]);
+        return {
+          imageUrl: "data:image/png;base64,test",
+          width: layout.canvas.width,
+          height: layout.canvas.height,
+          providerRaw: { ok: true },
+          prompt: "prompt",
+          usedApi: true
+        };
+      }
+    },
+    alignmentProvider: {
+      async align({ spec, layout }) {
+        assert.deepStrictEqual(spec.modules.map((module) => module.title), ["Protein Boxes", "Sauce Jars"]);
+        return { layout, alignmentRaw: { provider: "test-align" } };
+      }
+    },
+    followupProvider: {}
+  });
+
+  const result = await service.create("question", () => {});
+  assert.strictEqual(result.hotspots.length, 2);
+  assert.strictEqual(result.structuredSpec.groundingFilter.removed.length, 3);
+  assert.match(result.alignmentRaw.qualityWarnings.join("\n"), /grounding_scaffold_filtered:3/);
+  assert.strictEqual(saved[0], result);
 }
 
 async function testAnswerStructureProviderUsesOneTextCall() {

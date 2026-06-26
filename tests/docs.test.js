@@ -43,7 +43,7 @@ function main() {
     assert.match(envExample, new RegExp(`^${key}=`, "m"), `.env.example missing ${key}`);
   }
 
-  const contract = fs.readFileSync(path.join(root, "docs", "vision-endpoint-contract.md"), "utf8");
+  const contract = fs.readFileSync(path.join(root, "docs", "archive", "vision-endpoint-contract.md"), "utf8");
   assert.match(contract, /OpenAI-compatible chat completions/);
   assert.match(contract, /local-ocr/);
   assert.match(contract, /locateanything/);
@@ -64,7 +64,7 @@ function main() {
   assert.match(contract, /npm\.cmd run test:real-instance/);
 
   const readme = fs.readFileSync(path.join(root, "README.md"), "utf8");
-  assert.match(readme, /docs\/vision-endpoint-contract\.md/);
+  assert.match(readme, /docs\/archive\/vision-endpoint-contract\.md/);
 
   console.log("docs.test.js passed");
 }

@@ -65,6 +65,13 @@ async function main() {
     await cdp.send("Page.navigate", { url: `${baseUrl}/?provider=mock` });
     await cdp.waitFor("Page.loadEventFired", 10000);
 
+    const appSource = fs.readFileSync(path.join(process.cwd(), "src", "app.js"), "utf8");
+    assert.match(
+      appSource,
+      /if\s*\(\s*options\.focusPanel\s*\|\|\s*options\.animatePreview\s*\)\s*startPreviewFlight\(/,
+      "animatePreview refreshes must also trigger preview flight, otherwise async organic previews snap in place"
+    );
+
     const organicPreviewCss = await cdp.evaluate(`(() => {
       const wrapper = document.createElement("div");
       wrapper.innerHTML = '<div class="detail-preview-crop detail-preview-organic" style="--crop-x:0.2;--crop-y:0.2;--crop-w:0.3;--crop-h:0.3;aspect-ratio:1.5"><img class="detail-preview-organic-image" src="data:image/png;base64,iVBORw0KGgo=" alt="organic"></div>';
@@ -818,6 +825,13 @@ async function main() {
       document.querySelector("#detailPanel").classList.contains("is-preview-flight-running")
     `);
     assert.strictEqual(previewFlightActive, true);
+    const previewFlightStyle = await cdp.evaluate(`(() => {
+      const preview = document.querySelector(".detail-preview");
+      const style = getComputedStyle(preview);
+      return { opacity: style.opacity, animationName: style.animationName };
+    })()`);
+    assert.strictEqual(previewFlightStyle.opacity, "0");
+    assert.strictEqual(previewFlightStyle.animationName, "none");
     const selectedTitle = await cdp.evaluate(`document.querySelector(".detail-content h2").textContent`);
     assert.ok(selectedTitle.trim().length > 0);
     const detailLayout = await cdp.evaluate(`(() => {

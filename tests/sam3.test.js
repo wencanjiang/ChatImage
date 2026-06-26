@@ -3,8 +3,10 @@
 const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
+const { spawnSync } = require("child_process");
 const {
   createSam3Config,
+  enforceStrictVisualAlignment,
   normalizeSam3Output,
   refineAlignmentWithSam3,
   runSam3Preload,
@@ -20,6 +22,7 @@ async function main() {
   await testSubjectWithLabelSynthesizesComponents();
   await testLegendSubjectWithLabelDoesNotSynthesizeComponents();
   await testRefineAlignmentKeepsLocateBoundsAndAddsMask();
+  await testStrictVisualAlignmentRequiresLocateAnythingAndSam();
   await testPlannedFallbackPromotesUsableSamBounds();
   await testRefineAlignmentExpandsComponentBoundsForSam3();
   await testLongLabelExpandsSamInputHorizontally();
@@ -28,6 +31,7 @@ async function main() {
   await testLandmarkWithBridgeTextDoesNotUseRouteFallback();
   await testMapRegionInputBoundsAreContextual();
   await testRefineFailureDoesNotBlockAlignment();
+  testSam3WorkerFillsRouteMaskHoles();
   testNormalizeRejectsInvalidMaskBounds();
   testConfigRequiresExplicitEnableAndAck();
   console.log("sam3.test.js passed");
@@ -200,6 +204,48 @@ async function testRefineAlignmentKeepsLocateBoundsAndAddsMask() {
   assert.ok(refined.modules[0].mask.organicAspectRatio > 0);
   assert.ok(refined.modules[0].mask.polygon.length >= 3);
   assert.deepStrictEqual(refined.acceptedSam3Modules, ["module_1", "module_2"]);
+}
+
+async function testStrictVisualAlignmentRequiresLocateAnythingAndSam() {
+  const refined = await refineAlignmentWithSam3(createConfig(), createAlignmentResult(), {
+    imageUrl: createHealthFixtureDataUrl(),
+    imageWidth: 640,
+    imageHeight: 360
+  });
+  assert.strictEqual(enforceStrictVisualAlignment(createConfig(), refined), refined);
+  assert.throws(
+    () =>
+      enforceStrictVisualAlignment(createConfig(), {
+        ...refined,
+        modules: [{ ...refined.modules[0], source: "planned" }]
+      }),
+    /未通过视觉定位/
+  );
+  assert.throws(
+    () =>
+      enforceStrictVisualAlignment(createConfig(), {
+        ...refined,
+        acceptedSam3Modules: [],
+        modules: [{ ...refined.modules[0], mask: undefined }]
+      }),
+    /未通过 SAM mask/
+  );
+  assert.throws(
+    () =>
+      enforceStrictVisualAlignment(createConfig(), {
+        ...refined,
+        modules: [
+          {
+            ...refined.modules[0],
+            mask: {
+              ...refined.modules[0].mask,
+              quality: { holeCount: 2, componentCount: 1, filledHolePixels: 0, contiguous: true, solid: false }
+            }
+          }
+        ]
+      }),
+    /内部空腔/
+  );
 }
 
 async function testPlannedFallbackPromotesUsableSamBounds() {
@@ -471,6 +517,29 @@ async function testRefineFailureDoesNotBlockAlignment() {
   });
 }
 
+function testSam3WorkerFillsRouteMaskHoles() {
+  const script = `
+import importlib.util
+import numpy as np
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("sam3_worker", Path("scripts/sam3_worker.py"))
+worker = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(worker)
+mask = np.ones((40, 40), dtype=bool)
+mask[10:30, 10:30] = False
+processed, warnings, quality = worker.postprocess_mask(mask, {"moduleId": "route_1", "regionKind": "route", "maskPolicy": "route"})
+assert not warnings, warnings
+assert bool(processed[20, 20])
+assert quality.get("holeCount") == 0, quality
+assert quality.get("filledHolePixels") > 0, quality
+`;
+  const result = spawnSync("python", ["-c", script], {
+    cwd: process.cwd(),
+    encoding: "utf8"
+  });
+  assert.strictEqual(result.status, 0, result.stderr || result.stdout);
+}
+
 function testNormalizeRejectsInvalidMaskBounds() {
   assert.throws(
     () =>
@@ -499,6 +568,7 @@ function testConfigRequiresExplicitEnableAndAck() {
   assert.strictEqual(enabled.sam3Enabled, true);
   assert.strictEqual(enabled.sam3Configured, true);
   assert.strictEqual(enabled.sam3LicenseAck, true);
+  assert.strictEqual(Object.prototype.hasOwnProperty.call(enabled, "sam3Checkpoint"), false);
 }
 
 async function withEnv(key, value, fn) {
