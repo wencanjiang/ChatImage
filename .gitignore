@@ -25,6 +25,7 @@ Thumbs.db
 *.aux
 *.bbl
 *.blg
+*.brf
 *.synctex.gz
 *.fdb_latexmk
 *.fls
