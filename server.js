@@ -106,7 +106,12 @@ function createConfig(overrides = {}) {
     locateAnythingModel: process.env.CHATIMAGE_LOCATEANYTHING_MODEL || "nvidia/LocateAnything-3B",
     locateAnythingDevice: process.env.CHATIMAGE_LOCATEANYTHING_DEVICE || "cuda",
     locateAnythingTimeoutMs: Number(process.env.CHATIMAGE_LOCATEANYTHING_TIMEOUT_MS || 120_000),
-    locateAnythingMaxNewTokens: parseOptionalPositiveInteger(process.env.CHATIMAGE_LOCATEANYTHING_MAX_NEW_TOKENS),
+    // Cap generation length by default. LocateAnything emits a short box answer
+    // (~50 tokens), but with no cap its hybrid mode keeps rambling on hard
+    // targets (landmark/building/map regions) for 16-31s per call instead of
+    // ~3s, which makes multi-region align blow past the worker timeout and
+    // degrade grounding to planned fallbacks. 256 is ample headroom for the box.
+    locateAnythingMaxNewTokens: parseOptionalPositiveInteger(process.env.CHATIMAGE_LOCATEANYTHING_MAX_NEW_TOKENS) || 256,
     locateAnythingMaxImageSide: Number(process.env.CHATIMAGE_LOCATEANYTHING_MAX_IMAGE_SIDE || 960),
     locateAnythingGenerationMode: process.env.CHATIMAGE_LOCATEANYTHING_GENERATION_MODE || "hybrid",
     locateAnythingLicenseAck: process.env.CHATIMAGE_LOCATEANYTHING_LICENSE_ACK || "",
