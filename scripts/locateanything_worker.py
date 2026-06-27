@@ -54,11 +54,30 @@ def write_jsonl(payload):
     print(json.dumps(payload, ensure_ascii=True), flush=True)
 
 
+_LA_TIMING_LOG = os.environ.get("CHATIMAGE_LA_TIMING_LOG")
+
+
+def la_timing(message):
+    """Append a diagnostic timing line to the file in CHATIMAGE_LA_TIMING_LOG (if set).
+
+    Survives request timeouts (which keep the worker alive), unlike the server's
+    stderr capture that only surfaces on worker close."""
+    if not _LA_TIMING_LOG:
+        return
+    try:
+        with open(_LA_TIMING_LOG, "a", encoding="utf-8") as handle:
+            handle.write(message + "\n")
+    except Exception:
+        pass
+
+
 class LocateAnythingJsonlWorker:
     def __init__(self, args):
         self.args = args
         self.locator = None
         self.model_loaded = False
+        self._gg_calls = 0
+        self._gg_seconds = 0.0
 
     def handle(self, request):
         request_type = request.get("type")
@@ -131,6 +150,8 @@ class LocateAnythingJsonlWorker:
         load_started_at = time.perf_counter()
         self.ensure_locator()
         model_load_seconds = time.perf_counter() - load_started_at
+        align_started_at = time.perf_counter()
+        la_timing(f"[align] modules={len(modules)} model_load_s={model_load_seconds:.1f} image={width}x{height} gen_mode={self.args.generation_mode} max_new_tokens={self.args.max_new_tokens}")
         aligned = []
         rejected = []
         warnings = []
@@ -138,10 +159,18 @@ class LocateAnythingJsonlWorker:
         for index, module in enumerate(modules):
             phrases = build_module_phrases(module, index)
             matched_phrase = phrases[0]["text"] if phrases else build_module_phrase(module, index)
+            gg_before = self._gg_calls
+            gg_seconds_before = self._gg_seconds
             try:
                 module_started_at = time.perf_counter()
                 locate_result = self.locate_module(image, width, height, module, phrases)
                 module_seconds = time.perf_counter() - module_started_at
+                la_timing(
+                    f"[align] module={index} id={module.get('moduleId')} kind={module.get('regionKind')} "
+                    f"module_s={module_seconds:.1f} gg_calls={self._gg_calls - gg_before} "
+                    f"gg_s={self._gg_seconds - gg_seconds_before:.1f} "
+                    f"cum_calls={self._gg_calls} cum_align_s={time.perf_counter() - align_started_at:.1f}"
+                )
                 answer = locate_result["answer"]
                 boxes = locate_result["boxes"]
                 box = locate_result["box"]
@@ -525,6 +554,18 @@ class LocateAnythingJsonlWorker:
         dtype = torch.float16 if dtype_name in {"fp16", "float16"} else torch.bfloat16
         self.locator = LocateAnythingWorker(self.args.model, device=self.args.device, dtype=dtype)
         self.model_loaded = True
+        # Wrap ground_gui so every model call is counted/timed for diagnostics.
+        _orig_ground_gui = self.locator.ground_gui
+
+        def _timed_ground_gui(*call_args, **call_kwargs):
+            self._gg_calls += 1
+            _started = time.perf_counter()
+            try:
+                return _orig_ground_gui(*call_args, **call_kwargs)
+            finally:
+                self._gg_seconds += time.perf_counter() - _started
+
+        self.locator.ground_gui = _timed_ground_gui
 
 
 def build_module_phrase(module, index):
