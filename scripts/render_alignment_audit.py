@@ -217,8 +217,9 @@ def expand_bounds(bounds, pad):
 
 
 def load_font(size):
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     candidates = [
-        r"C:\code_all\LxgwWenKai\LXGWWenKaiMono-Medium.ttf",
+        os.path.join(repo_root, "assets", "fonts", "LXGWWenKaiMono-Medium.ttf"),
         r"C:\Windows\Fonts\msyh.ttc",
         r"C:\Windows\Fonts\arial.ttf",
     ]
