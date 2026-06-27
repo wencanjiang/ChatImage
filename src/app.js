@@ -25,6 +25,10 @@
   let historyItems = [];
   let historySearchQuery = "";
   const cutoutPreviewCache = new Map();
+  // Always render hotspot previews as organic SAM regions (filled holes +
+  // outward dilation + feathered halo), like the West Lake demo hero, instead
+  // of transparent cutouts or hard rectangles. Mandatory for every hotspot.
+  const ALWAYS_ORGANIC_PREVIEW = true;
 
   const ATTACHMENT_ICON_GROUPS = {
     code: new Set([
@@ -490,7 +494,7 @@
     const aspectRatio = (targetCrop.width * dimensions.width) / Math.max(1, targetCrop.height * dimensions.height);
 
     // Independent subject: transparent SAM3 cutout (server or client canvas).
-    if (!preferContextCrop && !contextPreviewShape) {
+    if (!ALWAYS_ORGANIC_PREVIEW && !preferContextCrop && !contextPreviewShape) {
       // Old saved ChatImages may contain server cutouts generated before the
       // solid-alpha repair. If a mask exists, wait for the local canvas rebuild.
       if (serverCutoutImage && !maskImage) {
@@ -638,11 +642,14 @@
     );
     if (!previewBounds || !key || cutoutPreviewCache.has(key)) return;
     cutoutPreviewCache.set(key, { loading: true });
-    const useCutoutBuilder = Boolean(strategy.independentSubject && !strategy.mapLike && !contextPreviewShape && maskBounds && maskImage);
+    const useCutoutBuilder = !ALWAYS_ORGANIC_PREVIEW && Boolean(strategy.independentSubject && !strategy.mapLike && !contextPreviewShape && maskBounds && maskImage);
     const builder = useCutoutBuilder ? createHotspotCutoutPreview : createOrganicPreview;
     builder
       .call(null, result, hotspot, previewBounds, maskImage, {
-        forceContextShape: contextPreviewShape || !useCutoutBuilder,
+        // Honor the real strategy only. With all-organic previews we must NOT
+        // force the generic context shape for independent subjects — they have a
+        // real SAM mask silhouette that should drive the organic preview.
+        forceContextShape: contextPreviewShape,
         synthetic: !maskBounds || contextPreviewShape
       })
       .then((cutout) => {
@@ -662,7 +669,7 @@
 
   function getCutoutPreviewKey(result, hotspotId, maskImage, strategy, polygon, bounds, options = {}) {
     if (!result || !hotspotId) return "";
-    const kind = strategy && (strategy.preferContextCrop || shouldUseContextPreviewShape(strategy)) ? "organic" : "cutout";
+    const kind = ALWAYS_ORGANIC_PREVIEW || (strategy && (strategy.preferContextCrop || shouldUseContextPreviewShape(strategy))) ? "organic" : "cutout";
     const polygonSignature = Array.isArray(polygon) && polygon.length >= 3
       ? polygon
           .slice(0, 64)
