@@ -62,3 +62,33 @@ Prepare ChatImage for public open-source release with a reliable best-case demo 
 - No stale rejected demo should appear in `docs/assets/demos` or `docs/index.html`.
 - No API keys or local absolute paths may appear in public docs/config examples.
 - Tests for docs demos, interaction, SAM mask quality, and build must pass before release.
+
+## 2026-06-26 Instance Experiment (paper sec/4)
+
+### Goal
+Run a 30-case x3-repeat instance study on the real generation + strict
+visual-alignment pipeline, report two success rates, and export a human-eval
+scoring sheet for the user to grade quality.
+
+### Design (user-approved)
+- 30 cases, balanced: 5 map, 6 technical, 9 business, 10 scene (reused from the
+  existing `scripts/generate-real-demo-cases.js` pool of 48).
+- 3 repeats each => 90 real API + GPU runs.
+- Two reported metrics per run:
+  - basic generation success: result generated with >= 3 valid hotspots.
+  - strict visual-alignment: every hotspot passes `enforceStrictVisualAlignment`
+    (primary grounding + SAM mask + cutout + organic preview; no planned /
+    sam3-refined-planned), same gate as the published demos.
+- Harness: `scripts/run-instance-experiment.js` re-invokes the existing runner 3x
+  (via `CHATIMAGE_REAL_DEMO_CASES`), reads each run's `result.json`/report,
+  evaluates both metrics, and writes `experiment-summary.json`,
+  `scoring-sheet.csv` (per-run rows with an empty human_score column +
+  page.png path), and `success-rates.csv` (per-case rates).
+- Human evaluation: the user grades each run's rendered `page.png` 1-5; success
+  rates are objective, quality scores are the user's.
+
+### Steps
+1. [in_progress] Build harness + select 30 cases; pilot 1 case x1 to validate.
+2. [pending] Launch full 30x3 background run.
+3. [pending] Aggregate two success rates + export human-eval scoring sheet.
+4. [pending] Write results into sec/4_experiment and recompile the PDF (#10).
