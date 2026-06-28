@@ -25,6 +25,8 @@ function main() {
   assert.doesNotMatch(html, /demo-[a-z0-9-]+\.svg/, "showcase cards should not use mock SVG demos");
   assert.doesNotMatch(html, /hero\.svg/, "hero should use a real generated image");
   assert.match(html, /real-west-lake-tour-map\.png/, "hero should use the regenerated strict West Lake tour map");
+  assert.match(html, /real-healthy-breakfast-options\.png/, "showcase should include the new strict healthy breakfast demo");
+  assert.doesNotMatch(html, /real-smart-home-living-room/, "weaker smart-home demo should be replaced in the showcase");
   assert.doesNotMatch(html, /real-airport-terminal-map/, "airport terminal demo should not be shown");
   assert.doesNotMatch(html, /real-public-health-poster/, "public health poster demo should not be shown");
   assert.doesNotMatch(html, /content:attr\(data-index\)/, "hotspot dots should not render numeric labels on top of the image");
@@ -37,7 +39,8 @@ function main() {
   const categories = new Set();
   const modes = new Set();
   let totalHotspots = 0;
-  const visiblePollution = /whole prompt|entire prompt|Create a weekend Hangzhou|Each clickable region|prompt fragment|user request/i;
+  const visiblePollution =
+    /whole prompt|entire prompt|Create a weekend Hangzhou|Each clickable region|prompt fragment|user request|需要先给出直接回答|拆成若干可视化模块|每个模块应对应|在详情中说明机制|决定场景的组织方式|入口、展项、人物和辅助设施|负责把观众和展项连接起来|承担方向提示和安全边界|不同食物后解释营养构成与适用场景|点击地图上不同地理区域|不同地理|具体的边界|独立交互的节点|路径或地标本身/i;
   const genericLabels = new Set([
     "\u95ee\u9898\u5b9a\u4e49",
     "\u5173\u952e\u8981\u7d20",

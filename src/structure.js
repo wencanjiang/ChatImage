@@ -996,10 +996,10 @@
       return `${cleanTitle}体现这个场景的使用方式。人物的站位、朝向、停留距离和互动动作能说明哪些内容最吸引注意，也能暴露动线是否拥挤、讲解是否清楚、空间是否适合继续探索。`;
     }
     if (/(空间|环境|结构|大厅|动线|路线|通道|space|layout|hall|route|path)/i.test(text)) {
-      return `${cleanTitle}决定场景的组织方式。它把入口、展项、人物和辅助设施连成可移动的路径，影响观众从哪里进入、在哪里停留、怎样把注意力从一个目标转移到下一个目标。`;
+      return `${cleanTitle}决定${subject}的空间组织方式。它把主要对象、使用者、通行位置和辅助设施连成可理解的场景关系，帮助用户判断哪里是视觉中心、哪里适合停留，以及相邻元素为什么被安排在一起。`;
     }
     if (/(入口|出口|门|标识|指示|sign|entrance|exit|door)/i.test(text)) {
-      return `${cleanTitle}承担方向提示和安全边界的作用。它的位置要和人流方向、墙面或通道关系清楚，用户才能快速判断从哪里进入、离开或转向。`;
+      return `${cleanTitle}承担进入、离开或转向的提示作用。它的位置需要和周围空间、使用者动线或功能对象保持清楚关系，用户才能快速理解这个场景从哪里开始、怎样移动，以及哪些边界不应被忽略。`;
     }
     if (/(设备|屏幕|传感器|控制|device|screen|sensor|control)/i.test(text)) {
       return `${cleanTitle}是场景中的功能节点。它通常负责展示状态、接收操作或触发反馈，因此需要结合周围人物、展品和空间位置理解它的用途。`;
@@ -1141,6 +1141,7 @@
 
   function sanitizeExplicitTargetLabel(value) {
     const cleaned = stripInstructionTail(value)
+      .replace(/^(?:不同|各个|每个|这些)?(?:食物|对象|区域|元素|物体|目标)后(?:解释|说明|查看|展示)[\s\S]*$/g, "")
       .replace(/^(?:\u533a\u57df|\u5bf9\u8c61|\u76ee\u6807|\u70ed\u70b9)(?:\u540e)?(?:\u89e3\u91ca|\u8bf4\u660e|\u67e5\u770b|\u5c55\u793a)[\s\S]*$/g, "")
       .replace(/^(?:\u8fd9\u4e9b|\u6bcf\u4e2a|\u5404\u4e2a|\u53ef\u89c6|\u660e\u663e|\u5177\u4f53|\u4e3b\u8981)\s*/g, "")
       .replace(/(?:\u90fd)?(?:\u8981)?(?:\u6210\u4e3a)?(?:\u53ef\u70b9\u51fb|\u70b9\u51fb|\u4e92\u52a8)(?:\u5143\u7d20|\u533a\u57df|\u7269\u4f53)?[\s\S]*$/g, "")
@@ -2897,12 +2898,13 @@
       ];
     }
     repaired.detail = repairThinMapDetail(repaired, question, rawAnswer);
-    if (!String(repaired.sourceExcerpt || "").trim()) {
-      // regionPrompt is image-search vocabulary; including it here feeds locator
-      // instructions into the followup LLM, which can echo them back to the user.
-      // Keep only human-facing title/imageText.
-      repaired.sourceExcerpt = [repaired.title, repaired.imageText].filter(Boolean).join("；").slice(0, 160);
-    }
+    // regionPrompt/raw fallback prose is image-search or generation-planning
+    // vocabulary; including it here feeds locator instructions into the
+    // followup LLM, which can echo them back to the user. Keep only
+    // human-facing title/imageText when the excerpt is empty or generic.
+    const excerptFallback = [repaired.title, repaired.imageText].filter(Boolean).join("；");
+    const sourceExcerpt = sanitizeDetailForUser(String(repaired.sourceExcerpt || ""), excerptFallback);
+    repaired.sourceExcerpt = (!sourceExcerpt || looksLikeGenericMapDetail(sourceExcerpt) ? excerptFallback : sourceExcerpt).slice(0, 160);
     return repaired;
   }
 
@@ -2984,9 +2986,11 @@
 
   function repairThinMapDetail(module, question, rawAnswer) {
     const detail = String((module && module.detail) || "").trim();
-    if (detail.length >= 180) return detail;
     const title = String((module && module.title) || "").trim();
     const imageText = String((module && module.imageText) || "").trim();
+    const cleanedDetail = sanitizeDetailForUser(detail, title || imageText);
+    const shouldRebuildDetail = looksLikeGenericMapDetail(cleanedDetail);
+    if (detail.length >= 180 && !shouldRebuildDetail) return cleanedDetail;
     const evidence = normalizeTextList(module && module.visualEvidence, 4, 80);
     // NOTE: module.regionPrompt is the visual-locator prompt fed to LocateAnything/
     // SAM3 — image-search vocabulary that must NOT reach the user. module.locatorQueries
@@ -3000,7 +3004,7 @@
     // base is echoed verbatim into the template sentences below, so it must not
     // carry locator vocabulary. sanitizeDetailForUser strips prompt-style
     // clauses; if nothing usable survives it falls back to the clean title.
-    const base = sanitizeDetailForUser(detail || imageText, title);
+    const base = sanitizeDetailForUser(shouldRebuildDetail ? imageText : cleanedDetail || imageText, title);
     if (/阳光海岸栈道/.test(title)) {
       return [
         `${base}。`,
@@ -3026,9 +3030,28 @@
       ].join("");
     }
     if (context) {
-      return `${base}。${title}是这片地图里的一处独立区域，它在空间上和周边相邻区域形成连接关系，沿线的可见特征包括：${context}。具体的边界、合适观察的角度，以及游玩时需要注意的限制，都依赖当时的实际场景，但作为路径或地标本身，它已经是一个能独立交互的节点。`;
+      return `${base}。${title}在地图中承担明确的游览作用，可见特征包括：${context}。理解它时重点看它和相邻路线、入口或水面的关系，这能帮助判断停留价值、到达顺序和下一段路径。`;
     }
-    return `${base}。${title}是这片地图里的一处独立区域，它在空间上承接前后路线、和相邻区域共同构成完整的游线节奏。具体的边界、合适观察的角度，以及游玩时需要注意的限制，都依赖现场实际情况。`;
+    return `${base}。${title}在地图中承担明确的游览作用，需要结合周边路线、入口或地标一起理解，才能判断停留价值、到达顺序和下一段路径。`;
+  }
+
+  function looksLikeGenericMapDetail(value) {
+    const text = String(value || "");
+    if (!text) return true;
+    return [
+      "点击地图上不同地理区域",
+      "不同地理区域",
+      "不同地理",
+      "承载定位",
+      "分流作用",
+      "具体的边界",
+      "合适观察的角度",
+      "实际场景",
+      "路径或地标本身",
+      "独立交互的节点",
+      "空间上和周边相邻区域形成连接关系",
+      "空间上承接前后路线"
+    ].some((token) => text.includes(token));
   }
 
   // Visual-system vocabulary used internally by SAM3/LocateAnything prompts and
@@ -3128,6 +3151,7 @@
     "画成独立",
     "应像一条",
     "应作为独立",
+    "点击不同",
     "用户点击不同",
     "用户为什么会先到",
     "以及它如何决定",
@@ -3209,7 +3233,14 @@
       "是地图中被单独标出的一处区域",
       "它通常位于路径与地标之间的某个节点",
       "是海报里的一处独立叙事元素",
-      "承担一段视觉论述"
+      "承担一段视觉论述",
+      "决定场景的组织方式",
+      "入口、展项、人物和辅助设施",
+      "负责把观众和展项连接起来",
+      "承担方向提示和安全边界",
+      "需要先给出直接回答",
+      "拆成若干可视化模块",
+      "每个模块应对应"
     ].some((phrase) => text.includes(phrase));
   }
 
