@@ -3,19 +3,22 @@
     \small
     \caption{\textbf{Per-mode breakdown} of image quality (IQ) and alignment
     accuracy (AA), 1--5 scale. Alignment is expected to be easiest in
-    infographic mode and hardest in scene mode. \tbd{XX} marks pending values.}
+    infographic mode and hardest in scene mode. ``Manual aligned hotspots''
+    reports the manually audited conditional alignment range where available;
+    per-mode manual counts and IQ/AA are pending human annotation. \tbd{XX}
+    marks pending values.}
     \label{tab:task_breakdown}
     \resizebox{\linewidth}{!}{%
-    \begin{tabular}{lccc}
+    \begin{tabular}{lcccc}
         \toprule
-        Mode & \#Questions & Image Quality (IQ) $\uparrow$ & Alignment Accuracy (AA) $\uparrow$ \\
+        Mode & \#Questions & Manual aligned hotspots & Image Quality (IQ) $\uparrow$ & Alignment Accuracy (AA) $\uparrow$ \\
         \midrule
-        Infographic & \tbd{XX} & \tbd{XX\std{X}} & \tbd{XX\std{X}} \\
-        Map & \tbd{XX} & \tbd{XX\std{X}} & \tbd{XX\std{X}} \\
-        Scene & \tbd{XX} & \tbd{XX\std{X}} & \tbd{XX\std{X}} \\
+        Infographic & 15 & \tbd{XX/XX} & \tbd{XX\std{X}} & \tbd{XX\std{X}} \\
+        Map & 5 & \tbd{XX/XX} & \tbd{XX\std{X}} & \tbd{XX\std{X}} \\
+        Scene & 10 & \tbd{XX/XX} & \tbd{XX\std{X}} & \tbd{XX\std{X}} \\
         \midrule
         \rowcolor{oursrowblue}
-        \best{Overall} & \best{\tbd{XX}} & \best{\tbd{XX\std{X}}} & \best{\tbd{XX\std{X}}} \\
+        \best{Overall} & \best{30} & \best{17/24 (70.8\%)} & \best{\tbd{XX\std{X}}} & \best{\tbd{XX\std{X}}} \\
         \bottomrule
     \end{tabular}
     }

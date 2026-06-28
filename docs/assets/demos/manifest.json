@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-26T07:24:13.741Z",
+  "generatedAt": "2026-06-28T08:09:07.454Z",
   "source": "real-chatimage-curated-runs",
   "demoCount": 6,
   "notes": [
@@ -32,28 +32,27 @@
       "generatedAt": "2026-06-26T05:46:35.382Z"
     },
     {
-      "id": "real-smart-home-living-room",
-      "chatImageId": "ci_3f5f7110-a7e8-46f2-b9a4-20c4911d25fe",
-      "title": "Smart home living room",
-      "originalTitle": "Smart home living room",
+      "id": "real-healthy-breakfast-options",
+      "chatImageId": "ci_8d4e3e30-fa4b-4997-b309-0e9369c06ef0",
+      "title": "Healthy breakfast options",
+      "originalTitle": "一组健康早餐选择的插画场景",
       "category": "scene",
       "categoryLabel": "scene",
-      "question": "Create an isometric smart-home living room scene. Let users click the sofa area, TV wall, robot vacuum, smart speaker, window plants, and entrance area to inspect their role in the home experience.",
-      "image": "assets/demos/real-smart-home-living-room.png",
-      "thumbnail": "assets/demos/real-smart-home-living-room.png",
-      "json": "assets/demos/real-smart-home-living-room.json",
+      "question": "Create an illustrated healthy breakfast options scene. Naturally show oatmeal bowl, Greek yogurt cup, whole-grain sandwich, boiled egg plate, fresh fruit, and black coffee. Let users click each food to inspect nutrition and best-fit breakfast scenarios.",
+      "image": "assets/demos/real-healthy-breakfast-options.png",
+      "thumbnail": "assets/demos/real-healthy-breakfast-options.png",
+      "json": "assets/demos/real-healthy-breakfast-options.json",
       "visualMode": "scene",
       "layoutFamily": "",
       "layoutVariant": "scene",
-      "modeLabel": "verified visual scene",
+      "modeLabel": "verified fresh daily scene",
       "hotspotCount": 6,
       "source": "real-chatimage-curated-runs",
       "alignmentProvider": "locateanything",
       "sourceCounts": {
-        "mimo-vision": 5,
-        "locateanything-crop": 1
+        "mimo-vision": 6
       },
-      "generatedAt": "2026-06-23T11:59:19.156Z"
+      "generatedAt": "2026-06-27T15:51:45.851Z"
     },
     {
       "id": "real-boutique-coffee-scene",

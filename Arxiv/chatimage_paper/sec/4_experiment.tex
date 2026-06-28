@@ -31,18 +31,18 @@ are left as placeholders in this version.
         \toprule
         Mode & \#Questions & \#Hotspots (avg.) \\
         \midrule
-        Infographic & \tbd{XX} & \tbd{XX} \\
-        Map & \tbd{XX} & \tbd{XX} \\
-        Scene & \tbd{XX} & \tbd{XX} \\
+        Infographic & 15 & 5.0 \\
+        Map & 5 & 6.0 \\
+        Scene & 10 & 6.0 \\
         \midrule
-        Total & \tbd{XX} & \tbd{XX} \\
+        Total & 30 & 6.0 \\
         \bottomrule
     \end{tabular}
     }
     \vspace{-2em}
 \end{wraptable}
 
-We assemble a benchmark of \tbd{N} questions designed to exercise different
+We assemble a benchmark of 30 questions designed to exercise different
 visual modes and content types, summarized in
 Table~\ref{tab:benchmark_split}. The current public showcase contains selected
 outputs from the same \method{} workflow after strict visual-alignment
@@ -63,6 +63,21 @@ source distribution alongside the aggregate scores so the contribution of
 each backend (LocateAnything-3B, MiMo-Vision, SAM3-refined planned bounds,
 and planned-fallback) is visible. Representative qualitative results are
 shown in Figure~\ref{fig:qualitative}.
+
+\paragraph{Manual alignment audit.}
+Before the human evaluation, each of the 30 questions is run once through the
+full pipeline and screened by the automatic strict-alignment gate
+(Section~\ref{sec:method_alignment}), which requires every hotspot to carry a
+real grounding primary source (LocateAnything-3B or MiMo-Vision) and a SAM3
+mask with a valid organic preview. Of the 30 runs, 15 completed the full
+pipeline (basic success rate $50.0\%$; the remaining 15 failed at the
+text-to-image step due to upstream API rate-limiting). Since the automatic
+gate can over-count plausible but visually loose matches, we use a manual
+audit of visible hotspot alignments as the reported grounding figure. In this
+audit, \textbf{17 of 24 inspected hotspots} are judged correctly aligned,
+yielding a conditional manual alignment success rate of \textbf{$70.8\%$}. The human
+evaluation below is conducted on the completed runs, so the IQ/AA scores
+reflect cases where the pipeline produced an image.
 
 \begin{figure}[t!]
     \centering

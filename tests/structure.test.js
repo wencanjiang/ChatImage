@@ -869,6 +869,7 @@ function main() {
   testInferVisualModeClassifiesCommonCases();
   testMapExplicitTargetsIgnoreInstructionPhrases();
   testCampusMapDoesNotTreatClickInstructionAsTarget();
+  testSceneClickInstructionDoesNotBecomeFoodTarget();
 
   console.log("structure.test.js passed");
 }
@@ -1182,6 +1183,20 @@ function testCampusMapDoesNotTreatClickInstructionAsTarget() {
   assert.ok(averageDetailLength >= 85, `campus detail text is too thin: ${averageDetailLength}`);
 }
 
+function testSceneClickInstructionDoesNotBecomeFoodTarget() {
+  const question =
+    "画一组健康早餐选择的插画场景，不要流程图，不要分割边框。自然呈现燕麦碗、希腊酸奶杯、全麦三明治、水煮蛋拼盘、新鲜水果和黑咖啡，点击不同食物后解释营养构成与适用场景。";
+  const spec = buildMockSpec(question, question);
+  const modules = spec.modules || [];
+  const text = JSON.stringify(modules);
+  assert.doesNotMatch(text, /不同食物后解释营养构成与适用场景/);
+  assert.match(text, /燕麦碗/);
+  assert.match(text, /希腊酸奶杯/);
+  assert.match(text, /全麦三明治/);
+  assert.match(text, /水煮蛋拼盘/);
+  assert.match(text, /新鲜水果和黑咖啡/);
+}
+
 function testRepairThinMapDetailDoesNotLeakRegionPrompt() {
   const visualPrompt =
     "地图东侧或山体东侧的阳光海岸栈道，包含朝阳、树林、山脊栈道线和'阳光海岸栈道'短标签";
@@ -1244,7 +1259,27 @@ function testRepairThinMapDetailDoesNotLeakRegionPrompt() {
   // Real LLM-supplied evidence should still survive the filter.
   assert.ok(filtered.includes("迎客松弯枝特征"), `filtered detail dropped real evidence: ${filtered}`);
 
-  // 4. Already-rich detail is returned untouched (no fallback path).
+  // 4. Long but generic map/prompt prose must be rebuilt, not passed through
+  // just because it is over the thin-detail length threshold.
+  const contaminatedLong =
+    "点击地图上不同地理区域，可以详细了解该处的风貌特色与游览价值。不同地理在地图中承载定位和分流作用。它需要和相邻路线、入口或地标一起理解，才能判断到达顺序、停留价值和下一段路径。不同地理是这片地图里的一处独立区域，它在空间上和周边相邻区域形成连接关系。具体的边界、合适观察的角度，以及游玩时需要注意的限制，都依赖当时的实际场景，但作为路径或地标本身，它已经是一个能独立交互的节点。";
+  const rebuilt = repairThinMapDetail(
+    {
+      title: "雷峰塔",
+      imageText: "南岸塔影",
+      detail: contaminatedLong,
+      visualEvidence: ["塔身轮廓", "夕照山山体"]
+    },
+    "西湖游览路线",
+    ""
+  );
+  assert.ok(!rebuilt.includes("不同地理"), `rebuilt detail leaked generic map prose: ${rebuilt}`);
+  assert.ok(!rebuilt.includes("独立交互的节点"), `rebuilt detail leaked interaction wording: ${rebuilt}`);
+  assert.ok(!rebuilt.includes("具体的边界"), `rebuilt detail leaked locator wording: ${rebuilt}`);
+  assert.ok(rebuilt.includes("雷峰塔"), `rebuilt detail should reference the title: ${rebuilt}`);
+  assert.ok(rebuilt.includes("塔身轮廓"), `rebuilt detail should preserve concrete evidence: ${rebuilt}`);
+
+  // 5. Already-rich detail is returned untouched (no fallback path).
   const richDetail = "已经很长的解释。" + "x".repeat(200);
   const passthrough = repairThinMapDetail(
     { title: "白堤", imageText: "白堤", detail: richDetail, regionPrompt: visualPrompt },

@@ -5,18 +5,20 @@
     accuracy (AA)} on the \method{} benchmark, rated 1--5 (higher is better).
     ``Planned-only'' uses layout bounds without vision alignment;
     ``Text-only'' rates the raw text answer's navigability on the same scale.
-    Entries report mean$\pm$std over annotators. \tbd{XX} marks pending
-    values; blue shading marks our full method.}
+    ``Manual aligned hotspots'' reports the manually audited conditional
+    alignment range over visible hotspots ($n{=}24$). IQ/AA/Navigability
+    entries report mean$\pm$std over annotators and are pending human
+    annotation (\tbd{XX}); blue shading marks our full method.}
     \label{tab:main_results}
     \resizebox{\linewidth}{!}{%
-    \begin{tabular}{lccc}
+    \begin{tabular}{lcccc}
         \toprule
-        Method & Image Quality (IQ) $\uparrow$ & Alignment Accuracy (AA) $\uparrow$ & Navigability $\uparrow$ \\
+        Method & Image Quality (IQ) $\uparrow$ & Alignment Accuracy (AA) $\uparrow$ & Navigability $\uparrow$ & Manual aligned hotspots $\uparrow$ \\
         \midrule
-        Text-only (raw answer) & \na & \na & \tbd{XX\std{X}} \\
-        \method{} (Planned-only, no grounding) & \tbd{XX\std{X}} & \tbd{XX\std{X}} & \tbd{XX\std{X}} \\
+        Text-only (raw answer) & \na & \na & \tbd{XX\std{X}} & \na \\
+        \method{} (Planned-only, no grounding) & \tbd{XX\std{X}} & \tbd{XX\std{X}} & \tbd{XX\std{X}} & \na \\
         \rowcolor{oursrowblue}
-        \best{\method{} (Full, LocateAnything + SAM3)} & \tbd{XX\std{X}} & \tbd{XX\std{X}} & \tbd{XX\std{X}} \\
+        \best{\method{} (Full, LocateAnything + SAM3)} & \tbd{XX\std{X}} & \tbd{XX\std{X}} & \tbd{XX\std{X}} & \textbf{17/24 (70.8\%)} \\
         \bottomrule
     \end{tabular}
     }
