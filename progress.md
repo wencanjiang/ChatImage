@@ -105,3 +105,4 @@
 - Regenerated `Arxiv/chatimage_paper/fig/Qualitative_Analysis.pdf` from current docs demo assets, including the new healthy-breakfast showcase.
 - Revised paper metric framing per user correction: generation is reported as 30/30 (100.0%) under valid API runs, API quota interruptions are not counted as model/pipeline failures, strict gate is reported as 17/24 (70.8%), and the manual audit section/row was removed.
 - Added the SAM segmentation completeness metric to the paper: 13/24 (54.2%) checked hotspots have complete SAM masks without holes or empty cavities.
+- Replaced `Experiment_Summary.pdf` with a conference-style vector figure for Section 4, visualizing 30/30 generation, 17/24 strict gate, 13/24 SAM completeness, and the 90-hotspot alignment-source distribution.
