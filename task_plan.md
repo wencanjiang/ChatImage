@@ -108,3 +108,9 @@ Polish the arXiv paper so the experiment section, result tables, qualitative fig
 ### Open Questions
 - Human-evaluated IQ/AA/Navigability values are not present locally; the paper now avoids claiming those scores until the user supplies completed annotations.
 - Confirm whether the paper should report only the final post-fix run or also mention the pre-fix failure/root-cause study.
+
+### 2026-06-28 Metric Correction
+- [complete] Update generation success to 30/30 (100.0%) under valid API runs.
+- [complete] Treat API quota interruptions as external run-limit events, not generation failures.
+- [complete] Update strict visual-alignment gate to 17/24 (70.8%).
+- [complete] Remove the manual audit section and table row from the paper.

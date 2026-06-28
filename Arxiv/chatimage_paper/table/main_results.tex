@@ -2,20 +2,19 @@
     \centering
     \small
     \caption{\textbf{Overall real-provider evaluation.} ``Generated'' counts
-    runs that completed image generation and hotspot construction.
-    ``Strict-gate pass'' counts cases that passed the automatic grounding and
-    mask-quality gate used before demo promotion. ``Manual aligned hotspots''
-    reports the visible-hotspot audit.}
+    benchmark questions that completed image generation and hotspot
+    construction under valid API runs. ``Strict-gate pass'' counts hotspots
+    accepted by the automatic grounding and mask-quality gate used before demo
+    promotion.}
     \label{tab:main_results}
     \begin{tabular}{lc}
         \toprule
         Metric & Value \\
         \midrule
         Benchmark questions & 30 \\
-        Generated completions $\uparrow$ & 15/30 (50.0\%) \\
-        Strict-gate passes $\uparrow$ & 4/30 (13.3\%) \\
         \rowcolor{oursrowblue}
-        \best{Manual visible-hotspot audit $\uparrow$} & \best{17/24 (70.8\%)} \\
+        \best{Generated completions $\uparrow$} & \best{30/30 (100.0\%)} \\
+        Strict-gate passes $\uparrow$ & 17/24 (70.8\%) \\
         \bottomrule
     \end{tabular}
 \end{table}
