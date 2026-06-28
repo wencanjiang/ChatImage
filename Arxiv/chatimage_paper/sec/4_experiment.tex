@@ -81,6 +81,9 @@ in Figure~\ref{fig:qualitative}.
 
 \input{table/main_results}
 
+Figure~\ref{fig:experiment_summary} gives a compact visual summary of the core
+rates, alignment-source mix, and SAM mask-completeness diagnostic.
+
 All 30 benchmark questions completed the full pipeline in valid runs, yielding
 a generated-image completion rate of \textbf{$100.0\%$}. Some earlier
 attempts were interrupted by upstream image API rate limits, but these are
@@ -93,6 +96,17 @@ or missing visual evidence is rejected rather than promoted. Within the same
 24 checked hotspots, \textbf{13} also pass the stricter SAM segmentation
 completeness check ($54.2\%$), meaning the mask covers the intended region
 without obvious holes or empty cavities.
+
+\begin{figure*}[t!]
+    \centering
+    \includegraphics[width=0.86\textwidth]{Experiment_Summary.pdf}
+    \caption{\textbf{Experimental metric summary.} Core completion and
+    alignment results, diagnostic alignment-source distribution, and the
+    SAM mask-completeness check; SAM-complete requires masks without obvious
+    holes or empty cavities.}
+    \label{fig:experiment_summary}
+    \vspace{-0.9em}
+\end{figure*}
 
 \subsection{Alignment Source Analysis}
 \label{sec:experiments_sources}

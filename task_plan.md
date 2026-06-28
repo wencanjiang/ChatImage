@@ -114,3 +114,8 @@ Polish the arXiv paper so the experiment section, result tables, qualitative fig
 - [complete] Treat API quota interruptions as external run-limit events, not generation failures.
 - [complete] Update strict visual-alignment gate to 17/24 (70.8%).
 - [complete] Remove the manual audit section and table row from the paper.
+
+### 2026-06-28 Experiment Figure Polish
+- [complete] Add a conference-style vector experimental-results figure that visualizes completion, strict-gate, SAM-complete, and source-distribution metrics.
+- [complete] Insert the new figure into Section 4 without crowding the qualitative examples.
+- [complete] Recompile the paper PDF and verify figure placement.

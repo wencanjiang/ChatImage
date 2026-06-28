@@ -116,3 +116,4 @@
   - Planned fallback: 11 (12.2%).
   - Local OCR support: 2 (2.2%).
 - Updated qualitative figure uses current docs demo assets, including `real-healthy-breakfast-options`, so it matches the latest public showcase.
+- Added `Arxiv/chatimage_paper/fig/Experiment_Summary.pdf` as a precise, conference-style vector metric figure rather than a generative image, because exact fractions and percentages are central to the experiment section.
