@@ -119,3 +119,14 @@ Polish the arXiv paper so the experiment section, result tables, qualitative fig
 - [complete] Add a conference-style vector experimental-results figure that visualizes completion, strict-gate, SAM-complete, and source-distribution metrics.
 - [complete] Insert the new figure into Section 4 without crowding the qualitative examples.
 - [complete] Recompile the paper PDF and verify figure placement.
+
+## 2026-06-28 Paper Figure Redraw Pass
+
+### Goal
+Replace the placeholder-looking paper figures with polished conference-style vector figures: Figure 1 teaser, Figure 2 pipeline, and the experiment summary figure.
+
+### Phases
+1. [complete] Locate current figure sources and render existing PDFs for visual audit.
+2. [complete] Redraw Figure 1, Figure 2, and the experiment summary as consistent vector PDFs.
+3. [complete] Recompile the paper and visually inspect rendered PDF pages.
+4. [complete] Run source scans for corrected metrics and commit the figure update.
