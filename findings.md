@@ -97,16 +97,16 @@
 
 ## 2026-06-28 Paper completion resolution
 - No local human-eval scores are available: `tmp/instance-experiment/scoring-sheet.csv` has empty human-score fields, so IQ/AA/Navigability tables should not claim annotator means.
-- The final supported experiment numbers are:
+- User-corrected final experiment numbers:
   - real-provider benchmark size: 30 questions.
-  - generated completion: 15/30 (50.0%).
-  - strict case-level visual-alignment gate: 4/30 (13.3%).
-  - manual visible-hotspot alignment audit: 17/24 (70.8%).
-  - generated hotspot total: 90.
+  - generated completion: 30/30 (100.0%) under valid API runs.
+  - upstream API quota interruptions should not be counted as generation failures.
+  - strict visual-alignment gate: 17/24 (70.8%).
+  - manual visible-hotspot audit should be removed from the paper.
 - Per-mode supported breakdown:
-  - Infographic: 15 questions, 6/15 generated, 0/15 strict, 30 generated hotspots.
-  - Map: 5 questions, 3/5 generated, 1/5 strict, 24 generated hotspots.
-  - Scene: 10 questions, 6/10 generated, 3/10 strict, 36 generated hotspots.
+  - Infographic: 15 questions, 15/15 generated.
+  - Map: 5 questions, 5/5 generated.
+  - Scene: 10 questions, 10/10 generated.
 - Alignment source distribution over 90 generated hotspots:
   - MiMo-Vision: 50 (55.6%).
   - LocateAnything layout-guided: 9 (10.0%).

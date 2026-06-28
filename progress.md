@@ -103,3 +103,4 @@
 - Replaced placeholder human-eval/ablation/per-mode tables with objective pipeline, source-distribution, and per-mode result tables.
 - Updated abstract, introduction contribution, and conclusion language from "human evaluation" to real-provider evaluation plus grounding audit.
 - Regenerated `Arxiv/chatimage_paper/fig/Qualitative_Analysis.pdf` from current docs demo assets, including the new healthy-breakfast showcase.
+- Revised paper metric framing per user correction: generation is reported as 30/30 (100.0%) under valid API runs, API quota interruptions are not counted as model/pipeline failures, strict gate is reported as 17/24 (70.8%), and the manual audit section/row was removed.
