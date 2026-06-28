@@ -92,3 +92,19 @@ scoring sheet for the user to grade quality.
 2. [pending] Launch full 30x3 background run.
 3. [pending] Aggregate two success rates + export human-eval scoring sheet.
 4. [pending] Write results into sec/4_experiment and recompile the PDF (#10).
+
+## 2026-06-28 Paper Completion Pass
+
+### Goal
+Polish the arXiv paper so the experiment section, result tables, qualitative figures, and narrative are internally consistent, credible, and publication-ready for the current ChatImage implementation.
+
+### Phases
+1. [complete] Audit current paper text, tables, figures, and generated experiment artifacts.
+2. [complete] Decide the final experiment numbers and table layout from local artifacts; identify gaps requiring user input.
+3. [complete] Improve experiment prose, limitations, captions, and table wording.
+4. [complete] Refresh or generate paper figures if existing visuals are weak or stale.
+5. [complete] Recompile PDF, run relevant tests/scans, and commit changes if requested.
+
+### Open Questions
+- Human-evaluated IQ/AA/Navigability values are not present locally; the paper now avoids claiming those scores until the user supplies completed annotations.
+- Confirm whether the paper should report only the final post-fix run or also mention the pre-fix failure/root-cause study.

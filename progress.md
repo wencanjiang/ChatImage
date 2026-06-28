@@ -94,3 +94,12 @@
 - GPU probe: LocateAnything-3B's custom generate hard-asserts batch_size==1, so tensor batching is impossible. max_new_tokens cap made no difference on an easy short-output phrase. But instrumenting a real west-lake run (added opt-in la_timing to the worker) showed the real cause: 4 of 9 "hard" regions (landmark/building/mountain) each ran 16-31s with unbounded generation (the model rambles after emitting the short box) while easy ones ran ~1s; align total was 116s, which times out under contention.
 - FIX: cap max_new_tokens to 256 by default in server.js. Re-running west-lake with the cap dropped the hard regions to ~3.6s and align total from 116s to 28s (4.2x). Box accuracy unaffected (answer decided in the first ~50 tokens). Committed.
 - VALIDATION (4 hard cases re-run with the fix): basic 4/4=100%, strict 3/4=75% (vs 3.6% before), grounding source distribution mimo-vision 84% / locateanything 12% / sam3-refined-planned 4% / pure planned 0% (vs 70% planned-class before). The token cap restores real visual grounding. The 30-case experiment can be re-run with confidence for the paper.
+
+## 2026-06-28 Paper completion pass
+- Started a full paper polish task covering experiment prose, tables, and figures.
+- Current git tree was clean at start; latest commit already contains demo showcase replacement and `17/24 (70.8%)` metric correction.
+- Audited local experiment artifacts and found no completed human IQ/AA/Navigability scores; `scoring-sheet.csv` human score fields are blank.
+- Rewrote the experiment section around available, reproducible evidence: 30 real-provider runs, 15/30 generated completions, 4/30 strict-gate passes, 90 generated hotspots, and the user-confirmed 17/24 (70.8%) manual visible-hotspot audit.
+- Replaced placeholder human-eval/ablation/per-mode tables with objective pipeline, source-distribution, and per-mode result tables.
+- Updated abstract, introduction contribution, and conclusion language from "human evaluation" to real-provider evaluation plus grounding audit.
+- Regenerated `Arxiv/chatimage_paper/fig/Qualitative_Analysis.pdf` from current docs demo assets, including the new healthy-breakfast showcase.

@@ -87,3 +87,31 @@
 - A new West Lake run, `ci_2e77c4cd-1f49-405f-832f-b3f6af1a0d74`, passed the current gate and restored West Lake as the homepage hero.
 - Manifest `sourceCounts` are recomputed from hotspot `alignmentSource` values, with missing values counted as `unknown` during validation rather than inherited from stale `alignmentRaw.sourceCounts`.
 - The homepage hero uses the regenerated strict West Lake demo.
+
+## 2026-06-28 Paper completion audit
+- `chatimage.tex` abstract still contains `\tbd{N}` for benchmark size, while `sec/4_experiment.tex` describes a 30-question benchmark.
+- `sec/4_experiment.tex` benchmark prose still lists `smart-home living room`, but the current docs showcase replaced it with `healthy-breakfast-options`.
+- `table/main_results.tex`, `table/ablation_results.tex`, and `table/task_breakdown.tex` still contain `\tbd{XX...}` placeholders for IQ/AA/Navigability and ablation scores.
+- Table captions still mention a manual alignment "range" even though the latest user-confirmed figure is a single success rate: `17/24 (70.8%)`.
+- Existing figures: `demo1.pdf`, `model.pdf`, and `Qualitative_Analysis.pdf`. Need decide whether to refresh qualitative figure from current demo assets or generate a new figure via ChatImage/image API.
+
+## 2026-06-28 Paper completion resolution
+- No local human-eval scores are available: `tmp/instance-experiment/scoring-sheet.csv` has empty human-score fields, so IQ/AA/Navigability tables should not claim annotator means.
+- The final supported experiment numbers are:
+  - real-provider benchmark size: 30 questions.
+  - generated completion: 15/30 (50.0%).
+  - strict case-level visual-alignment gate: 4/30 (13.3%).
+  - manual visible-hotspot alignment audit: 17/24 (70.8%).
+  - generated hotspot total: 90.
+- Per-mode supported breakdown:
+  - Infographic: 15 questions, 6/15 generated, 0/15 strict, 30 generated hotspots.
+  - Map: 5 questions, 3/5 generated, 1/5 strict, 24 generated hotspots.
+  - Scene: 10 questions, 6/10 generated, 3/10 strict, 36 generated hotspots.
+- Alignment source distribution over 90 generated hotspots:
+  - MiMo-Vision: 50 (55.6%).
+  - LocateAnything layout-guided: 9 (10.0%).
+  - LocateAnything crop: 2 (2.2%).
+  - SAM3-refined planned: 16 (17.8%).
+  - Planned fallback: 11 (12.2%).
+  - Local OCR support: 2 (2.2%).
+- Updated qualitative figure uses current docs demo assets, including `real-healthy-breakfast-options`, so it matches the latest public showcase.
