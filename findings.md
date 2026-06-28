@@ -89,10 +89,11 @@
 - The homepage hero uses the regenerated strict West Lake demo.
 
 ## 2026-06-28 Paper completion audit
+Initial audit findings before the later paper-completion fixes:
 - `chatimage.tex` abstract still contains `\tbd{N}` for benchmark size, while `sec/4_experiment.tex` describes a 30-question benchmark.
 - `sec/4_experiment.tex` benchmark prose still lists `smart-home living room`, but the current docs showcase replaced it with `healthy-breakfast-options`.
 - `table/main_results.tex`, `table/ablation_results.tex`, and `table/task_breakdown.tex` still contain `\tbd{XX...}` placeholders for IQ/AA/Navigability and ablation scores.
-- Table captions still mention a manual alignment "range" even though the latest user-confirmed figure is a single success rate: `17/24 (70.8%)`.
+- Table captions still mentioned a manual alignment "range" even though the latest user-confirmed figure is a single success rate: `17/24 (70.8%)`; this was removed in the later paper-completion pass.
 - Existing figures: `demo1.pdf`, `model.pdf`, and `Qualitative_Analysis.pdf`. Need decide whether to refresh qualitative figure from current demo assets or generate a new figure via ChatImage/image API.
 
 ## 2026-06-28 Paper completion resolution
@@ -118,3 +119,4 @@
 - Updated qualitative figure uses current docs demo assets, including `real-healthy-breakfast-options`, so it matches the latest public showcase.
 - Added `Arxiv/chatimage_paper/fig/Experiment_Summary.pdf` as a precise, conference-style vector metric figure rather than a generative image, because exact fractions and percentages are central to the experiment section.
 - Current Figure 1 and Figure 2 were placeholder-like in the compiled paper; replacing them as vector schematics is more appropriate than calling image generation because these figures need exact labels, arrows, and reproducible layout.
+- Image-2api was successfully used for the final figure backgrounds; exact paper labels and numbers still need deterministic local overlay because generated diagrams are unreliable for precise percentages and method labels.

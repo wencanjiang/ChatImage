@@ -130,3 +130,8 @@ Replace the placeholder-looking paper figures with polished conference-style vec
 2. [complete] Redraw Figure 1, Figure 2, and the experiment summary as consistent vector PDFs.
 3. [complete] Recompile the paper and visually inspect rendered PDF pages.
 4. [complete] Run source scans for corrected metrics and commit the figure update.
+
+### 2026-06-28 Image-2api Redraw Correction
+- [complete] Generate real image-2api visual backgrounds for Figure 1, Figure 2, and the experiment summary.
+- [complete] Recompose the paper PDFs with generated backgrounds plus exact local overlays for labels and metrics.
+- [complete] Recompile and visually inspect the affected paper pages.
