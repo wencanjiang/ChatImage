@@ -99,8 +99,9 @@
 - Started a full paper polish task covering experiment prose, tables, and figures.
 - Current git tree was clean at start; latest commit already contains demo showcase replacement and `17/24 (70.8%)` metric correction.
 - Audited local experiment artifacts and found no completed human IQ/AA/Navigability scores; `scoring-sheet.csv` human score fields are blank.
-- Rewrote the experiment section around available, reproducible evidence: 30 real-provider runs, 15/30 generated completions, 4/30 strict-gate passes, 90 generated hotspots, and the user-confirmed 17/24 (70.8%) manual visible-hotspot audit.
+- Initial paper pass rewrote the experiment section around local artifacts; later user corrections superseded the first-pass 15/30 and 4/30 framing.
 - Replaced placeholder human-eval/ablation/per-mode tables with objective pipeline, source-distribution, and per-mode result tables.
 - Updated abstract, introduction contribution, and conclusion language from "human evaluation" to real-provider evaluation plus grounding audit.
 - Regenerated `Arxiv/chatimage_paper/fig/Qualitative_Analysis.pdf` from current docs demo assets, including the new healthy-breakfast showcase.
 - Revised paper metric framing per user correction: generation is reported as 30/30 (100.0%) under valid API runs, API quota interruptions are not counted as model/pipeline failures, strict gate is reported as 17/24 (70.8%), and the manual audit section/row was removed.
+- Added the SAM segmentation completeness metric to the paper: 13/24 (54.2%) checked hotspots have complete SAM masks without holes or empty cavities.

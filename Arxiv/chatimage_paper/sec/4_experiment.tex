@@ -89,7 +89,10 @@ pipeline and are therefore excluded from the completion metric. The automatic
 strict visual-alignment gate accepted \textbf{17 of 24 checked hotspots}
 ($70.8\%$). This gate is intentionally conservative: each accepted hotspot
 must carry a real grounding source and a valid organic mask preview, so weak
-or missing visual evidence is rejected rather than promoted.
+or missing visual evidence is rejected rather than promoted. Within the same
+24 checked hotspots, \textbf{13} also pass the stricter SAM segmentation
+completeness check ($54.2\%$), meaning the mask covers the intended region
+without obvious holes or empty cavities.
 
 \subsection{Alignment Source Analysis}
 \label{sec:experiments_sources}
