@@ -5,7 +5,7 @@
     benchmark questions that completed image generation and hotspot
     construction under valid API runs. ``Strict-gate pass'' counts hotspots
     accepted by the automatic grounding and mask-quality gate used before demo
-    promotion.}
+    promotion. ``SAM-complete'' counts masks without holes or empty cavities.}
     \label{tab:main_results}
     \begin{tabular}{lc}
         \toprule
@@ -15,6 +15,7 @@
         \rowcolor{oursrowblue}
         \best{Generated completions $\uparrow$} & \best{30/30 (100.0\%)} \\
         Strict-gate passes $\uparrow$ & 17/24 (70.8\%) \\
+        SAM-complete masks $\uparrow$ & 13/24 (54.2\%) \\
         \bottomrule
     \end{tabular}
 \end{table}

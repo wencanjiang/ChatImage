@@ -102,6 +102,7 @@
   - generated completion: 30/30 (100.0%) under valid API runs.
   - upstream API quota interruptions should not be counted as generation failures.
   - strict visual-alignment gate: 17/24 (70.8%).
+  - SAM segmentation completeness: 13/24 (54.2%), counting masks that are complete without holes or empty cavities.
   - manual visible-hotspot audit should be removed from the paper.
 - Per-mode supported breakdown:
   - Infographic: 15 questions, 15/15 generated.
