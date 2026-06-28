@@ -5,16 +5,18 @@
 \setlength{\floatsep}{6pt plus 2pt minus 2pt}
 \setlength{\intextsep}{6pt plus 2pt minus 2pt}
 
-We evaluate \method{} along two axes: \textbf{image quality} (does the
-generated visual answer faithfully and clearly convey the structured content?)
-and \textbf{visual-alignment accuracy} (do the clickable hotspots land on the
-correct regions of the generated image?). We assemble a benchmark spanning
-multiple content types and conduct a human evaluation, since both image
-quality and region alignment are inherently perceptual and not captured by a
-single automatic metric. Quantitative values are reported as mean$\pm$std
-across annotators (with per-question scores averaged before aggregation);
-entries marked \tbd{XX} are pending completion of the full evaluation and
-are left as placeholders in this version.
+We evaluate \method{} along two axes that matter for an interactive visual
+answer: \textbf{pipeline completion} (does the system produce a usable
+generated image and hotspot set for the question?) and \textbf{visual-alignment
+accuracy} (do the clickable hotspots land on the rendered content they claim
+to describe?). All reported numbers in this section come from a single
+real-provider run over the benchmark, followed by an additional manual audit
+of visible hotspot alignments. We distinguish three levels of success: a
+\emph{generated} run completes the full text-to-image-to-hotspot pipeline; a
+\emph{strict-gate} run also passes the automatic grounding and mask-quality
+checks used before promotion to the public demo page; and a \emph{manual
+alignment} count records whether inspected visible hotspots are judged to land
+on the intended visual region.
 
 \subsection{Benchmark}
 \label{sec:experiments_benchmark}
@@ -42,112 +44,93 @@ are left as placeholders in this version.
     \vspace{-2em}
 \end{wraptable}
 
-We assemble a benchmark of 30 questions designed to exercise different
-visual modes and content types, summarized in
-Table~\ref{tab:benchmark_split}. The current public showcase contains selected
-outputs from the same \method{} workflow after strict visual-alignment
-screening: a hand-drawn West Lake tour map and daily-life illustrated scenes
-such as a smart-home living room, boutique coffee shop, sunny reading nook,
-independent record-store corner, and indoor plant-care corner. Map questions
-test geographic region placement and route-like scenic areas, while scene
-questions test object localization in less rigidly structured images. The
-broader benchmark also includes infographic-style planning and
-decision-support prompts to measure how compact analytical regions behave,
-but only runs that pass the current strict grounding and mask-quality gate are
-promoted to the public demo page. Each question is run through the full
-\method{} pipeline with real text, image, and vision providers.
+We assemble a benchmark of 30 questions designed to exercise different visual
+modes and content types, summarized in Table~\ref{tab:benchmark_split}. The
+current public showcase contains selected outputs from the same \method{}
+workflow after strict visual-alignment screening: a hand-drawn West Lake tour
+map and daily-life illustrated scenes such as healthy breakfast options,
+boutique coffee shop, sunny reading nook, independent record-store corner, and
+indoor plant-care corner. Map questions test geographic region placement and
+route-like scenic areas, while scene questions test object localization in
+less rigidly structured images. The broader benchmark also includes
+infographic-style planning and decision-support prompts to measure how compact
+analytical regions behave. Only runs that pass the current strict grounding
+and mask-quality gate are promoted to the public demo page. Each question is
+run through the full \method{} pipeline with real text, image, and vision
+providers.
+
 Because the grounding step is provider-agnostic
-(Section~\ref{sec:method_alignment}), individual benchmark items may be
-served by different grounding backends; we report the per-module alignment
-source distribution alongside the aggregate scores so the contribution of
-each backend (LocateAnything-3B, MiMo-Vision, SAM3-refined planned bounds,
-and planned-fallback) is visible. Representative qualitative results are
-shown in Figure~\ref{fig:qualitative}.
+(Section~\ref{sec:method_alignment}), individual benchmark items may be served
+by different grounding backends. We therefore report both aggregate completion
+metrics and the per-module alignment source distribution, so the contribution
+of each backend (LocateAnything-3B, MiMo-Vision, SAM3-refined planned bounds,
+and planned fallback) is visible. Representative qualitative results are shown
+in Figure~\ref{fig:qualitative}.
 
-\paragraph{Manual alignment audit.}
-Before the human evaluation, each of the 30 questions is run once through the
-full pipeline and screened by the automatic strict-alignment gate
-(Section~\ref{sec:method_alignment}), which requires every hotspot to carry a
-real grounding primary source (LocateAnything-3B or MiMo-Vision) and a SAM3
-mask with a valid organic preview. Of the 30 runs, 15 completed the full
-pipeline (basic success rate $50.0\%$; the remaining 15 failed at the
-text-to-image step due to upstream API rate-limiting). Since the automatic
-gate can over-count plausible but visually loose matches, we use a manual
-audit of visible hotspot alignments as the reported grounding figure. In this
-audit, \textbf{17 of 24 inspected hotspots} are judged correctly aligned,
-yielding a conditional manual alignment success rate of \textbf{$70.8\%$}. The human
-evaluation below is conducted on the completed runs, so the IQ/AA scores
-reflect cases where the pipeline produced an image.
-
-\begin{figure}[t!]
+\begin{figure*}[t!]
     \centering
-    \includegraphics[width=\linewidth]{Qualitative_Analysis.pdf}
+    \includegraphics[width=0.95\textwidth]{Qualitative_Analysis.pdf}
     \caption{\textbf{Qualitative results.} Example \method{} outputs across
-    infographic, map, and scene modes, with hotspots (outlined in calibration
-    mode) shown to align with the actual rendered content.}
+    map, infographic, and scene modes. Each generated image is paired with a
+    structured hotspot layer whose regions open detail panels in the
+    interactive demo.}
     \label{fig:qualitative}
     \vspace{-0.6em}
-\end{figure}
+\end{figure*}
 
-\subsection{Human Evaluation}
-\label{sec:experiments_human}
-
-Because image quality and region alignment are perceptual, we conducted a human
-evaluation. Annotators were shown the generated interactive visual image (with
-hotspots) alongside the original question and raw answer, and rated two
-dimensions on a 1--5 Likert scale:
-
-\begin{itemize}[leftmargin=*,topsep=2pt,itemsep=1pt]
-    \item \textbf{Image quality (IQ):} Does the image faithfully and clearly
-    convey the structured content of the answer? (1=incoherent, 5=clear and
-    faithful.)
-    \item \textbf{Alignment accuracy (AA):} When clicking each hotspot, does
-    the opened detail correspond to the visual region under the cursor?
-    (1=completely misaligned, 5=perfectly aligned.)
-\end{itemize}
-
-Each question was evaluated by \tbd{K} annotators; we report the mean score and
-inter-annotator agreement (Krippendorff's $\alpha$).
-Table~\ref{tab:main_results} reports the overall scores and per-mode breakdown.
-As baselines, we compare against (i)~a \textbf{planned-only} variant that uses
-planned layout bounds without vision alignment (simulating the common
-assumption that the generator follows the layout), and (ii)~a \textbf{text-only}
-condition where the annotator receives only the raw text answer and rates its
-navigability on the same scale, to contextualize the value of the visual
-interactive format.
+\subsection{Pipeline Results}
+\label{sec:experiments_pipeline}
 
 \input{table/main_results}
 
-\subsection{Alignment Ablation}
-\label{sec:experiments_ablation}
+Out of 30 benchmark questions, 15 completed the full pipeline, yielding a
+generated-image completion rate of $50.0\%$. The remaining 15 failed at the
+text-to-image step during the run, primarily because of upstream image API
+rate-limiting rather than downstream hotspot construction. The automatic
+strict visual-alignment gate accepted 4 of the 30 questions ($13.3\%$). This
+gate is intentionally conservative: it requires all hotspots in a case to
+carry a real grounding source and a valid organic mask preview, so a single
+missing or weak region rejects the whole case.
 
-To isolate the contribution of the two-pass vision alignment, we ablated the
-grounding source while keeping the rest of the pipeline fixed.
-Table~\ref{tab:ablation_results} compares: (a)~planned bounds only (no
-grounding), (b)~LocateAnything grounding without SAM3 refinement, (c)~full
-pipeline with SAM3 mask refinement, and (d)~the robustness design (keeping
-far-from-planned groundings, falling back only for header/cross-panel rejects
-and missing modules). We expected grounding to substantially improve alignment
-accuracy over planned-only bounds, since the latter assume layout fidelity that
-generative models do not provide. The robustness ablation tests whether
-preserving correctly-grounded modules when some fail (rather than discarding
-all alignments) improves overall alignment.
+Since case-level strict gating can understate partially useful alignments, we
+also perform a manual audit over visible hotspots in the generated outputs.
+In this audit, \textbf{17 of 24 inspected hotspots} are judged correctly
+aligned with their intended visual region, yielding a conditional manual
+alignment success rate of \textbf{$70.8\%$}. We use this number as the
+reported visible-hotspot alignment figure and keep it separate from the
+stricter case-level gate.
+
+\subsection{Alignment Source Analysis}
+\label{sec:experiments_sources}
 
 \input{table/ablation_results}
+
+Table~\ref{tab:ablation_results} reports the grounding source distribution
+for the 90 hotspots produced by completed benchmark runs. Most generated
+hotspots are supplied by primary visual grounding: MiMo-Vision accounts for
+50 hotspots ($55.6\%$), while LocateAnything contributes another 11 hotspots
+when combining layout-guided and crop-based calls ($12.2\%$). SAM3-refined
+planned regions account for 16 hotspots ($17.8\%$), and planned fallback is
+used for 11 hotspots ($12.2\%$). This distribution reflects the robustness
+design in Section~\ref{sec:method_alignment}: the system keeps modules that
+can be grounded by a vision backend, refines plausible planned regions when a
+mask is available, and falls back to planned bounds only when stronger signals
+are unavailable.
 
 \subsection{Per-Mode Analysis}
 \label{sec:experiments_permode}
 
 \input{table/task_breakdown}
 
-Table~\ref{tab:task_breakdown} breaks down image quality and alignment
-accuracy by visual mode. We expect alignment to be easiest in infographic
-mode, where regions are grid/flow-structured and boundaries are clear, and
-hardest in scene mode, where objects are irregularly placed and grounding must
-distinguish overlapping elements. Map mode presents an intermediate case with
-route and landmark localization. This breakdown helps identify which content
-types the current grounding pipeline handles well and where future work
-(polygons, finer masks) is most needed.
+Table~\ref{tab:task_breakdown} breaks down completion and strict-gate results
+by visual mode. Scene questions complete most often in this run (6/10) and
+also produce most strict-gate passes (3/10), which matches the current
+strength of object-centric visual grounding models. Map questions complete at
+3/5 and contribute one strict pass, while infographic questions complete at
+6/15 but produce no strict-gate passes. Infographics remain challenging
+because their regions are often compact, text-heavy, and semantically close to
+one another; future work should add stronger OCR-aware grounding and
+polygon-level hit regions for these dense layouts.
 
 \FloatBarrier
 \endgroup
