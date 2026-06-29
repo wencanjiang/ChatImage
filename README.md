@@ -15,7 +15,7 @@
 > ChatImage turns a long-form LLM answer into a generated picture with clickable regions, per-region explanations, and contextual follow-up threads.
 
 <p align="center">
-  <img src="docs/assets/hero.png" alt="ChatImage screenshot" width="760" />
+  <img src="docs/assets/demos/real-west-lake-tour-map.png" alt="West Lake hand-drawn tour map ChatImage demo" width="760" />
 </p>
 
 English | [简体中文](README_CN.md)
