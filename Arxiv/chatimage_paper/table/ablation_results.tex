@@ -1,14 +1,15 @@
 \begin{table}[H]
     \centering
-    \small
+    \footnotesize
+    \setlength{\tabcolsep}{5pt}
+    \renewcommand{\arraystretch}{1.05}
     \caption{\textbf{Alignment source distribution.} Source assigned to the
     90 logged hotspot alignments from the diagnostic source sample. Primary visual
     grounding combines MiMo-Vision and LocateAnything; planned-derived rows
     are retained by the robustness fallback when primary grounding is missing
     or rejected.}
     \label{tab:ablation_results}
-    \resizebox{\linewidth}{!}{%
-    \begin{tabular}{lcc}
+    \begin{tabularx}{0.92\linewidth}{@{}Xcc@{}}
         \toprule
         Alignment source & Hotspots & Share \\
         \midrule
@@ -20,8 +21,7 @@
         Local OCR support & 2 & 2.2\% \\
         \midrule
         \rowcolor{oursrowblue}
-        \best{Total} & \best{90} & \best{100.0\%} \\
+        \best{Total} & \best{90} & \best{\na} \\
         \bottomrule
-    \end{tabular}
-    }
+    \end{tabularx}
 \end{table}

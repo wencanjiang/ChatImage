@@ -1,21 +1,24 @@
 \begin{table}[H]
     \centering
-    \small
-    \caption{\textbf{Overall real-provider evaluation.} ``Generated'' counts
-    benchmark questions that completed image generation and hotspot
-    construction under valid API runs. ``Strict-gate pass'' counts hotspots
-    accepted by the automatic grounding and mask-quality gate used before demo
-    promotion. ``SAM-complete'' counts masks without holes or empty cavities.}
+    \footnotesize
+    \setlength{\tabcolsep}{5pt}
+    \renewcommand{\arraystretch}{1.05}
+    \caption{\textbf{Hotspot quality diagnostic.} Rates use the same
+    24-hotspot checked subset. ``Strict-gate pass'' counts hotspots accepted by
+    the automatic grounding and mask-quality gate used before demo promotion.
+    ``SAM-complete'' counts masks without holes or empty cavities. The
+    complementary rows expose how much of the checked subset still needs better
+    grounding or segmentation.}
     \label{tab:main_results}
-    \begin{tabular}{lc}
+    \begin{tabularx}{0.92\linewidth}{@{}Xccc@{}}
         \toprule
-        Metric & Value \\
+        Metric & Unit & Count & Rate \\
         \midrule
-        Benchmark questions & 30 \\
         \rowcolor{oursrowblue}
-        \best{Generated completions $\uparrow$} & \best{30/30 (100.0\%)} \\
-        Strict-gate passes $\uparrow$ & 17/24 (70.8\%) \\
-        SAM-complete masks $\uparrow$ & 13/24 (54.2\%) \\
+        \best{Strict-gate passes $\uparrow$} & Hotspot & \best{17/24} & \best{70.8\%} \\
+        Strict-gate rejects $\downarrow$ & Hotspot & 7/24 & 29.2\% \\
+        SAM-complete masks $\uparrow$ & Hotspot & 13/24 & 54.2\% \\
+        SAM-incomplete masks $\downarrow$ & Hotspot & 11/24 & 45.8\% \\
         \bottomrule
-    \end{tabular}
+    \end{tabularx}
 \end{table}

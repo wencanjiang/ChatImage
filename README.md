@@ -1,4 +1,3 @@
-<!-- Logo / hero image — replace the src with your own asset when available -->
 <p align="center">
   <img src="docs/assets/logo.svg" alt="ChatImage" width="120" />
 </p>
@@ -6,18 +5,14 @@
 # ChatImage
 
 <p align="center">
-  <!-- arXiv paper — source draft in Arxiv/chatimage_paper/; link activates when submitted -->
-  <a href="Arxiv/chatimage_paper/chatimage.pdf"><img src="https://img.shields.io/badge/arXiv-Paper%20(draft)-b31b1b?style=flat-square&logo=arxiv" alt="arXiv Paper" /></a>
-  <!-- Project / promo page -->
-  <a href="docs/index.html"><img src="https://img.shields.io/badge/Project%20Page-Demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project Page" /></a>
-  <!-- Technical report -->
-  <a href="docs/TECHNICAL_REPORT.md"><img src="https://img.shields.io/badge/Tech%20Report-Docs-25a36a?style=flat-square&logo=googledocs" alt="Tech Report" /></a>
-  <a href="https://github.com/wencanjiang/ChatImage/actions"><img src="https://img.shields.io/badge/Tests-passing-2da44e?style=flat-square&logo=githubactions" alt="Tests" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square&logo=opensourceinitiative" alt="License" /></a>
+  <a href="Arxiv/chatimage_paper/chatimage.pdf"><img src="https://img.shields.io/badge/Paper-draft-b31b1b?style=flat-square&logo=arxiv" alt="Paper draft" /></a>
+  <a href="docs/index.html"><img src="https://img.shields.io/badge/Project%20page-demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project page" /></a>
+  <a href="docs/TECHNICAL_REPORT.md"><img src="https://img.shields.io/badge/Technical%20report-docs-25a36a?style=flat-square&logo=googledocs" alt="Technical report" /></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-22.5%2B-339933?style=flat-square&logo=nodedotjs" alt="Node.js 22.5+" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square&logo=opensourceinitiative" alt="MIT license" /></a>
 </p>
 
-> Turn a long-form LLM answer into an interactive visual image — structured infographics with clickable hotspots, per-region detail panels, and in-context follow-up threads.
+> ChatImage turns a long-form LLM answer into a generated picture with clickable regions, per-region explanations, and contextual follow-up threads.
 
 <p align="center">
   <img src="docs/assets/hero.png" alt="ChatImage screenshot" width="760" />
@@ -25,28 +20,32 @@
 
 English | [简体中文](README_CN.md)
 
-## Features
+## What ChatImage Does
 
-- **Interactive image answers**: convert a natural-language question into a structured visual result with transparent, clickable regions overlaid on a generated image.
-- **Per-region detail panels**: each hotspot keeps its own title, summary, detail text, and follow-up thread — click a region to drill in without leaving the image.
-- **Vision-aligned hotspots**: in real-API mode, LocateAnything / MiMo-vision / local-OCR localize the actual visual regions so hotspots land on the right content, not on a hard-coded grid.
-- **Provider-agnostic**: run fully in `mock` mode with no keys, or proxy real text, image, and vision providers through the backend so keys never touch the browser.
-- **Local-first persistence**: generated ChatImages, hotspots, calibration data, and follow-up threads are stored in a local SQLite database.
-- **File context**: attach text-oriented files (code, Markdown, CSV, JSON, logs, …) and include their contents as prompt context.
-- **Zero-frontend-dependency build**: the browser layer is vanilla JS; a single dependency-free script concatenates and minifies assets into `dist/`.
+ChatImage is a local-first prototype for answers that are easier to inspect visually than as paragraphs. Given a prompt, the system plans a structured visual answer, generates an image, aligns hotspots to the rendered content, and lets the user click each region for deeper explanation.
 
-## Paper & Technical Report
+The project is designed around one core question: can a generated image become a reliable interactive answer, rather than a decorative illustration beside text?
 
-| Resource | Description |
-| --- | --- |
-| 📄 **[arXiv paper (draft)](Arxiv/chatimage_paper/chatimage.pdf)** | Technical paper draft covering the task, two-pass vision-alignment method, and a benchmark + human-evaluation framework. LaTeX source in [`Arxiv/chatimage_paper/`](Arxiv/chatimage_paper). |
-| 📚 **[Technical report](docs/TECHNICAL_REPORT.md)** | In-depth system documentation: architecture, data flow, alignment pipeline, API reference, testing strategy, and known limits. |
-| 🌐 **[Project page](docs/index.html)** | Interactive promo site with live demos (filterable by mode), lightbox viewer, and quick-start. |
-| 🗄️ **[Archived notes](docs/archive/)** | Historical design docs, dev log, and audit reports kept for traceability. |
+## Highlights
+
+- **Interactive visual answers**: generated images are overlaid with transparent clickable hotspots.
+- **Region-level explanations**: each hotspot keeps its own title, summary, detail text, and follow-up conversation.
+- **Vision-grounded alignment**: real-provider mode can use LocateAnything, MiMo vision, local OCR, and optional SAM mask refinement to move hotspots onto the content that was actually rendered.
+- **Mock and real-provider workflows**: `mock` mode runs without keys; `api` mode proxies text, image, and vision providers through the backend so keys never reach the browser.
+- **Local persistence**: ChatImages, hotspots, calibration data, and follow-up threads are stored in SQLite.
+- **Text file context**: attach code, Markdown, CSV, JSON, logs, and other text-oriented files as prompt context.
+- **Small frontend surface**: the browser UI is vanilla JavaScript, with a zero-dependency build script that outputs static assets into `dist/`.
 
 ## Quick Start
 
-Start the local ChatImage server:
+Requirements:
+
+- Node.js 22.5 or newer
+- npm
+- Optional: Python 3.9+ for local OCR, LocateAnything, or SAM-based refinement
+- Optional: CUDA GPU for local vision workers
+
+Run the local server:
 
 ```bash
 git clone https://github.com/wencanjiang/ChatImage.git
@@ -55,85 +54,33 @@ npm install
 npm start
 ```
 
-Then open the public showcase entry:
+Open the public demo gallery:
 
 ```text
 http://127.0.0.1:5178/docs/index.html
 ```
 
-The showcase is not a separate product path. It presents selected high-quality outputs from the same ChatImage generation and visual-alignment pipeline, saved under `docs/assets/demos/` so visitors can inspect the interaction without API keys, a GPU, or local model weights.
-
-To generate a new ChatImage locally with deterministic mock providers, use the same app entry with `provider=mock`:
+Generate a deterministic local example without API keys:
 
 ```text
 http://127.0.0.1:5178?provider=mock
 ```
 
-To use real LLM / image / vision providers, copy the env example and fill in your keys (see [Configuration](#configuration)):
+## Real Providers
+
+Copy the environment template and fill in the providers you want to use:
 
 ```bash
-cp .env.example .env.local   # Windows: Copy-Item .env.example .env.local
-npm start
+cp .env.example .env.local
 ```
 
-## Curated Demo Showcase
+On Windows PowerShell:
 
-The public showcase intentionally includes only the best verified examples produced by the normal ChatImage workflow, not every generated run. A demo is eligible only when its hotspots pass the current strict visual-alignment gate: primary grounding from LocateAnything or MiMo vision, SAM-refined mask data, solid cutout preview, organic feathered preview, and expanded organic bounds.
-
-Current published examples:
-
-| Demo | Type | Why it is included |
-| --- | --- | --- |
-| West Lake hand-drawn tour map | Map | Natural scenic regions, no numbered pins, homepage hero is clickable. |
-| Smart home living room | Scene | Clear large objects and home-experience regions. |
-| Boutique coffee shop scene | Scene | Everyday spatial workflow with visually separable targets. |
-| Sunny reading nook | Scene | Cozy single-room composition with strong object boundaries. |
-| Independent record store corner | Scene | Dense but still readable retail zones. |
-| Indoor plant care corner | Scene | Small daily-care setup with distinct tools and plants. |
-
-Rejected or weak cases are tracked in `docs/demo-eligibility.md` so the paper benchmark and the public demo page stay honest about failure modes.
-
-## Prerequisites
-
-- **Node.js** 22.5 or newer (the backend uses the built-in `node:sqlite` module)
-- **npm**
-- Optional: **Python 3.9+** if you enable local OCR or LocateAnything-based vision alignment
-- Optional: a CUDA-capable GPU if you run LocateAnything / SAM3 workers locally
-
-Verify your toolchain:
-
-```bash
-node -v   # v22.5 or newer
-npm -v
-git --version
-python --version   # only if using local OCR / LocateAnything
+```powershell
+Copy-Item .env.example .env.local
 ```
 
-## Build from source
-
-```bash
-npm install
-npm run build      # outputs dist/ with hashed JS/CSS bundles
-```
-
-Serve the build through the local server:
-
-```bash
-# Unix
-CHATIMAGE_STATIC_DIR=dist npm start
-# Windows PowerShell
-$env:CHATIMAGE_STATIC_DIR="dist"; npm start
-```
-
-## Configuration
-
-Copy the example environment file and edit `.env.local`:
-
-```bash
-cp .env.example .env.local   # Windows: Copy-Item .env.example .env.local
-```
-
-Key variables (see `.env.example` for the full list):
+Important variables:
 
 | Variable | Purpose |
 | --- | --- |
@@ -143,124 +90,127 @@ Key variables (see `.env.example` for the full list):
 | `CHATIMAGE_TEXT_MODEL` | Text model name. |
 | `CHATIMAGE_API_KEY` | Image generation API key. |
 | `CHATIMAGE_IMAGE_MODEL` | Image generation model name. |
-| `CHATIMAGE_VISION_MODE` | Vision alignment mode: `local-ocr`, `locateanything`, `mimo-vision`, or `remote`. |
-| `CHATIMAGE_LOCATEANYTHING_MODEL` | LocateAnything grounding model. |
-| `CHATIMAGE_SAM3_ENABLED` | Enable optional SAM3 mask refinement. |
-| `CHATIMAGE_DATABASE_PATH` | SQLite database path. Defaults to `tmp/chatimage.sqlite`. |
-| `CHATIMAGE_STATIC_DIR` | Static directory served by the backend. |
+| `CHATIMAGE_IMAGE_API_SIZE` | Bitmap size requested from the image gateway. |
+| `CHATIMAGE_VISION_MODE` | Vision mode: `local-ocr`, `locateanything`, `mimo-vision`, or `remote`. |
+| `CHATIMAGE_VISION_FALLBACK_MODE` | Optional fallback vision mode. |
+| `CHATIMAGE_SAM3_ENABLED` | Enables optional SAM mask refinement when configured. |
+| `CHATIMAGE_DATABASE_PATH` | SQLite path. Defaults to `tmp/chatimage.sqlite`. |
+| `CHATIMAGE_STATIC_DIR` | Static directory served by the backend, for example `dist` after a build. |
 
-Never commit `.env.local` or real API keys. The repository only includes `.env.example`.
+Keep real credentials in `.env.local`. The browser talks to the local backend, and the backend owns upstream API calls.
 
-## Demo Modes
+## Demo Gallery
 
-| Mode | Requires keys | Behavior |
-| --- | --- | --- |
-| `mock` | No | Deterministic local providers + mock SVG output. Best for development. |
-| `api` | Yes | Calls configured text, image, and vision providers through `server.js`. |
-| `auto` | — | Frontend chooses based on backend configuration (default). |
+The demo gallery is not a separate hand-authored path. It contains selected outputs from the same generation and alignment workflow, exported under `docs/assets/demos/` so visitors can inspect the interaction without API keys, model weights, or a GPU.
 
-Force a mode from the URL:
+Published demos must pass the current strict visual-alignment gate: each hotspot needs a primary visual grounding source, mask data, a usable cutout or organic preview, and expanded organic bounds.
 
-```text
-http://127.0.0.1:5178?provider=mock
-http://127.0.0.1:5178?provider=api
+| Demo | Type | Hotspots | Why it is included |
+| --- | --- | ---: | --- |
+| West Lake hand-drawn tour map | Map | 9 | Natural scenic areas are clickable without numbered pins or artificial region borders. |
+| Healthy breakfast options | Scene | 6 | Everyday food objects are visually separable and useful for nutrition-oriented inspection. |
+| Boutique coffee shop scene | Scene | 6 | Spatial workflow targets such as counter, seating, pastry case, and queue remain clear. |
+| Sunny reading nook | Scene | 5 | A compact interior scene with stable object boundaries. |
+| Independent record-store corner | Scene | 5 | Dense retail regions remain readable enough for region-level follow-up. |
+| Indoor plant care corner | Scene | 5 | Small daily-care objects are distinct and easy to explain. |
+
+Weak or rejected cases are tracked in `docs/demo-eligibility.md` to keep the public demo and paper experiments honest about failure modes.
+
+## How It Works
+
+1. The user asks a question in the browser.
+2. A text model, or the deterministic mock provider, produces a long-form answer.
+3. The answer is converted into a structured visual plan with regions and supporting content.
+4. The image provider renders a single coherent picture from that plan.
+5. The alignment stage checks where the planned regions appear in the generated image.
+6. The frontend draws clickable hotspots over the verified regions.
+7. Clicking a hotspot opens a focused explanation and a follow-up thread.
+8. The result is saved locally so it can be revisited or calibrated later.
+
+## Project Map
+
+| Path | Role |
+| --- | --- |
+| `index.html`, `styles.css`, `src/` | Browser app, rendering, generation orchestration, layout, alignment, and interaction state. |
+| `server.js`, `server/` | Local HTTP server, API routes, provider adapters, validation, and SQLite persistence. |
+| `tests/` | Unit, integration, browser, provider, security, and real-diagnostics test suites. |
+| `docs/` | Project page, technical report, demo gallery assets, and archived engineering notes. |
+| `Arxiv/chatimage_paper/` | Paper draft, LaTeX source, experiment tables, and figures. |
+| `scripts/` | Build and maintenance scripts. |
+
+## Build
+
+```bash
+npm run build
 ```
 
-## Architecture
+Serve the built frontend:
 
-The generation pipeline:
+```bash
+CHATIMAGE_STATIC_DIR=dist npm start
+```
 
-1. The user submits a question in the browser.
-2. The app gets or mocks a raw LLM answer.
-3. The answer is normalized into a structured visual spec (`modules` + `auxiliaryModules`).
-4. ChatImage plans a `LayoutSpec` with regions and normalized bounds.
-5. An image prompt is generated from the structured content and layout intent.
-6. The image provider creates the visual output.
-7. In real-API mode, a vision/grounding step localizes the actual visual regions (LocateAnything → SAM3 refine).
-8. The frontend overlays transparent hotspots on the image.
-9. Clicking a hotspot opens its detail panel and follow-up thread.
-10. Results and thread history are persisted locally.
+On Windows PowerShell:
 
-Key modules:
-
-| Path | Responsibility |
-| --- | --- |
-| `index.html` / `styles.css` | App shell and styling. |
-| `src/app.js` | Browser orchestration and UI wiring. |
-| `src/service.js` | Provider orchestration for generation and follow-up flows. |
-| `src/structure.js` | Structured answer normalization + mock/fallback specs. |
-| `src/layout.js` | Layout planning and hotspot geometry. |
-| `src/alignment.js` | Vision alignment and hotspot calibration. |
-| `src/render.js` | Result rendering utilities. |
-| `src/preview-strategy.js` | Hotspot preview variant selection (cutout / organic / soft / masked). |
-| `server.js` | Local HTTP server and runtime configuration. |
-| `server/routes/` | API route handlers. |
-| `server/store.js` | SQLite persistence. |
-| `server/providers.js` | Upstream provider adapters. |
-| `scripts/build.js` | Zero-dependency frontend build script. |
-| `tests/` | Unit, integration, browser, and provider smoke tests. |
-| `docs/TECHNICAL_REPORT.md` | Authoritative technical report. Historical notes in `docs/archive/`. |
-
-## API Surface
-
-| Endpoint | Description |
-| --- | --- |
-| `GET /api/config` | Runtime provider configuration visible to the frontend. |
-| `POST /api/chatimages` | Generate and persist a ChatImage. |
-| `GET /api/chatimages` | List recent ChatImages. |
-| `GET /api/chatimages/:id` | Load a saved ChatImage. |
-| `PATCH /api/chatimages/:id` | Update saved calibration data. |
-| `POST /api/chatimages/:id/hotspots/:hotspotId/thread` | Continue a hotspot-specific follow-up thread. |
-| `POST /api/llm` | Proxy text model requests. |
-| `POST /api/image` | Proxy image generation requests. |
-| `POST /api/vision` | Proxy vision alignment requests. |
-
-Vision provider request / response details are documented in [`docs/archive/vision-endpoint-contract.md`](docs/archive/vision-endpoint-contract.md); the authoritative system reference is [`docs/TECHNICAL_REPORT.md`](docs/TECHNICAL_REPORT.md).
+```powershell
+$env:CHATIMAGE_STATIC_DIR = "dist"
+npm start
+```
 
 ## Testing
 
-Run the full local regression suite:
+Run the full local suite:
 
 ```bash
 npm test
 ```
 
-Run selected suites:
+Run focused suites:
 
 ```bash
 npm run test:core
 npm run test:server
 npm run test:browser
+npm run test:docs-demos
 npm run test:structured-text
 ```
 
-If the browser test launcher cannot find Chrome or Edge automatically:
+Real-provider tests are opt-in because they may call paid APIs or local model workers:
 
 ```bash
-# Unix
-CHATIMAGE_BROWSER_PATH=/path/to/chrome npm run test:browser
-# Windows PowerShell
-$env:CHATIMAGE_BROWSER_PATH="C:\path\to\chrome.exe"; npm run test:browser
+npm run test:api
+npm run test:real-diagnostics
+npm run test:real-visual-acceptance
 ```
 
-Real provider smoke tests are opt-in because they may call paid APIs:
+## Paper And Documentation
 
-```bash
-CHATIMAGE_API_KEY=your_key_here npm run test:api
-```
+| Resource | Description |
+| --- | --- |
+| [Paper draft](Arxiv/chatimage_paper/chatimage.pdf) | Single-column technical draft covering the task, method, implementation, and current real-provider experiments. |
+| [Technical report](docs/TECHNICAL_REPORT.md) | System reference for architecture, data flow, alignment, API behavior, testing, and limitations. |
+| [Project page](docs/index.html) | Static project page and interactive demo gallery. |
+| [Test case catalog](docs/test-cases-catalog.md) | Prompt coverage and scenario notes for common demo and evaluation cases. |
 
-## Tech Stack
+## Security Notes
 
-- **Frontend**: vanilla JS (browser globals), no framework, no bundler runtime
-- **Backend**: Node.js HTTP server (no external web framework)
-- **Persistence**: SQLite (via the built-in `node:sqlite` module; no native dependencies)
-- **Vision alignment**: LocateAnything (visual grounding), MiMo-vision, local OCR, optional SAM3 mask refinement
-- **Build**: single zero-dependency concat/minify script → `dist/`
-- **Testing**: Node `assert` + headless Chrome/CDP browser assertions
+- Do not commit `.env.local` or real provider keys.
+- API keys are used by the backend, not exposed in frontend code.
+- The server validates route inputs, image URL protocols, request body size, and hotspot bounds.
+- Upstream calls use configurable timeouts and a concurrency gate.
+- Local databases, generated images, and diagnostics under `tmp/` are ignored by Git.
+
+## Roadmap
+
+- Export interactive ChatImages as shareable HTML bundles.
+- Add richer parsing for PDF, Word, spreadsheet, slide, and image inputs.
+- Improve automatic visual QA for generated images and hotspot grounding.
+- Add user-selectable visual templates and layout styles.
+- Support cloud persistence and multi-device history.
 
 ## Citation
 
-If you find ChatImage useful in your research, please cite it. A technical paper draft is available in [`Arxiv/chatimage_paper/`](Arxiv/chatimage_paper) (PDF [here](Arxiv/chatimage_paper/chatimage.pdf)); the arXiv badge above will link to the published version once submitted.
+If ChatImage is useful for your research or prototype, please cite the paper draft:
 
 ```bibtex
 @misc{chatimage2026,
@@ -271,21 +221,6 @@ If you find ChatImage useful in your research, please cite it. A technical paper
 }
 ```
 
-## Security
-
-- Keep all API keys in `.env.local`; never expose them in frontend code.
-- The backend validates payload shape, image URL protocols, hotspot bounds, and route inputs.
-- Upstream calls use configurable timeouts and a concurrency gate to avoid uncontrolled request buildup.
-- Generated databases, screenshots, and diagnostics under `tmp/` are ignored by Git.
-
-## Roadmap
-
-- Export interactive ChatImages as shareable HTML packages.
-- Richer document parsing for PDF, Word, PowerPoint, Excel, and image inputs.
-- Cloud persistence and multi-device history sync.
-- User-selectable visual templates and layout styles.
-- Automated visual QA for generated images and hotspot accuracy.
-
 ## License
 
-[MIT](LICENSE) © ChatImage Contributors
+[MIT](LICENSE) (c) ChatImage Contributors

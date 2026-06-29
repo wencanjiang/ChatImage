@@ -8,7 +8,7 @@
 \PassOptionsToPackage{pagebackref,breaklinks=true,colorlinks,citecolor=blue,urlcolor=blue,linkcolor=blue,bookmarks=false}{hyperref}
 \PassOptionsToPackage{noabbrev,nameinlink,capitalize}{cleveref}
 
-\documentclass[twocolumn,numbers]{april_aigc}
+\documentclass[numbers]{april_aigc}
 
 \input{preamble}
 
@@ -41,6 +41,8 @@
 \usepackage{listings}
 \usepackage{etoolbox}
 \usepackage{caption}
+
+\emergencystretch=2em
 
 \graphicspath{{fig/}}
 
@@ -167,25 +169,22 @@
 \contribution[\dagger]{Corresponding author.}
 
 \abstract{
-Large Language Models (LLMs) answer complex questions with long, dense text
-that is slow to scan and hard to navigate. We introduce \method{}, a system
-that converts a long-form LLM answer into an \emph{interactive visual image}:
-a generated image overlaid with transparent, clickable hotspots, each opening
-its own detail panel and an in-context follow-up thread. \method{} decomposes
-the answer into a structured visual specification, plans a normalized layout,
-synthesizes an image prompt, generates the image, and then performs
-\emph{two-pass vision alignment}---a visual grounding model (LocateAnything)
-localizes where each structured region actually rendered, optionally refined
-by SAM3 masks---so that hotspots land on the correct content rather than a
-hard-coded grid. The result is an explorable image: instead of reading a wall
-of text, a user clicks regions to learn only what they care about and asks
-targeted follow-ups in the context of a single hotspot. To our knowledge,
-\method{} is the first system to turn an LLM answer into a navigable,
-region-interactive visual artifact. We build an open-source reference
-implementation, assemble a benchmark of 30 questions across infographic,
-map, and scene modes, and evaluate the real-provider pipeline with automatic
-completion checks and a strict visual-alignment gate. Code, demos, and a live
-project page are publicly available.
+Large Language Models (LLMs) can answer complex questions, but the answer is
+often returned as dense linear text that is useful but difficult to navigate.
+\method{} turns that answer into an \emph{interactive visual image}. The system
+first asks an LLM for a normal long-form answer, breaks it into visual modules,
+plans an image, and generates the picture. It then analyzes the rendered image
+with vision grounding models such as LocateAnything and MiMo-Vision, optionally
+refines the regions with SAM-style masks, and places transparent clickable
+hotspots on the content that actually appeared. Each hotspot opens a detail
+panel and a follow-up thread scoped to that region, allowing the user to inspect
+one part of the answer without rereading the full response. The system therefore
+treats planned coordinates as priors rather than final interaction geometry:
+it generates first, then grounds the visible result. We release an open-source
+reference system, assemble a 30-question benchmark across infographic, map, and
+scene modes, and evaluate the real-provider pipeline with completion checks, a
+strict visual-alignment gate, and a SAM mask-completeness diagnostic. Code,
+demos, and a live project page are publicly available.
 }
 
 \coverdate{\today}

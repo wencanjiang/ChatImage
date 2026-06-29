@@ -5,67 +5,69 @@
 \setlength{\floatsep}{6pt plus 2pt minus 2pt}
 \setlength{\intextsep}{6pt plus 2pt minus 2pt}
 
-We evaluate \method{} along two axes that matter for an interactive visual
-answer: \textbf{pipeline completion} (does the system produce a usable
-generated image and hotspot set for the question?) and \textbf{visual-alignment
-accuracy} (do the clickable hotspots land on the rendered content they claim
-to describe?). All reported numbers in this section come from a single
-real-provider evaluation over the benchmark. We distinguish two levels of
-success: a \emph{generated} run completes the full
-text-to-image-to-hotspot pipeline, and a \emph{strict-gate} hotspot also
-passes the automatic grounding and mask-quality checks used before promotion
-to the public demo page.
+We evaluate \method{} along two axes. The first axis measures end-to-end
+completion: whether the system produces a complete ChatImage, consisting of a
+generated picture and its hotspot layer, for ordinary prompts. The second axis
+measures visual alignment evidence: whether a clickable region is supported by
+a real grounding source and usable mask-backed preview data. All numbers below
+come from a real-provider evaluation over the benchmark, with upstream API
+quota interruptions treated as external run-limit events rather than pipeline
+failures.
 
 \subsection{Benchmark}
 \label{sec:experiments_benchmark}
 
-\begin{wraptable}[10]{r}{0.46\linewidth}
-    \vspace{-1em}
+\begin{table}[H]
     \centering
     \scriptsize
-    \caption{\textbf{Benchmark composition.} Questions span infographic, map,
-    and scene modes across technical, spatial, and descriptive content.}
+    \setlength{\tabcolsep}{4pt}
+    \renewcommand{\arraystretch}{1.07}
+    \caption{\textbf{Benchmark composition and scenario coverage.} The
+    30-question benchmark covers structured analytical answers, spatial
+    guidance tasks, and object-rich everyday scenes.}
     \label{tab:benchmark_split}
-    \resizebox{\linewidth}{!}{%
-    \begin{tabular}{lcc}
+    \begin{tabularx}{0.98\linewidth}{@{}lcc>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
         \toprule
-        Mode & \#Questions & \#Hotspots (avg.) \\
+        Mode & \#Q & Avg. hotspots & Scenario coverage & Alignment stress \\
         \midrule
-        Infographic & 15 & 5.0 \\
-        Map & 5 & 6.0 \\
-        Scene & 10 & 6.0 \\
+        Infographic & 15 & 5.0 &
+        technical pipelines, comparisons, decision aids, checklists, timelines &
+        compact panels, dense labels, semantically similar regions \\
+        Map & 5 & 6.0 &
+        tour routes, landmark clusters, spatial itineraries, scenic areas &
+        route-like geometry, landmark placement, irregular spatial regions \\
+        Scene & 10 & 6.0 &
+        food options, coffee shops, reading spaces, record stores, plant care &
+        object localization, overlapping items, natural scene composition \\
         \midrule
-        Total & 30 & 6.0 \\
+        Total & 30 & 6.0 & three visual modes & generation plus hotspot grounding \\
         \bottomrule
-    \end{tabular}
-    }
-    \vspace{-2em}
-\end{wraptable}
+    \end{tabularx}
+    \vspace{-0.6em}
+\end{table}
 
 We assemble a benchmark of 30 questions designed to exercise different visual
 modes and content types, summarized in Table~\ref{tab:benchmark_split}. The
-current public showcase contains selected outputs from the same \method{}
-workflow after strict visual-alignment screening: a hand-drawn West Lake tour
-map and daily-life illustrated scenes such as healthy breakfast options,
-boutique coffee shop, sunny reading nook, independent record-store corner, and
-indoor plant-care corner. Map questions test geographic region placement and
-route-like scenic areas, while scene questions test object localization in
-less rigidly structured images. The broader benchmark also includes
-infographic-style planning and decision-support prompts to measure how compact
-analytical regions behave. Only runs that pass the current strict grounding
-and mask-quality gate are promoted to the public demo page. Each question is
-run through the full \method{} pipeline with real text, image, and vision
-providers.
+current public showcase is a curated subset of the same workflow after strict
+visual-alignment screening: a hand-drawn West Lake tour map and daily-life
+illustrated scenes such as healthy breakfast options, boutique coffee shop,
+sunny reading nook, independent record-store corner, and indoor plant-care
+corner. Map questions stress geographic placement and route-like scenic areas;
+scene questions stress object localization in less rigidly structured images;
+infographic questions stress compact analytical panels and decision-support
+layouts. Each benchmark question is run through the full \method{} pipeline
+with real text, image, and vision providers. Only outputs that pass the
+stricter public-demo gate are published on the demo page.
 
 Because the grounding step is provider-agnostic
-(Section~\ref{sec:method_alignment}), individual benchmark items may be served
-by different grounding backends. We therefore report both aggregate completion
-metrics and the per-module alignment source distribution, so the contribution
-of each backend (LocateAnything-3B, MiMo-Vision, SAM3-refined planned bounds,
-and planned fallback) is visible. Representative qualitative results are shown
-in Figure~\ref{fig:qualitative}.
+(Section~\ref{sec:method_alignment}), different regions can be aligned by
+different signals: a dedicated localizer, a VLM grounding fallback, OCR, a
+SAM-refined planned box, or a planned fallback. We therefore report not only
+the final completion rates, but also where hotspot alignments actually came
+from. Representative qualitative results are shown in
+Figure~\ref{fig:qualitative}.
 
-\begin{figure*}[t!]
+\begin{figure}[t!]
     \centering
     \includegraphics[width=0.95\textwidth]{Qualitative_Analysis.pdf}
     \caption{\textbf{Qualitative results.} Example \method{} outputs across
@@ -74,39 +76,39 @@ in Figure~\ref{fig:qualitative}.
     interactive demo.}
     \label{fig:qualitative}
     \vspace{-0.6em}
-\end{figure*}
+\end{figure}
 
 \subsection{Pipeline Results}
 \label{sec:experiments_pipeline}
 
 \input{table/main_results}
 
-Figure~\ref{fig:experiment_summary} gives a compact visual summary of the core
-rates, alignment-source mix, and SAM mask-completeness diagnostic.
+Figure~\ref{fig:experiment_summary} gives a compact visual summary of hotspot
+quality, alignment-source mix, and the SAM mask-completeness diagnostic.
 
 All 30 benchmark questions completed the full pipeline in valid runs, yielding
-a generated-image completion rate of \textbf{$100.0\%$}. Some earlier
-attempts were interrupted by upstream image API rate limits, but these are
-external quota events rather than generation failures of the \method{}
-pipeline and are therefore excluded from the completion metric. The automatic
-strict visual-alignment gate accepted \textbf{17 of 24 checked hotspots}
-($70.8\%$). This gate is intentionally conservative: each accepted hotspot
-must carry a real grounding source and a valid organic mask preview, so weak
-or missing visual evidence is rejected rather than promoted. Within the same
-24 checked hotspots, \textbf{13} also pass the stricter SAM segmentation
-completeness check ($54.2\%$), meaning the mask covers the intended region
-without obvious holes or empty cavities.
+a generated-image completion rate of \textbf{$100.0\%$}. We treat this as a
+sanity check for valid API runs rather than as the main quality result. The
+more informative measurement is hotspot reliability: Table~\ref{tab:main_results}
+uses a shared 24-hotspot checked subset to report both accepted and rejected
+cases under the strict visual-alignment gate. The gate accepted \textbf{17 of
+24 checked hotspots} ($70.8\%$) and rejected 7 ($29.2\%$). This gate is
+intentionally conservative: each accepted hotspot needs a primary visual
+grounding signal and a valid organic mask preview, so weak or missing visual
+evidence is rejected rather than promoted. Within the same 24 checked hotspots,
+\textbf{13} pass the SAM segmentation completeness check ($54.2\%$), while 11
+remain incomplete ($45.8\%$), meaning the mask has obvious holes or empty
+cavities.
 
-\begin{figure*}[t!]
+\begin{figure}[t!]
     \centering
     \includegraphics[width=0.95\textwidth]{Experiment_Summary.pdf}
-    \caption{\textbf{Experimental metric summary.} Core completion and
-    alignment results, diagnostic alignment-source distribution, and the
-    SAM mask-completeness check; SAM-complete requires masks without obvious
-    holes or empty cavities.}
+    \caption{\textbf{Experimental metric summary.} Hotspot-quality diagnostics,
+    alignment-source distribution, and the SAM mask-completeness check;
+    SAM-complete requires masks without obvious holes or empty cavities.}
     \label{fig:experiment_summary}
-    \vspace{-0.9em}
-\end{figure*}
+    \vspace{-1.2em}
+\end{figure}
 
 \subsection{Alignment Source Analysis}
 \label{sec:experiments_sources}
@@ -119,24 +121,11 @@ hotspots are supplied by primary visual grounding: MiMo-Vision accounts for 50
 hotspots ($55.6\%$), while LocateAnything contributes another 11 hotspots when
 combining layout-guided and crop-based calls ($12.2\%$). SAM3-refined planned
 regions account for 16 hotspots ($17.8\%$), and planned fallback is used for
-11 hotspots ($12.2\%$). This distribution reflects the robustness design in
-Section~\ref{sec:method_alignment}: the system keeps modules that can be
-grounded by a vision backend, refines plausible planned regions when a mask is
-available, and falls back to planned bounds only when stronger signals are
-unavailable.
-
-\subsection{Per-Mode Analysis}
-\label{sec:experiments_permode}
-
-\input{table/task_breakdown}
-
-Table~\ref{tab:task_breakdown} breaks down generation completion by visual
-mode. The benchmark covers 15 infographic, 5 map, and 10 scene questions, and
-each mode reaches $100.0\%$ generated completion under valid API runs.
-Infographics remain the most challenging mode for strict alignment because
-their regions are often compact, text-heavy, and semantically close to one
-another; future work should add stronger OCR-aware grounding and polygon-level
-hit regions for these dense layouts.
+11 hotspots ($12.2\%$). The source distribution shows that the system can
+distinguish visually grounded regions from fallback regions: it records which
+signal placed each hotspot, keeps high-confidence visual groundings when
+available, refines plausible boxes with masks, and falls back to planned bounds
+only when stronger evidence is unavailable.
 
 \FloatBarrier
 \endgroup

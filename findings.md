@@ -120,3 +120,12 @@ Initial audit findings before the later paper-completion fixes:
 - Added `Arxiv/chatimage_paper/fig/Experiment_Summary.pdf` as a precise, conference-style vector metric figure rather than a generative image, because exact fractions and percentages are central to the experiment section.
 - Current Figure 1 and Figure 2 were placeholder-like in the compiled paper; replacing them as vector schematics is more appropriate than calling image generation because these figures need exact labels, arrows, and reproducible layout.
 - Image-2api was successfully used for the final figure backgrounds; exact paper labels and numbers still need deterministic local overlay because generated diagrams are unreliable for precise percentages and method labels.
+
+## 2026-06-29 Paper content calibration findings
+- Paper Section 3 currently exposes implementation filenames (`locateanything_worker.py`, `sam3_worker.py`) and "Python model workers"; this is accurate internally but too low-level for a reader-facing technical article. It should be generalized to persistent model adapters/workers without filenames.
+- README confirms current public architecture claims: Node.js 22.5+ backend, built-in `node:sqlite`, provider-agnostic mock/api modes, LocateAnything/MiMo/local-OCR grounding, optional SAM3 mask refinement, local SQLite persistence, and hotspot follow-up threads.
+- Demo eligibility notes confirm strict public-demo gate: primary grounding source plus SAM mask, cutout, organic preview, and expanded organic bounds. This matches the paper's strict-gate framing, but paper wording should avoid implying that every benchmark output is public-demo eligible.
+- Source check confirms current strict export logic accepts only LocateAnything/MiMo primary sources with SAM mask, cutout image, organic preview, and expanded organic bounds. Paper can say the public demo gate is stricter than basic generation.
+- Source check confirms masks are for previews; click hit testing normally uses rectangular hotspot bounds unless explicitly marked mask-usable. The method text should keep this limitation clear.
+- Source check confirms follow-up threads are persisted in SQLite and are scoped by ChatImage + hotspot id, matching the "per-region follow-up" claim.
+- Current demo manifest has six public demos: West Lake hand-drawn tour map, Healthy breakfast options, Boutique coffee shop scene, Sunny reading nook, Independent record store corner, and Indoor plant care corner. Paper examples should use this set, not stale smart-home/future-museum/budget examples.

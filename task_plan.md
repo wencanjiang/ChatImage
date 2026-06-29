@@ -135,3 +135,15 @@ Replace the placeholder-looking paper figures with polished conference-style vec
 - [complete] Generate real image-2api visual backgrounds for Figure 1, Figure 2, and the experiment summary.
 - [complete] Recompose the paper PDFs with generated backgrounds plus exact local overlays for labels and metrics.
 - [complete] Recompile and visually inspect the affected paper pages.
+
+## 2026-06-29 Paper Content Calibration + Blog-Style Rewrite
+
+### Goal
+Revise the paper text so it matches the current implementation, reads more like a clear technical blog/article, and avoids low-level filenames or worker-script details that confuse readers.
+
+### Phases
+1. [complete] Audit paper claims against implementation/docs/config.
+2. [complete] Rewrite introduction/method/experiment/conclusion for clearer technical-blog tone.
+3. [complete] Remove or generalize concrete script/file references such as worker filenames.
+4. [complete] Recompile and visually/log-check the paper.
+5. [complete] Summarize changed claims and remaining risks.
