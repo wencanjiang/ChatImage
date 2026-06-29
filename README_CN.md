@@ -1,4 +1,3 @@
-<!-- Logo / 主图 — 准备好后替换 src 为你自己的素材 -->
 <p align="center">
   <img src="docs/assets/logo.svg" alt="ChatImage" width="120" />
 </p>
@@ -6,18 +5,14 @@
 # ChatImage
 
 <p align="center">
-  <!-- arXiv 论文 — 源稿在 Arxiv/chatimage_paper/；提交后激活正式链接 -->
-  <a href="Arxiv/chatimage_paper/chatimage.pdf"><img src="https://img.shields.io/badge/arXiv-论文(草稿)-b31b1b?style=flat-square&logo=arxiv" alt="arXiv Paper" /></a>
-  <!-- 项目 / 宣传页 -->
-  <a href="docs/index.html"><img src="https://img.shields.io/badge/项目主页-Demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project Page" /></a>
-  <!-- 技术报告 -->
-  <a href="docs/TECHNICAL_REPORT.md"><img src="https://img.shields.io/badge/技术报告-文档-25a36a?style=flat-square&logo=googledocs" alt="Tech Report" /></a>
-  <a href="https://github.com/wencanjiang/ChatImage/actions"><img src="https://img.shields.io/badge/测试-通过-2da44e?style=flat-square&logo=githubactions" alt="Tests" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/许可证-MIT-blue?style=flat-square&logo=opensourceinitiative" alt="License" /></a>
+  <a href="Arxiv/chatimage_paper/chatimage.pdf"><img src="https://img.shields.io/badge/Paper-draft-b31b1b?style=flat-square&logo=arxiv" alt="Paper draft" /></a>
+  <a href="docs/index.html"><img src="https://img.shields.io/badge/Project%20page-demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project page" /></a>
+  <a href="docs/TECHNICAL_REPORT.md"><img src="https://img.shields.io/badge/Technical%20report-docs-25a36a?style=flat-square&logo=googledocs" alt="Technical report" /></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-22.5%2B-339933?style=flat-square&logo=nodedotjs" alt="Node.js 22.5+" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square&logo=opensourceinitiative" alt="MIT license" /></a>
 </p>
 
-> 把一段长篇 LLM 回答变成可交互的视觉图像——结构化信息图叠加可点击热点，每个区域有独立详解面板和上下文追问。
+> ChatImage 将长篇 LLM 回答转化为一张可交互的生成图：用户可以点击图中区域，查看局部解释，并围绕该区域继续追问。
 
 <p align="center">
   <img src="docs/assets/hero.png" alt="ChatImage 截图" width="760" />
@@ -25,28 +20,32 @@
 
 [English](README.md) | 简体中文
 
-## 特性
+## 项目定位
 
-- **可交互的图像回答**：把自然语言问题转成结构化视觉结果，在生成图上叠加透明可点击区域。
-- **分区域详解面板**：每个热点保留独立的标题、摘要、详解文本和追问线程——点击区域即可深入，无需离开图像。
-- **视觉对齐热点**：在真实 API 模式下，LocateAnything / MiMo 视觉 / 本地 OCR 定位实际视觉区域，热点落在正确内容上，而非硬编码网格。
-- **与供应商无关**：可完全在无密钥的 `mock` 模式下运行，或通过后端代理真实的文本、图像、视觉供应商，密钥不进浏览器。
-- **本地优先持久化**：生成的 ChatImage、热点、校准数据和追问线程存储在本地 SQLite 数据库。
-- **文件上下文**：可附加文本类文件（代码、Markdown、CSV、JSON、日志等）并作为提示词上下文。
-- **零前端依赖构建**：浏览器层为原生 JS；单一无依赖脚本拼接压缩资源到 `dist/`。
+ChatImage 是一个本地优先的交互式图像回答原型。它不是把图片当作文字旁边的装饰，而是尝试让生成图本身承担解释任务：系统先规划一份结构化视觉答案，再生成一张完整图片，随后把可点击热点对齐到真实渲染出来的内容上。
 
-## 论文与技术报告
+这个仓库同时包含应用原型、公开 demo、技术报告和论文草稿，方便继续做实验、展示和复现。
 
-| 资源 | 说明 |
-| --- | --- |
-| 📄 **[arXiv 论文（草稿）](Arxiv/chatimage_paper/chatimage.pdf)** | 技术论文草稿，涵盖任务定义、两趟视觉对齐方法、benchmark 与人类评估框架。LaTeX 源码在 [`Arxiv/chatimage_paper/`](Arxiv/chatimage_paper)。 |
-| 📚 **[技术报告](docs/TECHNICAL_REPORT.md)** | 系统深度文档：架构、数据流、对齐管线、API 参考、测试策略、已知限制。 |
-| 🌐 **[项目主页](docs/index.html)** | 交互式宣传站，含可按模式筛选的 demo、灯箱查看、快速开始。 |
-| 🗄️ **[归档笔记](docs/archive/)** | 历史设计文档、开发日志、审计报告，保留用于追溯。 |
+## 核心能力
+
+- **可交互的视觉回答**：在生成图上叠加透明热点，用户可以直接点击图中对象或区域。
+- **区域级解释**：每个热点都有独立标题、摘要、详细说明和上下文追问线程。
+- **视觉对齐热点**：真实 provider 模式下，可使用 LocateAnything、MiMo vision、本地 OCR 和可选 SAM 掩码精修，将热点移动到图中实际出现的位置。
+- **支持 mock 与真实 provider**：`mock` 模式不需要密钥；`api` 模式通过本地后端代理文本、图像和视觉 provider，密钥不会进入浏览器。
+- **本地持久化**：生成结果、热点、校准数据和追问历史保存到 SQLite。
+- **文本文件上下文**：可以附加代码、Markdown、CSV、JSON、日志等文本类文件作为提示词上下文。
+- **轻量前端**：浏览器端使用原生 JavaScript，构建脚本零依赖，输出静态资源到 `dist/`。
 
 ## 快速开始
 
-先启动本地 ChatImage 服务：
+环境要求：
+
+- Node.js 22.5 或更高版本
+- npm
+- 可选：Python 3.9+，用于本地 OCR、LocateAnything 或 SAM 精修
+- 可选：CUDA GPU，用于本地视觉 worker
+
+启动本地服务：
 
 ```bash
 git clone https://github.com/wencanjiang/ChatImage.git
@@ -55,210 +54,163 @@ npm install
 npm start
 ```
 
-然后打开公开展示入口：
+打开公开 demo 页面：
 
 ```text
 http://127.0.0.1:5178/docs/index.html
 ```
 
-展示页不是另一条产品路径。它展示的是同一套 ChatImage 生成与视觉对齐链路跑出来、再筛选出的高质量结果，并保存到 `docs/assets/demos/`，方便访问者在没有 API key、GPU 或本地模型权重的情况下直接检查交互效果。
-
-如果要用确定性的 mock provider 在本地生成新的 ChatImage，使用同一个应用入口并加上 `provider=mock`：
+不配置 API 密钥，直接生成一个确定性的本地 mock 示例：
 
 ```text
 http://127.0.0.1:5178?provider=mock
 ```
 
-若要使用真实 LLM / 图像 / 视觉供应商，复制环境示例并填入密钥（见[配置](#配置)）：
+## 使用真实 Provider
+
+复制环境变量模板，并填写你要使用的 provider：
 
 ```bash
-cp .env.example .env.local   # Windows: Copy-Item .env.example .env.local
-npm start
+cp .env.example .env.local
 ```
 
-## 精选 Demo 展示
+Windows PowerShell：
 
-公开展示页只放同一套 ChatImage 工作流生成出的当前最可信案例，而不是所有生成结果。一个 demo 只有满足当前严格视觉对齐门禁才可发布：主定位来自 LocateAnything 或 MiMo vision，包含 SAM 精修 mask、实心抠图预览、有机羽化预览，以及向外扩展后的 organic bounds。
-
-当前发布的案例：
-
-| Demo | 类型 | 入选原因 |
-| --- | --- | --- |
-| 西湖手绘游览地图 | 地图 | 自然景区区域清晰，无数字标号，首页首图可点击。 |
-| 智能家居客厅 | 场景 | 大物体和家居体验区域边界明确。 |
-| 精品咖啡店 | 场景 | 日常空间动线清楚，目标可分离。 |
-| 阳光阅读角 | 场景 | 单房间构图稳定，物体边界强。 |
-| 独立唱片店角落 | 场景 | 零售区域相对密集但仍可读。 |
-| 室内植物养护角 | 场景 | 日常护理工具和植物目标明确。 |
-
-被拒或表现弱的案例记录在 `docs/demo-eligibility.md`，用于保持论文 benchmark 与公开展示页对失败模式的诚实描述。
-
-## 环境要求
-
-- **Node.js** 22.5 或更高（后端使用内置 `node:sqlite` 模块）
-- **npm**
-- 可选：**Python 3.9+**（若启用本地 OCR 或基于 LocateAnything 的视觉对齐）
-- 可选：CUDA GPU（若本地运行 LocateAnything / SAM3 worker）
-
-校验工具链：
-
-```bash
-node -v   # v22.5 或更高
-npm -v
-git --version
-python --version   # 仅在使用本地 OCR / LocateAnything 时
+```powershell
+Copy-Item .env.example .env.local
 ```
 
-## 从源码构建
+常用变量：
 
-```bash
-npm install
-npm run build      # 输出 dist/，含哈希命名的 JS/CSS 资源
-```
-
-通过本地服务器服务构建产物：
-
-```bash
-# Unix
-CHATIMAGE_STATIC_DIR=dist npm start
-# Windows PowerShell
-$env:CHATIMAGE_STATIC_DIR="dist"; npm start
-```
-
-## 配置
-
-复制环境示例文件并编辑 `.env.local`：
-
-```bash
-cp .env.example .env.local   # Windows: Copy-Item .env.example .env.local
-```
-
-关键变量（完整列表见 `.env.example`）：
-
-| 变量 | 用途 |
+| 变量 | 作用 |
 | --- | --- |
-| `CHATIMAGE_PORT` | 本地服务器端口，默认 `5178`。 |
+| `CHATIMAGE_PORT` | 本地服务端口，默认 `5178`。 |
 | `CHATIMAGE_TEXT_API_KEY` | 文本模型 API 密钥。 |
-| `CHATIMAGE_TEXT_BASE_URL` | OpenAI 兼容的文本 API 基础 URL。 |
+| `CHATIMAGE_TEXT_BASE_URL` | OpenAI 兼容的文本 API 基础地址。 |
 | `CHATIMAGE_TEXT_MODEL` | 文本模型名称。 |
 | `CHATIMAGE_API_KEY` | 图像生成 API 密钥。 |
 | `CHATIMAGE_IMAGE_MODEL` | 图像生成模型名称。 |
-| `CHATIMAGE_VISION_MODE` | 视觉对齐模式：`local-ocr`、`locateanything`、`mimo-vision`、`remote`。 |
-| `CHATIMAGE_LOCATEANYTHING_MODEL` | LocateAnything 定位模型。 |
-| `CHATIMAGE_SAM3_ENABLED` | 启用可选的 SAM3 掩码精修。 |
+| `CHATIMAGE_IMAGE_API_SIZE` | 向图像网关请求的位图尺寸。 |
+| `CHATIMAGE_VISION_MODE` | 视觉对齐模式：`local-ocr`、`locateanything`、`mimo-vision` 或 `remote`。 |
+| `CHATIMAGE_VISION_FALLBACK_MODE` | 可选的视觉对齐 fallback 模式。 |
+| `CHATIMAGE_SAM3_ENABLED` | 在相关依赖配置完成后，启用可选 SAM 掩码精修。 |
 | `CHATIMAGE_DATABASE_PATH` | SQLite 数据库路径，默认 `tmp/chatimage.sqlite`。 |
-| `CHATIMAGE_STATIC_DIR` | 后端服务的静态目录。 |
+| `CHATIMAGE_STATIC_DIR` | 后端服务的静态目录，例如构建后的 `dist`。 |
 
-切勿提交 `.env.local` 或真实 API 密钥。仓库仅包含 `.env.example`。
+真实密钥只应放在 `.env.local`。浏览器只访问本地后端，实际上游调用由后端完成。
 
-## 运行模式
+## Demo 展示页
 
-| 模式 | 需要密钥 | 行为 |
-| --- | --- | --- |
-| `mock` | 否 | 确定性本地供应商 + mock SVG 输出，适合开发。 |
-| `api` | 是 | 通过 `server.js` 调用配置的文本、图像、视觉供应商。 |
-| `auto` | — | 前端根据后端配置选择（默认）。 |
+公开 demo 不是单独手写出来的一条产品路径。它展示的是同一套生成与视觉对齐流程跑出的精选结果，并导出到 `docs/assets/demos/`，这样访问者不需要 API 密钥、模型权重或 GPU，也能检查交互效果。
 
-从 URL 强制指定模式：
+当前发布 demo 需要通过严格视觉对齐门槛：每个热点都要有主要视觉定位来源、掩码数据、可用的抠图或 organic 预览，以及向外扩展后的 organic bounds。
 
-```text
-http://127.0.0.1:5178?provider=mock
-http://127.0.0.1:5178?provider=api
+| Demo | 类型 | 热点数 | 入选原因 |
+| --- | --- | ---: | --- |
+| West Lake hand-drawn tour map | 地图 | 9 | 自然景区区域可点击，没有数字 pin 或人为切分边框。 |
+| Healthy breakfast options | 场景 | 6 | 早餐食物对象边界清晰，适合做营养和适用场景解释。 |
+| Boutique coffee shop scene | 场景 | 6 | 吧台、座位、甜品柜和排队区等空间目标清楚。 |
+| Sunny reading nook | 场景 | 5 | 小型室内场景稳定，物体边界明确。 |
+| Independent record-store corner | 场景 | 5 | 零售空间较密集，但区域仍可读。 |
+| Indoor plant care corner | 场景 | 5 | 日常养护工具和植物目标区分度较好。 |
+
+较弱或被拒绝的 case 记录在 `docs/demo-eligibility.md`，用于说明失败模式，避免只展示好看的成功样例。
+
+## 工作流程
+
+1. 用户在浏览器中提交问题。
+2. 文本模型或确定性的 mock provider 生成长篇回答。
+3. 系统将回答整理成结构化视觉计划，包括区域和辅助说明。
+4. 图像 provider 根据该计划生成一张完整图片。
+5. 视觉对齐阶段检查这些计划区域在生成图中实际出现的位置。
+6. 前端在通过校验的区域上叠加可点击热点。
+7. 用户点击热点后，查看该区域解释并继续追问。
+8. 结果保存到本地，后续可以重新打开或校准。
+
+## 目录概览
+
+| 路径 | 作用 |
+| --- | --- |
+| `index.html`、`styles.css`、`src/` | 浏览器应用、渲染、生成编排、布局、对齐和交互状态。 |
+| `server.js`、`server/` | 本地 HTTP 服务、API 路由、provider 适配、校验和 SQLite 持久化。 |
+| `tests/` | 单元、集成、浏览器、provider、安全和真实诊断测试。 |
+| `docs/` | 项目页、技术报告、demo 资源和历史工程记录。 |
+| `Arxiv/chatimage_paper/` | 论文草稿、LaTeX 源码、实验表格和配图。 |
+| `scripts/` | 构建与维护脚本。 |
+
+## 构建
+
+```bash
+npm run build
 ```
 
-## 架构
+用本地服务运行构建产物：
 
-生成管线：
+```bash
+CHATIMAGE_STATIC_DIR=dist npm start
+```
 
-1. 用户在浏览器提交问题。
-2. 应用获取或 mock 一段原始 LLM 回答。
-3. 把回答归一化为结构化视觉 spec（`modules` + `auxiliaryModules`）。
-4. ChatImage 规划 `LayoutSpec`，含区域和归一化边界。
-5. 由结构化内容和布局意图生成图像提示词。
-6. 图像供应商生成视觉输出。
-7. 在真实 API 模式下，视觉/定位步骤定位实际视觉区域（LocateAnything → SAM3 精修）。
-8. 前端在图像上叠加透明热点。
-9. 点击热点打开其详解面板和追问线程。
-10. 结果和线程历史本地持久化。
+Windows PowerShell：
 
-核心模块：
-
-| 路径 | 职责 |
-| --- | --- |
-| `index.html` / `styles.css` | 应用外壳与样式。 |
-| `src/app.js` | 浏览器编排与 UI 绑定。 |
-| `src/service.js` | 生成与追问流程的供应商编排。 |
-| `src/structure.js` | 结构化回答归一化 + mock/fallback spec。 |
-| `src/layout.js` | 布局规划与热点几何。 |
-| `src/alignment.js` | 视觉对齐与热点校准。 |
-| `src/render.js` | 结果渲染工具。 |
-| `src/preview-strategy.js` | 热点预览变体选择（抠图 / 有机羽化 / 柔化 / 掩膜）。 |
-| `server.js` | 本地 HTTP 服务器与运行时配置。 |
-| `server/routes/` | API 路由处理器。 |
-| `server/store.js` | SQLite 持久化。 |
-| `server/providers.js` | 上游供应商适配器。 |
-| `scripts/build.js` | 零依赖前端构建脚本。 |
-| `tests/` | 单元、集成、浏览器、供应商冒烟测试。 |
-| `docs/TECHNICAL_REPORT.md` | 权威技术报告（架构、数据流、对齐管线、API、测试）。历史笔记在 `docs/archive/`。 |
-
-## API 接口
-
-| 接口 | 描述 |
-| --- | --- |
-| `GET /api/config` | 前端可见的运行时供应商配置。 |
-| `POST /api/chatimages` | 生成并持久化一个 ChatImage。 |
-| `GET /api/chatimages` | 列出最近的 ChatImage。 |
-| `GET /api/chatimages/:id` | 加载已保存的 ChatImage。 |
-| `PATCH /api/chatimages/:id` | 更新已保存的校准数据。 |
-| `POST /api/chatimages/:id/hotspots/:hotspotId/thread` | 继续某热点的追问线程。 |
-| `POST /api/llm` | 代理文本模型请求。 |
-| `POST /api/image` | 代理图像生成请求。 |
-| `POST /api/vision` | 代理视觉对齐请求。 |
+```powershell
+$env:CHATIMAGE_STATIC_DIR = "dist"
+npm start
+```
 
 ## 测试
 
-运行完整本地回归套件：
+运行完整本地测试：
 
 ```bash
 npm test
 ```
 
-运行选定套件：
+运行常用子集：
 
 ```bash
 npm run test:core
 npm run test:server
 npm run test:browser
+npm run test:docs-demos
 npm run test:structured-text
 ```
 
-若浏览器测试启动器无法自动找到 Chrome 或 Edge：
+真实 provider 测试是 opt-in，因为可能调用付费 API 或本地模型 worker：
 
 ```bash
-# Unix
-CHATIMAGE_BROWSER_PATH=/path/to/chrome npm run test:browser
-# Windows PowerShell
-$env:CHATIMAGE_BROWSER_PATH="C:\path\to\chrome.exe"; npm run test:browser
+npm run test:api
+npm run test:real-diagnostics
+npm run test:real-visual-acceptance
 ```
 
-真实供应商冒烟测试需 opt-in，因为可能调用付费 API：
+## 论文与文档
 
-```bash
-CHATIMAGE_API_KEY=your_key_here npm run test:api
-```
+| 资源 | 说明 |
+| --- | --- |
+| [论文草稿](Arxiv/chatimage_paper/chatimage.pdf) | 单栏技术论文草稿，覆盖任务、方法、实现和当前真实 provider 实验。 |
+| [技术报告](docs/TECHNICAL_REPORT.md) | 系统参考文档，包含架构、数据流、视觉对齐、API 行为、测试和限制。 |
+| [项目页](docs/index.html) | 静态项目页和交互式 demo gallery。 |
+| [测试 case 目录](docs/test-cases-catalog.md) | 常见 demo 和评测 prompt 的场景覆盖说明。 |
 
-## 技术栈
+## 安全说明
 
-- **前端**：原生 JS（浏览器全局变量），无框架，无打包运行时
-- **后端**：Node.js HTTP 服务器（无外部 Web 框架）
-- **持久化**：SQLite（经内置 `node:sqlite` 模块，无原生依赖）
-- **视觉对齐**：LocateAnything（视觉定位）、MiMo 视觉、本地 OCR、可选 SAM3 掩码精修
-- **构建**：单一零依赖拼接压缩脚本 → `dist/`
-- **测试**：Node `assert` + 无头 Chrome/CDP 浏览器断言
+- 不要提交 `.env.local` 或真实 provider 密钥。
+- API 密钥只由后端使用，不暴露在前端代码中。
+- 服务端会校验路由输入、图像 URL 协议、请求体大小和热点边界。
+- 上游调用使用可配置超时和并发限制。
+- `tmp/` 下的本地数据库、生成图和诊断信息已被 Git 忽略。
+
+## Roadmap
+
+- 将交互式 ChatImage 导出为可分享的 HTML 包。
+- 支持更丰富的 PDF、Word、表格、幻灯片和图片输入解析。
+- 改进生成图与热点定位的自动视觉 QA。
+- 增加用户可选的视觉模板和布局风格。
+- 支持云端持久化和多设备历史同步。
 
 ## 引用
 
-若 ChatImage 对你的研究有帮助，请引用。技术论文草稿在 [`Arxiv/chatimage_paper/`](Arxiv/chatimage_paper)（PDF [在此](Arxiv/chatimage_paper/chatimage.pdf)）；上方的 arXiv 徽章将在论文提交后链接到正式版本。
+如果 ChatImage 对你的研究或原型有帮助，可以引用当前论文草稿：
 
 ```bibtex
 @misc{chatimage2026,
@@ -269,21 +221,6 @@ CHATIMAGE_API_KEY=your_key_here npm run test:api
 }
 ```
 
-## 安全
-
-- 所有 API 密钥保存在 `.env.local`，切勿暴露在前端代码中。
-- 后端校验负载结构、图像 URL 协议、热点边界和路由输入。
-- 上游调用使用可配置超时和并发闸门，避免请求失控。
-- `tmp/` 下的生成数据库、截图、诊断信息被 Git 忽略。
-
-## 路线图
-
-- 把可交互 ChatImage 导出为可分享的 HTML 包。
-- 更丰富的 PDF、Word、PowerPoint、Excel、图像输入解析。
-- 云端持久化与多设备历史同步。
-- 用户可选的视觉模板与布局样式。
-- 对生成图像和热点精度的自动化视觉 QA。
-
 ## 许可证
 
-[MIT](LICENSE) © ChatImage Contributors
+[MIT](LICENSE) (c) ChatImage Contributors
