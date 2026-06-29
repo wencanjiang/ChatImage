@@ -15,7 +15,7 @@
 > ChatImage 将长篇 LLM 回答转化为一张可交互的生成图：用户可以点击图中区域，查看局部解释，并围绕该区域继续追问。
 
 <p align="center">
-  <img src="docs/assets/hero.png" alt="ChatImage 截图" width="760" />
+  <img src="docs/assets/demos/real-west-lake-tour-map.png" alt="West Lake hand-drawn tour map ChatImage demo" width="760" />
 </p>
 
 [English](README.md) | 简体中文
