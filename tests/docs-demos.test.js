@@ -18,6 +18,8 @@ function main() {
   assert.strictEqual(manifest.demos.length, 6, "manifest demo list should match demoCount");
   assert.strictEqual(manifest.source, "real-chatimage-curated-runs", "showcase should be exported from curated real ChatImage runs");
   assert.match(html, /interactive-viewer/, "docs page should include the interactive demo viewer");
+  assert.match(html, /href="chatImage\.pdf"/, "docs page should link the technical report PDF directly");
+  assert.doesNotMatch(html, /href="TECHNICAL_REPORT\.md"/, "docs page should not link the markdown technical report");
   assert.match(html, /demoHotspots/, "docs page should render hotspot overlays");
   assert.match(html, /id="demoDetail"/, "docs lightbox should include a stable side detail panel");
   assert.match(html, /id="demoDetailPreview"/, "docs lightbox should include a stable preview slot");

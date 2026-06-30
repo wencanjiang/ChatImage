@@ -5,8 +5,8 @@
 # ChatImage
 
 <p align="center">
-  <a href="docs/index.html"><img src="https://img.shields.io/badge/Project%20page-demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project page" /></a>
-  <a href="docs/TECHNICAL_REPORT.md"><img src="https://img.shields.io/badge/Technical%20report-docs-25a36a?style=flat-square&logo=googledocs" alt="Technical report" /></a>
+  <a href="https://wencanjiang.github.io/ChatImage/"><img src="https://img.shields.io/badge/Project%20page-demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project page" /></a>
+  <a href="https://wencanjiang.github.io/ChatImage/chatImage.pdf"><img src="https://img.shields.io/badge/Technical%20report-PDF-25a36a?style=flat-square&logo=googledocs" alt="Technical report" /></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-22.5%2B-339933?style=flat-square&logo=nodedotjs" alt="Node.js 22.5+" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square&logo=opensourceinitiative" alt="MIT license" /></a>
 </p>
@@ -53,7 +53,13 @@ npm install
 npm start
 ```
 
-打开公开 demo 页面：
+打开线上项目页：
+
+```text
+https://wencanjiang.github.io/ChatImage/
+```
+
+启动本地服务后，也可以打开本地 demo 页面：
 
 ```text
 http://127.0.0.1:5178/docs/index.html
@@ -133,7 +139,7 @@ Copy-Item .env.example .env.local
 | `index.html`、`styles.css`、`src/` | 浏览器应用、渲染、生成编排、布局、对齐和交互状态。 |
 | `server.js`、`server/` | 本地 HTTP 服务、API 路由、provider 适配、校验和 SQLite 持久化。 |
 | `tests/` | 单元、集成、浏览器、provider、安全和真实诊断测试。 |
-| `docs/` | 项目页、技术报告、demo 资源和历史工程记录。 |
+| `docs/` | GitHub Pages 项目页、报告 PDF 和 demo 资源。 |
 | `scripts/` | 构建与维护脚本。 |
 
 ## 构建
@@ -185,8 +191,8 @@ npm run test:real-visual-acceptance
 
 | 资源 | 说明 |
 | --- | --- |
-| [技术报告](docs/TECHNICAL_REPORT.md) | 系统参考文档，包含架构、数据流、视觉对齐、API 行为、测试和限制。 |
-| [项目页](docs/index.html) | 静态项目页和交互式 demo gallery。 |
+| [技术报告](https://wencanjiang.github.io/ChatImage/chatImage.pdf) | PDF 报告，覆盖任务、方法、实现和评测细节。 |
+| [项目页](https://wencanjiang.github.io/ChatImage/) | 线上项目页和交互式 demo gallery。 |
 | [测试 case 目录](docs/test-cases-catalog.md) | 常见 demo 和评测 prompt 的场景覆盖说明。 |
 
 ## 安全说明

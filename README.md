@@ -5,8 +5,8 @@
 # ChatImage
 
 <p align="center">
-  <a href="docs/index.html"><img src="https://img.shields.io/badge/Project%20page-demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project page" /></a>
-  <a href="docs/TECHNICAL_REPORT.md"><img src="https://img.shields.io/badge/Technical%20report-docs-25a36a?style=flat-square&logo=googledocs" alt="Technical report" /></a>
+  <a href="https://wencanjiang.github.io/ChatImage/"><img src="https://img.shields.io/badge/Project%20page-demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project page" /></a>
+  <a href="https://wencanjiang.github.io/ChatImage/chatImage.pdf"><img src="https://img.shields.io/badge/Technical%20report-PDF-25a36a?style=flat-square&logo=googledocs" alt="Technical report" /></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-22.5%2B-339933?style=flat-square&logo=nodedotjs" alt="Node.js 22.5+" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square&logo=opensourceinitiative" alt="MIT license" /></a>
 </p>
@@ -53,7 +53,13 @@ npm install
 npm start
 ```
 
-Open the public demo gallery:
+Open the hosted project page:
+
+```text
+https://wencanjiang.github.io/ChatImage/
+```
+
+Or open the local demo gallery after starting the server:
 
 ```text
 http://127.0.0.1:5178/docs/index.html
@@ -133,7 +139,7 @@ Weak or rejected cases are tracked in `docs/demo-eligibility.md` to keep the pub
 | `index.html`, `styles.css`, `src/` | Browser app, rendering, generation orchestration, layout, alignment, and interaction state. |
 | `server.js`, `server/` | Local HTTP server, API routes, provider adapters, validation, and SQLite persistence. |
 | `tests/` | Unit, integration, browser, provider, security, and real-diagnostics test suites. |
-| `docs/` | Project page, technical report, demo gallery assets, and archived engineering notes. |
+| `docs/` | GitHub Pages project page, report PDF, and demo gallery assets. |
 | `scripts/` | Build and maintenance scripts. |
 
 ## Build
@@ -185,8 +191,8 @@ npm run test:real-visual-acceptance
 
 | Resource | Description |
 | --- | --- |
-| [Technical report](docs/TECHNICAL_REPORT.md) | System reference for architecture, data flow, alignment, API behavior, testing, and limitations. |
-| [Project page](docs/index.html) | Static project page and interactive demo gallery. |
+| [Technical report](https://wencanjiang.github.io/ChatImage/chatImage.pdf) | PDF report covering the task, method, implementation, and evaluation details. |
+| [Project page](https://wencanjiang.github.io/ChatImage/) | Hosted project page and interactive demo gallery. |
 | [Test case catalog](docs/test-cases-catalog.md) | Prompt coverage and scenario notes for common demo and evaluation cases. |
 
 ## Security Notes
