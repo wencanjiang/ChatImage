@@ -75,6 +75,11 @@
     var btn = document.getElementById("langToggle");
     if (btn) btn.textContent = isZh ? "EN" : "中文";
     try { localStorage.setItem("ci.lang", isZh ? "zh" : "en"); } catch (e) {}
+    try {
+      window.dispatchEvent(new CustomEvent("chatimage:i18n", {
+        detail: { lang: currentLang }
+      }));
+    } catch (e) {}
   }
 
   // Public API: re-apply the currently-active language. Callers (e.g. the

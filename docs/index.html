@@ -84,11 +84,11 @@
   .btn-ghost:hover{border-color:var(--accent);color:var(--accent-strong)}
   .btn-sm{padding:7px 14px;font-size:14px}
 
-  .hero{padding:92px 0 42px;text-align:center}
+  .hero{padding:70px 0 42px;text-align:center}
   .hero h1{
     font-size:clamp(56px,9vw,94px);
     line-height:.98;
-    margin:0 0 18px;
+    margin:0 0 14px;
     font-weight:820;
     letter-spacing:-.04em;
     text-wrap:balance;
@@ -107,7 +107,7 @@
     flex-wrap:wrap;
     justify-content:center;
     gap:10px;
-    margin-bottom:22px;
+    margin:0 0 22px;
   }
   .badges a,
   .badges span{
@@ -775,7 +775,7 @@
   @media(max-width:640px){
     .wrap{padding:0 18px}
     section{padding:52px 0}
-    .hero{padding:56px 0 40px}
+    .hero{padding:42px 0 40px}
     .nav-links{gap:12px}
     .nav-links .hide-sm{display:none}
     .hero-cta{flex-direction:column;align-items:stretch}
@@ -818,12 +818,12 @@
 
 <header class="hero" id="top">
   <div class="wrap">
+    <h1>ChatImage</h1>
     <div class="badges">
       <span>The interactive answer image</span>
       <a href="https://github.com/wencanjiang/ChatImage" target="_blank" rel="noopener">Open source</a>
       <a href="chatImage.pdf" target="_blank" rel="noopener">Technical report</a>
     </div>
-    <h1>ChatImage</h1>
     <p class="sub">Turn long LLM answers into generated images with clickable regions, clean detail panels, and reusable visual state.</p>
     <div class="hero-cta">
       <a class="btn btn-primary" href="#demos">View live demos</a>
@@ -1082,6 +1082,7 @@
 </div>
 
 <script src="assets/preview-strategy.js"></script>
+<script src="assets/demo-locales.js"></script>
 <script src="assets/hero-demo.js" defer></script>
 <script src="assets/demo-popover.js" defer></script>
 <script>
@@ -1140,6 +1141,25 @@
     return [];
   }
 
+  function getHotspotLabel(demo,hotspot,index){
+    var locale=window.ChatImageDemoLocale;
+    if(locale&&typeof locale.getHotspotText==='function'){
+      try{return locale.getHotspotText(demo,hotspot).label||('Region '+(index+1))}catch(err){}
+    }
+    return (hotspot&&hotspot.label)||('Region '+(index+1));
+  }
+
+  function refreshHotspotLabels(){
+    if(!activeDemo||!activeButtons.length)return;
+    var hotspots=getHotspots(activeDemo);
+    activeButtons.forEach(function(btn,index){
+      if(!hotspots[index])return;
+      var label=getHotspotLabel(activeDemo,hotspots[index],index);
+      btn.dataset.label=label;
+      btn.setAttribute('aria-label',label);
+    });
+  }
+
   function renderHotspots(demo){
     if(!demoHotspots)return;
     demoHotspots.innerHTML='';
@@ -1152,9 +1172,10 @@
       var btn=document.createElement('button');
       btn.type='button';
       btn.className='demo-hotspot';
-      btn.dataset.label=hotspot.label||('Region '+(index+1));
+      var label=getHotspotLabel(demo,hotspot,index);
+      btn.dataset.label=label;
       btn.dataset.index=String(index+1);
-      btn.setAttribute('aria-label',hotspot.label||('Region '+(index+1)));
+      btn.setAttribute('aria-label',label);
       btn.style.left=(Number(bounds.x||0)*100)+'%';
       btn.style.top=(Number(bounds.y||0)*100)+'%';
       btn.style.width=(Number(bounds.width||0)*100)+'%';
@@ -1230,6 +1251,7 @@
   lbClose.addEventListener('click',close);
   lb.addEventListener('click',function(e){if(e.target===lb)close()});
   document.addEventListener('keydown',function(e){if(e.key==='Escape')close()});
+  window.addEventListener('chatimage:i18n',refreshHotspotLabels);
 })();
 
 (function(){

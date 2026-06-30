@@ -47,6 +47,23 @@
       visualMode: stateLike.visualMode || ""
     };
   }
+  function getHotspotText(demo, hotspot) {
+    var locale = window.ChatImageDemoLocale;
+    if (locale && typeof locale.getHotspotText === "function") {
+      try {
+        return locale.getHotspotText(demo, hotspot);
+      } catch (e) {}
+    }
+    return {
+      label: String((hotspot && hotspot.label) || "Untitled region"),
+      detail: String((hotspot && (hotspot.detail || hotspot.shortText)) || "No detail text is available for this region.")
+    };
+  }
+  function setHotspotButtonLabel(btn, demo, hotspot, index) {
+    var text = getHotspotText(demo, hotspot).label || "Region " + (index + 1);
+    btn.dataset.label = text;
+    btn.setAttribute("aria-label", text);
+  }
   function clearPreview() {
     preview.classList.remove("cutout", "organic", "fallback");
     while (preview.firstChild) preview.removeChild(preview.firstChild);
@@ -70,7 +87,7 @@
     else if (demo && demo.image) { imgUrl = demo.image; kind = "fallback"; }
     if (!imgUrl) return;
     var img = document.createElement("img");
-    img.alt = (hotspot.label || "Region") + " preview";
+    img.alt = getHotspotText(demo, hotspot).label + " preview";
     img.loading = "lazy";
     img.decoding = "async";
     img.draggable = false;
@@ -161,10 +178,9 @@
   function openPopover(demo, hotspot, index) {
     if (!hotspot) return;
     buildPreview(demo, hotspot);
-    titleEl.textContent = String(hotspot.label || "Untitled region");
-    detailEl.textContent = String(
-      hotspot.detail || hotspot.shortText || "No detail text is available for this region."
-    );
+    var copy = getHotspotText(demo, hotspot);
+    titleEl.textContent = copy.label;
+    detailEl.textContent = copy.detail;
     popover.setAttribute("aria-hidden", "false");
     heroButtons.forEach(function (btn, i) {
       btn.classList.toggle("active", i === index);
@@ -185,6 +201,22 @@
     heroButtons.forEach(function (btn) { btn.classList.remove("active"); });
     openHotspotIndex = -1;
   }
+  function refreshOpenPopover() {
+    var demo = window.__heroDemoActive;
+    var hotspots = demo && demo.state && Array.isArray(demo.state.hotspots) ? demo.state.hotspots : [];
+    var hotspot = hotspots[openHotspotIndex];
+    if (!hotspot) return;
+    var copy = getHotspotText(demo, hotspot);
+    titleEl.textContent = copy.label;
+    detailEl.textContent = copy.detail;
+    positionPopover(hotspot);
+  }
+  function refreshHotspotLabels(demo) {
+    var hotspots = demo && demo.state && Array.isArray(demo.state.hotspots) ? demo.state.hotspots : [];
+    heroButtons.forEach(function (btn, index) {
+      if (hotspots[index]) setHotspotButtonLabel(btn, demo, hotspots[index], index);
+    });
+  }
   function renderHotspots(demo) {
     heroHotspots.innerHTML = "";
     heroButtons = [];
@@ -197,8 +229,7 @@
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "hero-hotspot";
-      btn.dataset.label = hotspot.label || "Region " + (index + 1);
-      btn.setAttribute("aria-label", hotspot.label || "Region " + (index + 1));
+      setHotspotButtonLabel(btn, demo, hotspot, index);
       btn.style.left = Number(bounds.x || 0) * 100 + "%";
       btn.style.top = Number(bounds.y || 0) * 100 + "%";
       btn.style.width = Number(bounds.width || 0) * 100 + "%";
@@ -242,6 +273,12 @@
       var hotspot = hs[openHotspotIndex];
       if (hotspot) positionPopover(hotspot);
     }, 80);
+  });
+  window.addEventListener("chatimage:i18n", function () {
+    var demo = window.__heroDemoActive;
+    if (!demo) return;
+    refreshHotspotLabels(demo);
+    if (openHotspotIndex >= 0) refreshOpenPopover();
   });
 
   var url = heroDemo.dataset.demo;
