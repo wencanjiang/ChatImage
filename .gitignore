@@ -23,6 +23,9 @@ Thumbs.db
 
 # Private research workspace
 Arxiv/
+docs/archive/
+CHANGELOG.md
+RELEASE_CHECKLIST.md
 task_plan.md
 findings.md
 progress.md

@@ -2,7 +2,7 @@
 
 > **在线文档** · [项目主页](index.html) · [GitHub 仓库](https://github.com/wencanjiang/ChatImage)
 
-本报告是 ChatImage 项目的权威技术文档，涵盖架构设计、核心数据流、模块职责、视觉对齐管线、测试策略和已知限制。它替代了早期散落在 `docs/archive/` 中的开发日志和审计笔记，是理解项目实现细节的首选入口。
+本报告是 ChatImage 项目的权威技术文档，涵盖架构设计、核心数据流、模块职责、视觉对齐管线、测试策略和已知限制，是理解项目实现细节的首选入口。
 
 ---
 
@@ -655,25 +655,5 @@ hotspot_messages (
 2. `GET /api/llm/health` → 文本模型预检
 3. `CHATIMAGE_VISION_ENDPOINT` 已配置（或默认 Wuyin GPT5.5）
 4. `GET /api/vision/health` → `ok:true, imageVisible:true`
-
----
-
-## 归档文档
-
-以下历史文档已移至 [`docs/archive/`](archive/)，保留用于追溯设计决策和修复历史，但不再作为活跃文档维护：
-
-- `technical-design.md` — 原始技术设计文档（部分已过时）
-- `requirements.md` — 产品需求文档
-- `agent-evaluation.md` — Agent 评估方法论
-- `vision-endpoint-contract.md` — 视觉端点集成契约
-- `development-log.md` — 开发日志（2026-05-28 ~ 2026-06-03）
-- `code-review-2025-06-09.md` — 代码审查报告
-- `frontend-audit-2026-06-20.md` — 前端审美审查报告
-- `hotspot-detail-fix-2026-06-20.md` — 热点定位与详解修复报告
-- `latest-common-case-test-report.md` — 常见用例测试报告
-- `mimo-vision-sam3-progress.md` — MiMo 视觉 + SAM3 进展
-- `test-questions.md` — 测试问题集
-
----
 
 *本报告由项目开发团队维护。如有疑问请提 [GitHub Issue](https://github.com/wencanjiang/ChatImage/issues)。*

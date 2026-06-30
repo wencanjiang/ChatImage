@@ -212,7 +212,7 @@ async function assertRealInstanceReadiness(appBase, artifactDir) {
       reason: reasons[0],
       reasons,
       requiredEnv: ["CHATIMAGE_API_KEY", "optional CHATIMAGE_VISION_ENDPOINT for non-default vision providers"],
-      contractDoc: "docs/archive/vision-endpoint-contract.md",
+      docs: "docs/TECHNICAL_REPORT.md",
       nextChecks: [
         "Confirm CHATIMAGE_API_KEY can call the text endpoint.",
         "If local OCR is unavailable, install PaddleOCR/OpenCV or configure a remote CHATIMAGE_VISION_ENDPOINT.",
