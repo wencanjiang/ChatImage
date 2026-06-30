@@ -43,25 +43,11 @@ function main() {
     assert.match(envExample, new RegExp(`^${key}=`, "m"), `.env.example missing ${key}`);
   }
 
-  const contract = fs.readFileSync(path.join(root, "docs", "archive", "vision-endpoint-contract.md"), "utf8");
-  assert.match(contract, /OpenAI-compatible chat completions/);
-  assert.match(contract, /local-ocr/);
-  assert.match(contract, /locateanything/);
-  assert.match(contract, /NVIDIA License/);
-  assert.match(contract, /wuyin-form/);
-  assert.match(contract, /image_url/);
-  assert.match(contract, /response_format/);
-  assert.match(contract, /moduleId/);
-  assert.match(contract, /bounds/);
-  assert.match(contract, /confidence/);
-  assert.match(contract, /imageWidth/);
-  assert.match(contract, /imageHeight/);
-  assert.match(contract, /\/api\/vision\/health/);
-  assert.match(contract, /\/api\/llm\/health/);
-  assert.match(contract, /imageVisible/);
-  assert.match(contract, /Real Instance Readiness/);
-  assert.match(contract, /textHealth/);
-  assert.match(contract, /npm\.cmd run test:real-instance/);
+  const technicalReport = fs.readFileSync(path.join(root, "docs", "TECHNICAL_REPORT.md"), "utf8");
+  assert.match(technicalReport, /LocateAnything/);
+  assert.match(technicalReport, /SAM3/);
+  assert.match(technicalReport, /\/api\/vision/);
+  assert.doesNotMatch(technicalReport, /docs\/archive|archive\//);
 
   const readme = fs.readFileSync(path.join(root, "README.md"), "utf8");
   assert.match(readme, /docs\/TECHNICAL_REPORT\.md/);
