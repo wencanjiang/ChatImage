@@ -58,6 +58,10 @@ async function main() {
     await cdp.send("Page.navigate", { url: `${baseUrl}/docs/index.html` });
     await cdp.waitFor("Page.loadEventFired", 10000);
     await cdp.waitForFunction(`document.querySelectorAll(".demo[data-demo]").length === 6`, 5000);
+    await cdp.waitForFunction(`window.ChatImageI18n && document.querySelector("#langToggle")`, 5000);
+    await cdp.waitForFunction(`localStorage.getItem("ci.lang") === "en" || localStorage.getItem("ci.lang") === "zh"`, 5000);
+    await cdp.evaluate(`window.ChatImageI18n.setLang("en")`);
+    await cdp.waitForFunction(`document.documentElement.lang === "en"`, 3000);
 
     // hero is a single image; clicking a hotspot opens a popover (preview + title + detail).
     const heroSrc = await cdp.evaluate(`document.querySelector("#heroStageImg").getAttribute("src")`);
@@ -87,6 +91,21 @@ async function main() {
     );
     const heroSecondDetail = await cdp.evaluate(`document.querySelector("#heroPopoverDetail").textContent`);
     assert.notStrictEqual(heroSecondDetail, heroFirstDetail, "clicking another hero hotspot should swap the popover detail");
+    const heroSecondTitle = await cdp.evaluate(`document.querySelector("#heroPopoverTitle").textContent`);
+    await cdp.evaluate(`document.querySelector("#langToggle").click()`);
+    await cdp.waitForFunction(
+      `document.documentElement.lang === "zh-CN" && document.querySelector("#heroPopoverDetail").textContent !== ${JSON.stringify(heroSecondDetail)}`,
+      4000
+    );
+    const heroZhTitle = await cdp.evaluate(`document.querySelector("#heroPopoverTitle").textContent`);
+    const heroZhDetail = await cdp.evaluate(`document.querySelector("#heroPopoverDetail").textContent`);
+    assert.notStrictEqual(heroZhTitle, heroSecondTitle, "hero popover title should switch language in place");
+    assert.match(heroZhTitle + heroZhDetail, /[\u4e00-\u9fff]/, "hero popover should expose Chinese hotspot copy after switching language");
+    await cdp.evaluate(`document.querySelector("#langToggle").click()`);
+    await cdp.waitForFunction(
+      `document.documentElement.lang === "en" && document.querySelector("#heroPopoverDetail").textContent === ${JSON.stringify(heroSecondDetail)}`,
+      4000
+    );
 
     await cdp.evaluate(`document.querySelector(".demo[data-demo]").click()`);
     await cdp.waitForFunction(
@@ -112,6 +131,20 @@ async function main() {
     assert.ok(firstTitle && firstTitle.length > 0, "demo detail panel should have a title");
     assert.ok(firstDetail && firstDetail.length > 0, "demo detail panel should have detail text");
     assert.match(firstPreviewKind, /organic|cutout|fallback/, "demo detail panel should classify the preview kind");
+    await cdp.evaluate(`document.querySelector("#langToggle").click()`);
+    await cdp.waitForFunction(
+      `document.documentElement.lang === "zh-CN" && document.querySelector("#demoDetailText").textContent !== ${JSON.stringify(firstDetail)}`,
+      4000
+    );
+    const firstZhTitle = await cdp.evaluate(`document.querySelector("#demoDetailTitle").textContent`);
+    const firstZhDetail = await cdp.evaluate(`document.querySelector("#demoDetailText").textContent`);
+    assert.notStrictEqual(firstZhTitle, firstTitle, "demo detail title should switch language in place");
+    assert.match(firstZhTitle + firstZhDetail, /[\u4e00-\u9fff]/, "demo detail should expose Chinese hotspot copy after switching language");
+    await cdp.evaluate(`document.querySelector("#langToggle").click()`);
+    await cdp.waitForFunction(
+      `document.documentElement.lang === "en" && document.querySelector("#demoDetailText").textContent === ${JSON.stringify(firstDetail)}`,
+      4000
+    );
     // click another hotspot -> detail panel content switches
     await cdp.evaluate(`document.querySelectorAll("#demoHotspots .demo-hotspot")[1].click()`);
     await cdp.waitForFunction(

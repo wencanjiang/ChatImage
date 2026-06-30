@@ -23,6 +23,7 @@ function main() {
   assert.match(html, /demoHotspots/, "docs page should render hotspot overlays");
   assert.match(html, /id="demoDetail"/, "docs lightbox should include a stable side detail panel");
   assert.match(html, /id="demoDetailPreview"/, "docs lightbox should include a stable preview slot");
+  assert.match(html, /assets\/demo-locales\.js/, "docs page should load localized hotspot copy for dynamic demo regions");
   assert.doesNotMatch(html, /Open full image/, "showcase should not be a static image lightbox");
   assert.doesNotMatch(html, /demo-[a-z0-9-]+\.svg/, "showcase cards should not use mock SVG demos");
   assert.doesNotMatch(html, /hero\.svg/, "hero should use a real generated image");
