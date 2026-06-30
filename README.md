@@ -5,7 +5,6 @@
 # ChatImage
 
 <p align="center">
-  <a href="Arxiv/chatimage_paper/chatimage.pdf"><img src="https://img.shields.io/badge/Paper-draft-b31b1b?style=flat-square&logo=arxiv" alt="Paper draft" /></a>
   <a href="docs/index.html"><img src="https://img.shields.io/badge/Project%20page-demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project page" /></a>
   <a href="docs/TECHNICAL_REPORT.md"><img src="https://img.shields.io/badge/Technical%20report-docs-25a36a?style=flat-square&logo=googledocs" alt="Technical report" /></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-22.5%2B-339933?style=flat-square&logo=nodedotjs" alt="Node.js 22.5+" /></a>
@@ -114,7 +113,7 @@ Published demos must pass the current strict visual-alignment gate: each hotspot
 | Independent record-store corner | Scene | 5 | Dense retail regions remain readable enough for region-level follow-up. |
 | Indoor plant care corner | Scene | 5 | Small daily-care objects are distinct and easy to explain. |
 
-Weak or rejected cases are tracked in `docs/demo-eligibility.md` to keep the public demo and paper experiments honest about failure modes.
+Weak or rejected cases are tracked in `docs/demo-eligibility.md` to keep the public demo honest about failure modes.
 
 ## How It Works
 
@@ -135,7 +134,6 @@ Weak or rejected cases are tracked in `docs/demo-eligibility.md` to keep the pub
 | `server.js`, `server/` | Local HTTP server, API routes, provider adapters, validation, and SQLite persistence. |
 | `tests/` | Unit, integration, browser, provider, security, and real-diagnostics test suites. |
 | `docs/` | Project page, technical report, demo gallery assets, and archived engineering notes. |
-| `Arxiv/chatimage_paper/` | Paper draft, LaTeX source, experiment tables, and figures. |
 | `scripts/` | Build and maintenance scripts. |
 
 ## Build
@@ -183,11 +181,10 @@ npm run test:real-diagnostics
 npm run test:real-visual-acceptance
 ```
 
-## Paper And Documentation
+## Documentation
 
 | Resource | Description |
 | --- | --- |
-| [Paper draft](Arxiv/chatimage_paper/chatimage.pdf) | Single-column technical draft covering the task, method, implementation, and current real-provider experiments. |
 | [Technical report](docs/TECHNICAL_REPORT.md) | System reference for architecture, data flow, alignment, API behavior, testing, and limitations. |
 | [Project page](docs/index.html) | Static project page and interactive demo gallery. |
 | [Test case catalog](docs/test-cases-catalog.md) | Prompt coverage and scenario notes for common demo and evaluation cases. |
@@ -207,19 +204,6 @@ npm run test:real-visual-acceptance
 - Improve automatic visual QA for generated images and hotspot grounding.
 - Add user-selectable visual templates and layout styles.
 - Support cloud persistence and multi-device history.
-
-## Citation
-
-If ChatImage is useful for your research or prototype, please cite the paper draft:
-
-```bibtex
-@misc{chatimage2026,
-  title  = {ChatImage: Turning Long-Form LLM Answers into Interactive Visual Images},
-  author = {ChatImage Contributors},
-  year   = {2026},
-  url    = {https://github.com/wencanjiang/ChatImage}
-}
-```
 
 ## License
 

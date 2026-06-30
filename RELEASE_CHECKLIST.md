@@ -26,7 +26,7 @@ Use this checklist before tagging a public release or sharing the repository bro
 - `CONTRIBUTING.md` describes demo quality rules.
 - `SECURITY.md` describes private vulnerability reporting.
 - `docs/demo-eligibility.md` records accepted and rejected demo cases.
-- The arXiv draft examples match the current public demo manifest or clearly describe benchmark-only tasks.
+- Private research, experiment, and planning files are not staged.
 
 ## Safety
 
