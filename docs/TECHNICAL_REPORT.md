@@ -1,6 +1,6 @@
 # ChatImage 技术报告
 
-> **在线文档** · [项目主页](index.html) · [GitHub 仓库](https://github.com/wencanjiang/ChatImage) · [arXiv 论文（预留）](https://arxiv.org/abs/XXXX.XXXXX)
+> **在线文档** · [项目主页](index.html) · [GitHub 仓库](https://github.com/wencanjiang/ChatImage)
 
 本报告是 ChatImage 项目的权威技术文档，涵盖架构设计、核心数据流、模块职责、视觉对齐管线、测试策略和已知限制。它替代了早期散落在 `docs/archive/` 中的开发日志和审计笔记，是理解项目实现细节的首选入口。
 
@@ -616,7 +616,6 @@ hotspot_messages (
 - **在线视觉稳定性**：LocateAnything/MiMo 视觉定位在复杂地图场景下仍可能漏检模块，依赖上游模型质量。
 - **`app.js` 单文件**：~1900 行 IIFE，未拆分（列为后续 P1 重构项）。
 - **`styles.css`**：已从 4600 行重写为 2200 行单一来源，但仍可进一步拆分为 base/layout/components。
-- **arXiv 论文**：待发表，README/宣传页中为占位链接。
 
 ---
 

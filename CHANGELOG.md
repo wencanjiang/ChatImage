@@ -26,7 +26,7 @@ First public open-source release.
 - Zero-dependency frontend build to `dist/`.
 - Open-source hygiene: `CONTRIBUTING.md`, `SECURITY.md`, `RELEASE_CHECKLIST.md`,
   MIT `LICENSE`, and a bilingual (EN/ZH) README.
-- arXiv paper draft and technical report.
+- Technical report and public demo documentation.
 
 ### Fixed
 - Keep concrete transport/lodging map legends as real clickable targets (they

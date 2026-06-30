@@ -28,7 +28,7 @@ Real provider mode requires `.env.local`; copy `.env.example` and add your own k
 - Fix bugs in the structure, generation, alignment, mask, preview, and interaction pipeline.
 - Improve the curated demo page without weakening the strict demo gate.
 - Add tests that catch regressions in hotspot alignment, mask quality, detail-panel text, and local deployment.
-- Improve technical documentation and the arXiv draft when implementation details change.
+- Improve technical documentation when implementation details change.
 
 ## Demo Quality Rules
 
@@ -72,5 +72,5 @@ CHATIMAGE_API_KEY=your_key_here npm run test:api
 - The change is scoped to one concern.
 - Public docs do not contain API keys, local absolute paths, or private provider logs.
 - Demo manifest entries match the actual exported JSON hotspot data.
-- The arXiv draft and technical report are updated if method claims, demo examples, or benchmark framing changed.
+- The technical report is updated if method claims, demo examples, or benchmark framing changed.
 - Tests above pass, or the PR explains why a check could not be run.

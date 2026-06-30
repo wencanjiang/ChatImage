@@ -21,6 +21,16 @@ Thumbs.db
 .claude/
 .workbuddy/
 
+# Private research workspace
+Arxiv/
+task_plan.md
+findings.md
+progress.md
+plan.md
+chatimage-fix-table.md
+scripts/run-instance-experiment.js
+scripts/build-eval-sheet.js
+
 # LaTeX build artifacts
 *.aux
 *.bbl

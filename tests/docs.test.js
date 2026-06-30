@@ -64,7 +64,9 @@ function main() {
   assert.match(contract, /npm\.cmd run test:real-instance/);
 
   const readme = fs.readFileSync(path.join(root, "README.md"), "utf8");
-  assert.match(readme, /docs\/archive\/vision-endpoint-contract\.md/);
+  assert.match(readme, /docs\/TECHNICAL_REPORT\.md/);
+  const privatePathPattern = new RegExp(["Ar", "xiv"].join("") + "|chatimage_" + "paper", "i");
+  assert.doesNotMatch(readme, privatePathPattern);
 
   console.log("docs.test.js passed");
 }

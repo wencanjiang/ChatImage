@@ -5,7 +5,6 @@
 # ChatImage
 
 <p align="center">
-  <a href="Arxiv/chatimage_paper/chatimage.pdf"><img src="https://img.shields.io/badge/Paper-draft-b31b1b?style=flat-square&logo=arxiv" alt="Paper draft" /></a>
   <a href="docs/index.html"><img src="https://img.shields.io/badge/Project%20page-demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project page" /></a>
   <a href="docs/TECHNICAL_REPORT.md"><img src="https://img.shields.io/badge/Technical%20report-docs-25a36a?style=flat-square&logo=googledocs" alt="Technical report" /></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-22.5%2B-339933?style=flat-square&logo=nodedotjs" alt="Node.js 22.5+" /></a>
@@ -24,7 +23,7 @@
 
 ChatImage 是一个本地优先的交互式图像回答原型。它不是把图片当作文字旁边的装饰，而是尝试让生成图本身承担解释任务：系统先规划一份结构化视觉答案，再生成一张完整图片，随后把可点击热点对齐到真实渲染出来的内容上。
 
-这个仓库同时包含应用原型、公开 demo、技术报告和论文草稿，方便继续做实验、展示和复现。
+这个仓库包含应用原型、公开 demo 和技术文档，方便继续开发、展示和复现。
 
 ## 核心能力
 
@@ -135,7 +134,6 @@ Copy-Item .env.example .env.local
 | `server.js`、`server/` | 本地 HTTP 服务、API 路由、provider 适配、校验和 SQLite 持久化。 |
 | `tests/` | 单元、集成、浏览器、provider、安全和真实诊断测试。 |
 | `docs/` | 项目页、技术报告、demo 资源和历史工程记录。 |
-| `Arxiv/chatimage_paper/` | 论文草稿、LaTeX 源码、实验表格和配图。 |
 | `scripts/` | 构建与维护脚本。 |
 
 ## 构建
@@ -183,11 +181,10 @@ npm run test:real-diagnostics
 npm run test:real-visual-acceptance
 ```
 
-## 论文与文档
+## 文档
 
 | 资源 | 说明 |
 | --- | --- |
-| [论文草稿](Arxiv/chatimage_paper/chatimage.pdf) | 单栏技术论文草稿，覆盖任务、方法、实现和当前真实 provider 实验。 |
 | [技术报告](docs/TECHNICAL_REPORT.md) | 系统参考文档，包含架构、数据流、视觉对齐、API 行为、测试和限制。 |
 | [项目页](docs/index.html) | 静态项目页和交互式 demo gallery。 |
 | [测试 case 目录](docs/test-cases-catalog.md) | 常见 demo 和评测 prompt 的场景覆盖说明。 |
@@ -207,19 +204,6 @@ npm run test:real-visual-acceptance
 - 改进生成图与热点定位的自动视觉 QA。
 - 增加用户可选的视觉模板和布局风格。
 - 支持云端持久化和多设备历史同步。
-
-## 引用
-
-如果 ChatImage 对你的研究或原型有帮助，可以引用当前论文草稿：
-
-```bibtex
-@misc{chatimage2026,
-  title  = {ChatImage: Turning Long-Form LLM Answers into Interactive Visual Images},
-  author = {ChatImage Contributors},
-  year   = {2026},
-  url    = {https://github.com/wencanjiang/ChatImage}
-}
-```
 
 ## 许可证
 
