@@ -50,9 +50,16 @@ function main() {
   assert.doesNotMatch(technicalReport, /docs\/archive|archive\//);
 
   const readme = fs.readFileSync(path.join(root, "README.md"), "utf8");
-  assert.match(readme, /docs\/TECHNICAL_REPORT\.md/);
+  assert.match(readme, /https:\/\/wencanjiang\.github\.io\/ChatImage\//);
+  assert.match(readme, /https:\/\/wencanjiang\.github\.io\/ChatImage\/chatImage\.pdf/);
+  assert.doesNotMatch(readme, /docs\/TECHNICAL_REPORT\.md/);
   const privatePathPattern = new RegExp(["Ar", "xiv"].join("") + "|chatimage_" + "paper", "i");
   assert.doesNotMatch(readme, privatePathPattern);
+
+  const docsIndex = fs.readFileSync(path.join(root, "docs", "index.html"), "utf8");
+  assert.match(docsIndex, /href="chatImage\.pdf"/);
+  assert.doesNotMatch(docsIndex, /href="TECHNICAL_REPORT\.md"/);
+  assert.ok(fs.existsSync(path.join(root, "docs", "chatImage.pdf")), "docs/chatImage.pdf is missing");
 
   console.log("docs.test.js passed");
 }
