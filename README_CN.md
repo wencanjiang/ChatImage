@@ -14,7 +14,7 @@
 > ChatImage 将长篇 LLM 回答转化为一张可交互的生成图：用户可以点击图中区域，查看局部解释，并围绕该区域继续追问。
 
 <p align="center">
-  <img src="docs/assets/demos/real-west-lake-tour-map.png" alt="West Lake hand-drawn tour map ChatImage demo" width="760" />
+  <img src="docs/assets/demos/real-west-lake-tour-map-split9.png" alt="West Lake strict scenic map ChatImage demo" width="760" />
 </p>
 
 [English](README.md) | 简体中文
@@ -112,7 +112,7 @@ Copy-Item .env.example .env.local
 
 | Demo | 类型 | 热点数 | 入选原因 |
 | --- | --- | ---: | --- |
-| West Lake hand-drawn tour map | 地图 | 9 | 自然景区区域可点击，没有数字 pin 或人为切分边框。 |
+| West Lake strict scenic map | 地图 | 9 | 断桥、白堤、苏堤和景区区域均带视觉定位与 SAM mask。 |
 | Healthy breakfast options | 场景 | 6 | 早餐食物对象边界清晰，适合做营养和适用场景解释。 |
 | Boutique coffee shop scene | 场景 | 6 | 吧台、座位、甜品柜和排队区等空间目标清楚。 |
 | Sunny reading nook | 场景 | 5 | 小型室内场景稳定，物体边界明确。 |

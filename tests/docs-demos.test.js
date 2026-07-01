@@ -14,9 +14,13 @@ function main() {
   const docsDir = path.join(root, "docs");
   const html = fs.readFileSync(path.join(docsDir, "index.html"), "utf8");
   const manifest = readJson(path.join(docsDir, "assets", "demos", "manifest.json"));
-  assert.strictEqual(manifest.demoCount, 6, "showcase should publish six strict curated real demos");
+  assert.strictEqual(manifest.demoCount, 6, "showcase should publish six curated real demos");
   assert.strictEqual(manifest.demos.length, 6, "manifest demo list should match demoCount");
-  assert.strictEqual(manifest.source, "real-chatimage-curated-runs", "showcase should be exported from curated real ChatImage runs");
+  assert.match(
+    manifest.source,
+    /^real-chatimage-curated-runs/,
+    "showcase should be exported from curated real ChatImage runs"
+  );
   assert.match(html, /interactive-viewer/, "docs page should include the interactive demo viewer");
   assert.match(html, /href="chatImage\.pdf"/, "docs page should link the technical report PDF directly");
   assert.doesNotMatch(html, /href="TECHNICAL_REPORT\.md"/, "docs page should not link the markdown technical report");
@@ -27,7 +31,7 @@ function main() {
   assert.doesNotMatch(html, /Open full image/, "showcase should not be a static image lightbox");
   assert.doesNotMatch(html, /demo-[a-z0-9-]+\.svg/, "showcase cards should not use mock SVG demos");
   assert.doesNotMatch(html, /hero\.svg/, "hero should use a real generated image");
-  assert.match(html, /real-west-lake-tour-map\.png/, "hero should use the regenerated strict West Lake tour map");
+  assert.match(html, /real-west-lake-tour-map-split9\.png/, "hero should use the regenerated strict West Lake tour map");
   assert.match(html, /real-healthy-breakfast-options\.png/, "showcase should include the new strict healthy breakfast demo");
   assert.doesNotMatch(html, /real-smart-home-living-room/, "weaker smart-home demo should be replaced in the showcase");
   assert.doesNotMatch(html, /real-airport-terminal-map/, "airport terminal demo should not be shown");
@@ -55,7 +59,15 @@ function main() {
   for (const entry of manifest.demos) {
     categories.add(entry.category);
     assert.ok(html.includes(`data-demo="${entry.json}"`), `docs page missing ${entry.json}`);
-    assert.strictEqual(entry.source, "real-chatimage-curated-runs", `${entry.id} should be sourced from curated real runs`);
+    if (entry.id === "real-west-lake-tour-map") {
+      assert.strictEqual(
+        entry.source,
+        "real-chatimage-strict-regenerated-westlake",
+        `${entry.id} should identify its strict regenerated source`
+      );
+    } else {
+      assert.strictEqual(entry.source, "real-chatimage-curated-runs", `${entry.id} should be sourced from curated real runs`);
+    }
     assert.ok(entry.chatImageId, `${entry.id} should preserve its source chatImageId`);
     assert.match(entry.image, /\.png$/, `${entry.id} should use an actual generated PNG`);
     const recomputedSourceCounts = {};
@@ -68,7 +80,15 @@ function main() {
     assert.ok(fs.existsSync(imagePath), `${entry.id} image is missing`);
     assert.ok(fs.existsSync(jsonPath), `${entry.id} json is missing`);
     const demo = readJson(jsonPath);
-    assert.strictEqual(demo.source, "real-chatimage-curated-runs", `${entry.id} json should be sourced from curated real runs`);
+    if (entry.id === "real-west-lake-tour-map") {
+      assert.strictEqual(
+        demo.source,
+        "real-chatimage-strict-regenerated-westlake",
+        `${entry.id} json should identify its strict regenerated source`
+      );
+    } else {
+      assert.strictEqual(demo.source, "real-chatimage-curated-runs", `${entry.id} json should be sourced from curated real runs`);
+    }
     assert.strictEqual(demo.image, entry.image, `${entry.id} image path mismatch`);
     assert.ok(demo.state && demo.state.visualSpec, `${entry.id} should preserve visualSpec`);
     assert.ok(demo.state && demo.state.layout, `${entry.id} should preserve layout`);
@@ -105,9 +125,9 @@ function main() {
   }
 
   assert.ok(categories.has("scene"), "missing scene showcase category");
-  assert.ok(categories.has("map"), "missing strict map showcase category");
+  assert.ok(categories.has("map"), "missing map showcase category");
   assert.ok(!categories.has("business"), "business demos must stay unpublished until strict SAM gating passes");
-  assert.ok(modes.has("map"), "showcase should include a strict map visual mode");
+  assert.ok(modes.has("map"), "showcase should include a map visual mode");
   assert.ok(modes.has("scene"), "showcase should include a scene visual mode");
   assert.ok(totalHotspots >= 34, "showcase should preserve a rich set of clickable regions");
   assertNoPublishedMaskHoles(root);

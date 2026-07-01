@@ -3,55 +3,55 @@
 
   var TEXT = {
     "real-west-lake-tour-map": {
-      module_1: {
+      module_broken_bridge: {
         en: {
-          label: "West Lake Waters",
-          detail: "The lake surface is the spatial center of the tour map, linking causeways, islands, bridges, hills, and shoreline views into one readable route."
+          label: "Broken Bridge",
+          detail: "Broken Bridge is treated as its own north-side bridge target so it does not get merged into the larger Bai Causeway region."
         }
       },
-      module_2: {
+      module_bai: {
         en: {
-          label: "Bai Causeway and Broken Bridge",
-          detail: "Bai Causeway and Broken Bridge form the poetic north-side entrance to the lake, where bridge, willow, shoreline, and open water create a clear walking segment."
+          label: "Bai Causeway",
+          detail: "Bai Causeway is the east-west northern walking causeway, connecting the Broken Bridge area with Gushan and the north shore."
         }
       },
-      module_3: {
+      module_su: {
         en: {
-          label: "Su Causeway in Spring Dawn",
-          detail: "Su Causeway acts as the north-south green corridor through the lake, using arched bridges, willow trees, and alternating water views to organize a longer scenic walk."
+          label: "Su Causeway",
+          detail: "Su Causeway is the north-south green corridor through the western half of West Lake, visually distinct from the horizontal Bai Causeway."
         }
       },
-      module_4: {
+      module_three_pools: {
         en: {
           label: "Three Pools Mirroring the Moon",
-          detail: "Three Pools Mirroring the Moon is the central lake landmark, combining a small island, stone pagodas, and surrounding water into a compact visual focus."
+          detail: "Three Pools Mirroring the Moon sits on Lesser Yingzhou island south of the lake center, combining a small island, three stone pagodas, and surrounding water into a compact visual focus."
         }
       },
-      module_5: {
+      module_leifeng: {
         en: {
           label: "Leifeng Pagoda",
-          detail: "Leifeng Pagoda is the vertical anchor on the south shore, helping viewers recognize direction while connecting lake reflections, hillside, and local legend."
+          detail: "Leifeng Pagoda is the vertical anchor on the south bank at Sunset Hill, helping viewers recognize direction while connecting lake reflections, hillside, and local legend."
         }
       },
-      module_6: {
+      module_gushan: {
         en: {
           label: "Gushan Hill",
-          detail: "Gushan Hill adds a cultural and topographic layer to the north shore, extending the Bai Causeway route into gardens, pavilions, and elevated lake views."
+          detail: "Gushan Hill adds a cultural and topographic layer to the north shore, extending the Bai Causeway context into gardens, pavilions, and elevated lake views."
         }
       },
-      module_7: {
+      module_baochu: {
         en: {
-          label: "Baoshi Mountain",
-          detail: "Baoshi Mountain and Baochu Pagoda create the northeast skyline, giving the otherwise flat lake map depth, direction, and a recognizable mountain backdrop."
+          label: "Baoshi Hill and Baochu Pagoda",
+          detail: "Baoshi Hill and Baochu Pagoda create the north-to-northeast skyline, giving the otherwise flat lake map depth, direction, and a recognizable mountain backdrop."
         }
       },
-      module_8: {
+      module_quyuan: {
         en: {
-          label: "Quyuan Garden Lotus",
-          detail: "Quyuan Garden Lotus is a smaller-scale garden area where lotus ponds, curved bridges, and near-shore vegetation shift the experience from open water to seasonal detail."
+          label: "Quyuan Lotus Garden",
+          detail: "Quyuan Lotus Garden is a smaller-scale garden area where lotus ponds, curved bridges, and near-shore vegetation shift the experience from open water to seasonal detail."
         }
       },
-      module_9: {
+      module_orioles: {
         en: {
           label: "Orioles Singing in the Willows",
           detail: "Orioles Singing in the Willows represents the softer south-eastern shoreline, emphasizing willow-lined paths, garden soundscape, and slow near-water walking."

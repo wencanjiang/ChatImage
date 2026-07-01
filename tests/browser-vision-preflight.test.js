@@ -83,7 +83,7 @@ async function main() {
     await cdp.waitFor("Page.loadEventFired", 10000);
     await cdp.waitForFunction(`document.querySelector("#statusPill").textContent.includes("未配置视觉对齐")`, 5000);
     await cdp.evaluate(`
-      document.querySelector("#questionInput").value = "测试缺少视觉接口时是否阻止生图";
+      document.querySelector("#questionInput").value = "Vision preflight provider configuration";
       document.querySelector("#questionForm").dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     `);
     await cdp.waitForFunction(
@@ -115,8 +115,20 @@ function createFakeUpstream(state) {
         return sendJson(res, 200, {
           data: {
             content: JSON.stringify({
-              rawAnswer: "Raw answer for vision preflight test.",
+              rawAnswer:
+                "When the vision endpoint is missing, the application should stop before image generation. The vision preflight checks provider configuration first, blocks the image request, preserves image quota, and shows a clear setup hint for the missing vision endpoint.",
               visualSpec: createVisualSpec()
+            })
+          }
+        });
+      }
+      if (body.get("purpose") === "answer_structure_repair") {
+        return sendJson(res, 200, {
+          data: {
+            content: JSON.stringify({
+              rawAnswer:
+                "A missing vision endpoint is a provider readiness problem. The service should verify provider configuration before starting image generation, stop the request when alignment cannot run, avoid spending image quota, and show a clear setup message so the user can fix the endpoint before retrying.",
+              visualSpec: createRepairedVisualSpec()
             })
           }
         });
@@ -137,7 +149,12 @@ function createFakeUpstream(state) {
           }
         });
       }
-      return sendJson(res, 200, { data: { content: "Raw answer for vision preflight test." } });
+      return sendJson(res, 200, {
+        data: {
+          content:
+            "When the vision endpoint is missing, the application should stop before image generation. The vision preflight checks provider configuration first, blocks the image request, preserves image quota, and shows a clear setup hint for the missing vision endpoint."
+        }
+      });
     }
 
     if (url.pathname === "/image" && req.method === "POST") {
@@ -151,13 +168,68 @@ function createFakeUpstream(state) {
 
 function createVisualSpec() {
   return {
-    title: "Vision Preflight Test",
-    summary: "Missing vision endpoint must block image generation.",
+    title: "Vision Preflight Guard",
+    summary: "Missing vision endpoint configuration must block image generation.",
     relationType: "grid",
     modules: [
-      { title: "Preflight", imageText: "Check vision", detail: "Real image generation must confirm alignment first.", iconHint: "target" },
-      { title: "Block", imageText: "Stop image", detail: "Missing vision endpoint must not consume image quota.", iconHint: "risk" },
-      { title: "Hint", imageText: "Show error", detail: "Page should mention CHATIMAGE_VISION_ENDPOINT.", iconHint: "idea" }
+      {
+        title: "Preflight",
+        imageText: "Check vision provider",
+        detail:
+          "Before real image generation starts, the system checks whether the vision provider endpoint is configured. This preflight is required because hotspot alignment depends on a working vision endpoint.",
+        sourceExcerpt: "The vision preflight checks provider configuration first.",
+        iconHint: "target"
+      },
+      {
+        title: "Block",
+        imageText: "Stop image request",
+        detail:
+          "If the vision endpoint is missing, the service must stop before calling the image provider. That prevents image quota from being consumed by a result that cannot be aligned.",
+        sourceExcerpt: "Missing vision endpoint configuration must block image generation.",
+        iconHint: "risk"
+      },
+      {
+        title: "Hint",
+        imageText: "Show setup error",
+        detail:
+          "The page should surface a clear provider configuration message so the user knows to set the vision endpoint before retrying real image generation.",
+        sourceExcerpt: "The page should mention the missing vision endpoint.",
+        iconHint: "idea"
+      }
+    ]
+  };
+}
+
+function createRepairedVisualSpec() {
+  return {
+    title: "Endpoint Readiness Check",
+    summary: "Provider readiness must be confirmed before requesting an image.",
+    relationType: "grid",
+    modules: [
+      {
+        title: "Readiness",
+        imageText: "Verify provider setup",
+        detail:
+          "The first step is checking whether the required vision provider endpoint is configured. Without that endpoint, later alignment work cannot inspect the generated image or place reliable regions.",
+        sourceExcerpt: "A missing vision endpoint is a provider readiness problem.",
+        iconHint: "target"
+      },
+      {
+        title: "Stop",
+        imageText: "Block image call",
+        detail:
+          "When provider readiness fails, the request should stop before image generation begins. This keeps quota from being spent on an image that the system already knows it cannot align.",
+        sourceExcerpt: "The service should verify provider configuration before starting image generation.",
+        iconHint: "risk"
+      },
+      {
+        title: "Recover",
+        imageText: "Show setup hint",
+        detail:
+          "The user-facing failure should explain that provider configuration is incomplete and that the missing endpoint must be supplied before retrying real image generation.",
+        sourceExcerpt: "Show a clear setup message so the user can fix the endpoint before retrying.",
+        iconHint: "idea"
+      }
     ]
   };
 }
