@@ -13,8 +13,10 @@ const {
   createAnswerStructureProvider,
   createChatImageService,
   createDefaultServices,
+  createStaticFollowupArtifact,
   filterGroundingScaffoldModules,
-  createPersistence
+  createPersistence,
+  createStructureProvider
 } = require("../src/service");
 
 function createUid() {
@@ -65,7 +67,10 @@ async function main() {
   await testAnswerStructureProviderUsesOneTextCall();
   await testAnswerStructureProviderRepairsParseFailure();
   await testAnswerStructureProviderRepairsThinResult();
-  await testFallbackAnswerStructureDoesNotLeakVisualPrompt();
+  await testAnswerStructureProviderRejectsSevereMismatchInApiMode();
+  await testStructureProviderRejectsSevereMismatchInApiMode();
+  await testChatImageServiceRejectsInjectedSevereMismatchBeforeSave();
+  await testStaticFollowupArtifactRejectsSevereMismatchBeforeImage();
   await testScaffoldModulesAreFilteredBeforeGrounding();
   await testAlignmentFailureFallsBackToPlannedLayout();
   await testStrictAlignmentFailureDoesNotFallBackToPlannedLayout();
@@ -74,6 +79,7 @@ async function main() {
   await testAlignmentProviderRequiresImageDimensions();
   await testAlignmentPreflightBlocksMissingVision();
   await testFollowupService();
+  await testFollowupServiceFallsBackToTextWhenArtifactFails();
   await testPersistenceAdapter();
   testFollowupPrompt();
   testContextClipping();
@@ -770,6 +776,226 @@ async function testAnswerStructureProviderRepairsThinResult() {
   assert.strictEqual(result.visualSpec.qualityWarnings.length, 0);
 }
 
+async function testAnswerStructureProviderRejectsSevereMismatchInApiMode() {
+  const calls = [];
+  const genericPayload = {
+    rawAnswer:
+      "A shopping checkout flow starts when the customer reviews a cart, chooses shipping, applies discounts, pays with a card, and receives an order confirmation. The important regions are cart, shipping, payment, fraud review, and receipt.",
+    visualSpec: {
+      title: "Checkout Flow",
+      summary: "Cart, shipping, payment, risk review, and receipt form an e-commerce checkout.",
+      relationType: "flow",
+      visualComposition: {
+        compositionType: "swimlane-flow",
+        layoutVariant: "swimlane-flow",
+        visualFocus: "E-commerce checkout",
+        primaryModules: ["module_1", "module_2"],
+        secondaryModules: ["module_3"],
+        densityStrategy: "Use checkout steps."
+      },
+      modules: [
+        {
+          title: "Cart",
+          imageText: "Review cart",
+          detail: "The cart step lets customers confirm selected products, quantities, prices, and discounts before moving into checkout.",
+          sourceExcerpt: "customer reviews a cart",
+          iconHint: "cart"
+        },
+        {
+          title: "Shipping",
+          imageText: "Choose shipping",
+          detail: "The shipping step collects address, delivery method, timing, and fee information so the order can be fulfilled.",
+          sourceExcerpt: "chooses shipping",
+          iconHint: "route"
+        },
+        {
+          title: "Payment",
+          imageText: "Pay and confirm",
+          detail: "The payment step authorizes the card, checks risk, finalizes the order, and shows the customer a receipt.",
+          sourceExcerpt: "pays with a card, and receives an order confirmation",
+          iconHint: "payment"
+        }
+      ]
+    }
+  };
+  const provider = createAnswerStructureProvider({
+    shouldUseApi: async () => true,
+    apiPost: async (url, body) => {
+      calls.push(body.purpose);
+      return { content: JSON.stringify(genericPayload) };
+    },
+    providerConfig: {
+      mode: "api",
+      endpoints: { textGeneration: "/api/llm" }
+    },
+    structureModel: require("../src/structure"),
+    mockLlmProvider: {
+      async answer() {
+        throw new Error("mock should not be used");
+      }
+    },
+    sleep: async () => {}
+  });
+
+  await assert.rejects(
+    () => provider.create("龟背竹属于哪个植物品种？一并介绍"),
+    /结构化结果与用户问题不匹配|topic_mismatch/
+  );
+  assert.deepStrictEqual(calls, ["answer_structure", "answer_structure_repair"]);
+}
+
+async function testStructureProviderRejectsSevereMismatchInApiMode() {
+  const provider = createStructureProvider({
+    shouldUseApi: async () => true,
+    apiPost: async () => ({
+      content: JSON.stringify({
+        title: "Checkout Flow",
+        summary: "Cart, shipping, payment, risk review, and receipt form an e-commerce checkout.",
+        relationType: "flow",
+        modules: [
+          {
+            title: "Cart",
+            imageText: "Review cart",
+            detail: "The cart step lets customers confirm selected products, quantities, prices, and discounts before moving into checkout.",
+            sourceExcerpt: "customer reviews a cart",
+            iconHint: "cart"
+          },
+          {
+            title: "Shipping",
+            imageText: "Choose shipping",
+            detail: "The shipping step collects address, delivery method, timing, and fee information so the order can be fulfilled.",
+            sourceExcerpt: "chooses shipping",
+            iconHint: "route"
+          },
+          {
+            title: "Payment",
+            imageText: "Pay and confirm",
+            detail: "The payment step authorizes the card, checks risk, finalizes the order, and shows the customer a receipt.",
+            sourceExcerpt: "pays with a card, and receives an order confirmation",
+            iconHint: "payment"
+          }
+        ]
+      })
+    }),
+    providerConfig: {
+      mode: "api",
+      endpoints: { textGeneration: "/api/llm" }
+    },
+    structureModel: require("../src/structure"),
+    sleep: async () => {}
+  });
+
+  await assert.rejects(
+    () =>
+      provider.parse(
+        "龟背竹属于哪个植物品种？一并介绍",
+        "A shopping checkout flow starts when the customer reviews a cart, chooses shipping, applies discounts, pays with a card, and receives an order confirmation."
+      ),
+    /结构化结果与用户问题不匹配|topic_mismatch/
+  );
+}
+
+async function testChatImageServiceRejectsInjectedSevereMismatchBeforeSave() {
+  let saved = false;
+  let imageGenerated = false;
+  const spec = {
+    title: "龟背竹属于哪个植物品种一并介绍",
+    summary: "通用三卡片",
+    relationType: "hierarchy",
+    qualityWarnings: ["topic_mismatch"],
+    modules: [
+      { id: "module_1", title: "问题定义", imageText: "问题定义", detail: "问题定义", sourceExcerpt: "核心对象" },
+      { id: "module_2", title: "关键要素", imageText: "关键要素", detail: "关键要素", sourceExcerpt: "关键关系" },
+      { id: "module_3", title: "运作逻辑", imageText: "运作逻辑", detail: "运作逻辑", sourceExcerpt: "运行逻辑" }
+    ]
+  };
+  const service = createChatImageService({
+    uid: createUid(),
+    sleep: async () => {},
+    state: stateModel.createChatImageState(),
+    stateModel,
+    threadModel,
+    layoutModel,
+    persistence: {
+      async saveResult() {
+        saved = true;
+      },
+      async saveThread() {}
+    },
+    answerStructureProvider: {
+      async create() {
+        return { rawAnswer: "generic", visualSpec: spec };
+      }
+    },
+    llmProvider: {},
+    structureProvider: {},
+    layoutPlanner: {
+      create() {
+        throw new Error("layout should not run after a severe structure warning");
+      }
+    },
+    imageProvider: {
+      async generate() {
+        imageGenerated = true;
+      }
+    },
+    alignmentProvider: {},
+    followupProvider: {}
+  });
+
+  await assert.rejects(
+    () => service.create("龟背竹属于哪个植物品种？一并介绍", () => {}),
+    /结构化结果与用户问题不匹配|topic_mismatch/
+  );
+  assert.strictEqual(saved, false);
+  assert.strictEqual(imageGenerated, false);
+}
+
+async function testStaticFollowupArtifactRejectsSevereMismatchBeforeImage() {
+  let imageGenerated = false;
+  await assert.rejects(
+    () =>
+      createStaticFollowupArtifact({
+        uid: createUid(),
+        answer: "generic",
+        message: "继续解释",
+        context: {
+          originalQuestion: "龟背竹属于哪个植物品种？一并介绍",
+          chatImageTitle: "龟背竹",
+          currentHotspot: { label: "植物分类", detail: "天南星科龟背竹属" }
+        },
+        structureProvider: {
+          async parse() {
+            return {
+              title: "通用说明",
+              summary: "通用三卡片",
+              qualityWarnings: ["topic_mismatch"],
+              modules: [
+                { id: "module_1", title: "问题定义", imageText: "问题定义", detail: "问题定义" },
+                { id: "module_2", title: "关键要素", imageText: "关键要素", detail: "关键要素" },
+                { id: "module_3", title: "运作逻辑", imageText: "运作逻辑", detail: "运作逻辑" }
+              ]
+            };
+          }
+        },
+        layoutPlanner: {
+          create() {
+            throw new Error("layout should not run after a severe structure warning");
+          }
+        },
+        layoutModel,
+        imageProvider: {
+          async generate() {
+            imageGenerated = true;
+          }
+        },
+        onStatus: () => {}
+      }),
+    /结构化结果与用户问题不匹配|topic_mismatch/
+  );
+  assert.strictEqual(imageGenerated, false);
+}
+
 async function testAlignmentPreflightBlocksMissingVision() {
   let imageCalls = 0;
   const service = createChatImageService({
@@ -1091,6 +1317,84 @@ async function testFollowupService() {
     () => service.followup(result, "missing", "问题"),
     /hotspot 不存在/
   );
+}
+
+async function testFollowupServiceFallsBackToTextWhenArtifactFails() {
+  const uid = createUid();
+  const state = stateModel.createChatImageState();
+  const savedThreads = [];
+  const result = {
+    id: "ci_1",
+    question: "Original question",
+    rawAnswer: "Original answer",
+    title: "Result",
+    summary: "Summary",
+    hotspots: [
+      {
+        id: "module_1",
+        label: "Area",
+        shortText: "Area",
+        detail: "Area detail",
+        sourceExcerpt: "Area excerpt"
+      }
+    ],
+    threads: []
+  };
+  stateModel.setResult(state, result);
+
+  const service = createChatImageService({
+    uid,
+    sleep: async () => {},
+    state,
+    stateModel,
+    threadModel,
+    layoutModel,
+    persistence: {
+      async saveResult() {},
+      async saveThread(chatImageId, hotspotId, thread) {
+        savedThreads.push({ chatImageId, hotspotId, thread });
+      }
+    },
+    llmProvider: {},
+    structureProvider: {
+      async parse() {
+        return {
+          title: "Generic structure",
+          summary: "Generic cards",
+          qualityWarnings: ["topic_mismatch"],
+          modules: [
+            { id: "module_1", title: "Problem", imageText: "Problem", detail: "Problem" },
+            { id: "module_2", title: "Elements", imageText: "Elements", detail: "Elements" },
+            { id: "module_3", title: "Logic", imageText: "Logic", detail: "Logic" }
+          ]
+        };
+      }
+    },
+    layoutPlanner: {
+      create() {
+        throw new Error("layout should not run after a severe static artifact warning");
+      }
+    },
+    imageProvider: {
+      async generate() {
+        throw new Error("image should not run after a severe static artifact warning");
+      }
+    },
+    alignmentProvider: {},
+    followupProvider: {
+      async ask() {
+        return "Recovered followup answer.";
+      }
+    }
+  });
+
+  const thread = await service.followup(result, "module_1", "Retry question");
+  assert.strictEqual(thread.messages.length, 2);
+  assert.strictEqual(thread.messages[0].content, "Retry question");
+  assert.strictEqual(thread.messages[1].content, "Recovered followup answer.");
+  assert.strictEqual(threadModel.parseFollowupArtifact(thread.messages[1].content), null);
+  assert.strictEqual(savedThreads.length, 1);
+  assert.strictEqual(savedThreads[0].thread, thread);
 }
 
 async function testPersistenceAdapter() {

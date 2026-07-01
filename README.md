@@ -14,7 +14,7 @@
 > ChatImage turns a long-form LLM answer into a generated picture with clickable regions, per-region explanations, and contextual follow-up threads.
 
 <p align="center">
-  <img src="docs/assets/demos/real-west-lake-tour-map.png" alt="West Lake hand-drawn tour map ChatImage demo" width="760" />
+  <img src="docs/assets/demos/real-west-lake-tour-map-split9.png" alt="West Lake strict scenic map ChatImage demo" width="760" />
 </p>
 
 English | [简体中文](README_CN.md)
@@ -108,11 +108,11 @@ Keep real credentials in `.env.local`. The browser talks to the local backend, a
 
 The demo gallery is not a separate hand-authored path. It contains selected outputs from the same generation and alignment workflow, exported under `docs/assets/demos/` so visitors can inspect the interaction without API keys, model weights, or a GPU.
 
-Published demos must pass the current strict visual-alignment gate: each hotspot needs a primary visual grounding source, mask data, a usable cutout or organic preview, and expanded organic bounds.
+Published demos are curated for visible, useful interaction. The West Lake showcase was regenerated after fact checking, and visible map labels are kept in sync with strict vision-grounded hotspots.
 
 | Demo | Type | Hotspots | Why it is included |
 | --- | --- | ---: | --- |
-| West Lake hand-drawn tour map | Map | 9 | Natural scenic areas are clickable without numbered pins or artificial region borders. |
+| West Lake strict scenic map | Map | 9 | Broken Bridge, Bai Causeway, Su Causeway, and scenic regions all have vision-grounded SAM masks. |
 | Healthy breakfast options | Scene | 6 | Everyday food objects are visually separable and useful for nutrition-oriented inspection. |
 | Boutique coffee shop scene | Scene | 6 | Spatial workflow targets such as counter, seating, pastry case, and queue remain clear. |
 | Sunny reading nook | Scene | 5 | A compact interior scene with stable object boundaries. |

@@ -37,11 +37,19 @@
               responseFormat: "json",
               content: structureModel.buildStructurePrompt(question, rawAnswer)
             });
-            return structureModel.normalizeVisualSpec(
+            const visualSpec = structureModel.normalizeVisualSpec(
               structureModel.parseJsonFromText(data.content),
               question,
               rawAnswer
             );
+            const warnings =
+              typeof structureModel.assessAnswerStructureQuality === "function"
+                ? structureModel.assessAnswerStructureQuality({ rawAnswer, visualSpec }, question)
+                : [];
+            assertNoSevereStructureQualityWarnings(warnings);
+            return structureModel.attachQualityWarnings
+              ? structureModel.attachQualityWarnings({ rawAnswer, visualSpec }, warnings).visualSpec
+              : visualSpec;
           } catch (error) {
             if (providerConfig.mode === "api") throw error;
           }
@@ -104,24 +112,14 @@
                   typeof structureModel.assessAnswerStructureQuality === "function"
                     ? structureModel.assessAnswerStructureQuality(repaired, question)
                     : [];
-                if (hasSevereTopicMismatch(repairedWarnings)) {
-                  return attachTextModelMeta(
-                    buildFallbackAnswerStructure(structureModel, question, warnings.concat(repairedWarnings)),
-                    textMeta
-                  );
-                }
+                assertNoSevereStructureQualityWarnings(warnings.concat(repairedWarnings));
                 return attachTextModelMeta(structureModel.attachQualityWarnings
                   ? structureModel.attachQualityWarnings(repaired, repairedWarnings)
                   : repaired, textMeta);
               } catch (repairError) {
                 if (hasSevereTopicMismatch(warnings)) {
-                  return attachTextModelMeta(
-                    buildFallbackAnswerStructure(
-                      structureModel,
-                      question,
-                      warnings.concat(`repair_failed:${repairError.message || repairError}`)
-                    ),
-                    textMeta
+                  throw createSevereStructureQualityError(
+                    warnings.concat(`repair_failed:${repairError.message || repairError}`)
                   );
                 }
                 return attachTextModelMeta(structureModel.attachQualityWarnings
@@ -129,9 +127,7 @@
                   : normalized, textMeta);
               }
             }
-            if (hasSevereTopicMismatch(warnings)) {
-              return attachTextModelMeta(buildFallbackAnswerStructure(structureModel, question, warnings), textMeta);
-            }
+            assertNoSevereStructureQualityWarnings(warnings);
             return attachTextModelMeta(structureModel.attachQualityWarnings
               ? structureModel.attachQualityWarnings(normalized, warnings)
               : normalized, textMeta);
@@ -149,8 +145,9 @@
           typeof structureModel.assessAnswerStructureQuality === "function"
             ? structureModel.assessAnswerStructureQuality(normalized, question)
             : [];
+        const nonBlockingWarnings = warnings.filter((warning) => !isSevereStructureQualityWarning(warning));
         return structureModel.attachQualityWarnings
-          ? structureModel.attachQualityWarnings(normalized, warnings)
+          ? structureModel.attachQualityWarnings(normalized, nonBlockingWarnings)
           : normalized;
       }
     };
@@ -159,12 +156,26 @@
   function hasSevereTopicMismatch(warnings) {
     return (
       Array.isArray(warnings) &&
-      warnings.some((warning) =>
-        ["topic_mismatch", "generic_five_part_framework", "title_raw_question", "title_looks_like_raw_question_or_template"].includes(
-          String(warning)
-        )
-      )
+      warnings.some((warning) => isSevereStructureQualityWarning(warning))
     );
+  }
+
+  function isSevereStructureQualityWarning(warning) {
+    return ["topic_mismatch", "generic_five_part_framework"].includes(
+      String(warning)
+    );
+  }
+
+  function assertNoSevereStructureQualityWarnings(warnings) {
+    if (hasSevereTopicMismatch(warnings)) throw createSevereStructureQualityError(warnings);
+  }
+
+  function createSevereStructureQualityError(warnings) {
+    const uniqueWarnings = Array.from(new Set((warnings || []).map((warning) => String(warning))));
+    const error = new Error(`结构化结果与用户问题不匹配: ${uniqueWarnings.join(", ") || "topic_mismatch"}`);
+    error.statusCode = 422;
+    error.qualityWarnings = uniqueWarnings;
+    return error;
   }
 
   function extractTextModelMeta(data) {
@@ -188,48 +199,6 @@
       textModelUsed: meta.textModelUsed || answerStructure.textModelUsed || "",
       textModelFallbackReason: meta.textModelFallbackReason || answerStructure.textModelFallbackReason || ""
     };
-  }
-
-  function buildFallbackAnswerStructure(structureModel, question, warnings) {
-    const rawAnswer = buildFallbackRawAnswer(question);
-    const visualSpec = structureModel.buildMockSpec(question, rawAnswer);
-    const normalized = { rawAnswer, visualSpec };
-    return structureModel.attachQualityWarnings
-      ? structureModel.attachQualityWarnings(normalized, Array.from(new Set(warnings || [])))
-      : normalized;
-  }
-
-  function buildFallbackRawAnswer(question) {
-    const source = String(question || "").trim();
-    if (isWayfindingQuestion(source)) {
-      const subject = stripFallbackQuestionShell(source, "机场航站楼");
-      return `${subject}指引图应围绕真实到达和离开动线组织信息：值机柜台负责办理登机手续和托运行李，安检连接公共区域与候机区，候机区承担等待、休息和登机准备，登机口决定最终登机方向，行李提取负责到达后的定位和分流，地铁出租车接驳则把航站楼与外部交通连接起来。理解这些区域时，要看它们之间的先后顺序、相邻关系、停留价值和下一段路径，而不是把整张图当成普通流程说明。`;
-    }
-    if (/地图|地理|景区|导览|路线|游玩|山|湖|海岸|栈道/.test(source)) {
-      const subject = stripFallbackQuestionShell(source, "目标景区");
-      return `${subject}适合做成一张手绘导览地图：画面应把核心景区、主要游览路线、交通入口、住宿或补给点、自然地貌和观景关系放在同一张图中。不同地理区域分别承担定位、分流、观景、停留或补给作用；理解时要结合它们的位置、典型风貌、游玩价值、时间安排和注意事项。地图不应做成流程图，而应通过路线、地标、图例、房屋或索道图标等可见元素表达空间关系。`;
-    }
-    const subject = stripFallbackQuestionShell(source, "该主题");
-    return `${subject}可以从核心对象、关键关系、运行逻辑、使用场景和注意边界几个角度理解。核心对象说明讨论的主体是什么；关键关系解释不同部分如何连接；运行逻辑关注顺序、因果或空间组织；使用场景说明它在真实情境中的价值；注意边界保留限制、例外和容易误解的地方。`;
-  }
-
-  function isWayfindingQuestion(source) {
-    return /机场|航站|航站楼|值机|安检|候机|登机口|行李提取|接驳|出租车|地铁|指引图|导向|导视|terminal|airport|wayfinding/i.test(
-      String(source || "")
-    );
-  }
-
-  function stripFallbackQuestionShell(question, fallback) {
-    const cleaned = String(question || "")
-      .replace(/^(请|帮我|给我|为|生成|画|画一张|手绘|手绘一张|绘制|绘制一张|设计|用|以)\s*/g, "")
-      .replace(/(?:，|,|。|；|;)?(?:需要|要求|并且|且)?(?:每个|各个|所有)?(?:区域|模块|目标|对象)?(?:都)?(?:可以|可)?(?:点击|交互|查看说明|查看详情|追问)[\s\S]*$/g, "")
-      .replace(/(?:不要|避免|不应).{0,16}(?:流程图|卡片|说明)[\s\S]*$/g, "")
-      .replace(/[。！？!?]+$/g, "")
-      .trim();
-    const beforeColon = cleaned.split(/[：:]/)[0].trim();
-    const candidate = beforeColon || cleaned;
-    if (!candidate || candidate.length > 28) return fallback;
-    return candidate;
   }
 
   function auditHotspotHitTest(hotspots) {
@@ -938,6 +907,7 @@
       structureProvider && typeof structureProvider.parse === "function"
         ? await structureProvider.parse(visualQuestion, answer)
         : buildStaticFollowupSpec(context, message, answer);
+    assertNoSevereStructureQualityWarnings(spec.qualityWarnings);
 
     status("layout");
     const layout = layoutPlanner.create(spec);
@@ -1104,6 +1074,7 @@
           onStatus("structuring");
           spec = filterGroundingScaffoldModules(await structureProvider.parse(question, rawAnswer), question);
         }
+        assertNoSevereStructureQualityWarnings(spec.qualityWarnings);
 
         if (answerStructureProvider) {
           onStatus("structuring");
@@ -1217,23 +1188,33 @@
         });
 
         const answer = await followupProvider.ask(context);
-        const artifact = await createStaticFollowupArtifact({
-          uid,
-          answer,
-          context,
-          message,
-          structureProvider,
-          layoutPlanner,
-          layoutModel,
-          imageProvider,
-          onStatus
-        });
-        const updatedThread = threadModel.appendFollowupArtifactMessages({
-          uid,
-          currentThread,
-          userQuestion: message,
-          artifact
-        });
+        let updatedThread;
+        try {
+          const artifact = await createStaticFollowupArtifact({
+            uid,
+            answer,
+            context,
+            message,
+            structureProvider,
+            layoutPlanner,
+            layoutModel,
+            imageProvider,
+            onStatus
+          });
+          updatedThread = threadModel.appendFollowupArtifactMessages({
+            uid,
+            currentThread,
+            userQuestion: message,
+            artifact
+          });
+        } catch {
+          updatedThread = threadModel.appendFollowupMessages({
+            uid,
+            currentThread,
+            userQuestion: message,
+            assistantAnswer: answer
+          });
+        }
         stateModel.setThread(state, hotspotId, updatedThread);
         if (stateModel.setResultThread) {
           stateModel.setResultThread(state, updatedThread);

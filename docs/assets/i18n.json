@@ -61,7 +61,7 @@
     "Open a demo card and choose a highlighted region to inspect its region-specific explanation.": "打开案例卡片，选择高亮区域查看其专属解释。",
     "Open on GitHub": "在 GitHub 打开",
     "Per-region threads": "分区域追问",
-    "Pipeline": "生成管线",
+    "Interaction loop": "交互闭环",
     "Plan a visual layout": "规划视觉布局",
     "Provider agnostic": "供应商无关",
     "Quick start": "快速开始",
@@ -123,13 +123,15 @@
     "Fresh daily scene. A plant-care setup with clickable monstera, watering can, grow light, potting bench, and humidity tray.": "新鲜日常场景。植物养护布置，包含可点击的龟背竹、浇水壶、补光灯、换盆台和保湿托盘。",
     "verified fresh daily scene": "已验证新鲜日常场景",
     "5 hotspots": "5 个热点",
-    "Strict West Lake case": "严格西湖案例",
     "All (6)": "全部 (6)",
-    "strict SAM-backed map": "严格 SAM 支持地图",
-    "Strict regenerated map. A hand-drawn West Lake tour image with SAM-backed clickable water, bridges, causeways, hills, and scenic areas.": "严格重新生成地图。一张西湖手绘游览图，湖面、桥梁、堤岸、山体和景区都带有 SAM 支持的可点击区域。",
     "Region details": "区域详解",
     "Select a region": "选择一个区域",
     "Click a region on the image to inspect its preserved preview and explanation.": "点击图中的区域，查看保留下来的预览图和区域说明。",
-    "0 hotspots": "0 个热点"
+    "0 hotspots": "0 个热点",
+    "West Lake strict scenic map": "西湖严格对齐导览图",
+    "Strict regenerated map. A fact-checked West Lake tour image with SAM-backed clickable scenic regions.": "严格重新生成地图。事实校准后的西湖游览图，包含由 SAM 支持的可点击景区区域。",
+    "strict scenic map": "严格对齐导览图",
+    "Strict West Lake case": "严格对齐西湖案例",
+    "Strict regenerated map. A fact-checked West Lake tour image with SAM-backed hotspots for Broken Bridge, Bai Causeway, Su Causeway, and six scenic regions.": "严格重新生成地图。事实校准后的西湖游览图，为断桥、白堤、苏堤和六个景区提供 SAM 支持的热点。"
   }
 }
