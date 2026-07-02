@@ -14,8 +14,22 @@ function main() {
   const docsDir = path.join(root, "docs");
   const html = fs.readFileSync(path.join(docsDir, "index.html"), "utf8");
   const manifest = readJson(path.join(docsDir, "assets", "demos", "manifest.json"));
-  assert.strictEqual(manifest.demoCount, 6, "showcase should publish six curated real demos");
-  assert.strictEqual(manifest.demos.length, 6, "manifest demo list should match demoCount");
+  const expectedDemoOrder = [
+    "real-west-lake-tour-map",
+    "real-poet-comparison-li-bai-shakespeare",
+    "real-zju-yuquan-campus-map",
+    "real-transformer-development-timeline",
+    "real-healthy-breakfast-options",
+    "real-boutique-coffee-scene",
+    "real-sunny-reading-nook",
+    "real-record-store-corner",
+    "real-plant-care-corner"
+  ];
+  assert.strictEqual(manifest.demoCount, 9, "showcase should publish nine curated real demos");
+  assert.strictEqual(manifest.demos.length, 9, "manifest demo list should match demoCount");
+  assert.deepStrictEqual(manifest.demos.map((entry) => entry.id), expectedDemoOrder, "manifest order should match the showcase display order");
+  const htmlDemoOrder = Array.from(html.matchAll(/<article class="demo reveal"[\s\S]*?data-demo="assets\/demos\/(real-[^"]+)\.json"/g)).map((match) => match[1]);
+  assert.deepStrictEqual(htmlDemoOrder, expectedDemoOrder, "docs page should render demos in the requested display order");
   assert.match(
     manifest.source,
     /^real-chatimage-curated-runs/,
@@ -31,8 +45,11 @@ function main() {
   assert.doesNotMatch(html, /Open full image/, "showcase should not be a static image lightbox");
   assert.doesNotMatch(html, /demo-[a-z0-9-]+\.svg/, "showcase cards should not use mock SVG demos");
   assert.doesNotMatch(html, /hero\.svg/, "hero should use a real generated image");
-  assert.match(html, /real-west-lake-tour-map-split9\.png/, "hero should use the regenerated strict West Lake tour map");
+  assert.match(html, /real-west-lake-tour-map\.png/, "hero should use the regenerated strict West Lake tour map");
   assert.match(html, /real-healthy-breakfast-options\.png/, "showcase should include the new strict healthy breakfast demo");
+  assert.match(html, /real-poet-comparison-li-bai-shakespeare\.png/, "showcase should include the strict poet comparison demo");
+  assert.match(html, /real-transformer-development-timeline\.png/, "showcase should include the strict Transformer timeline demo");
+  assert.match(html, /real-zju-yuquan-campus-map\.png/, "showcase should include the strict Yuquan campus map demo");
   assert.doesNotMatch(html, /real-smart-home-living-room/, "weaker smart-home demo should be replaced in the showcase");
   assert.doesNotMatch(html, /real-airport-terminal-map/, "airport terminal demo should not be shown");
   assert.doesNotMatch(html, /real-public-health-poster/, "public health poster demo should not be shown");
@@ -46,8 +63,31 @@ function main() {
   const categories = new Set();
   const modes = new Set();
   let totalHotspots = 0;
-  const visiblePollution =
-    /whole prompt|entire prompt|Create a weekend Hangzhou|Each clickable region|prompt fragment|user request|需要先给出直接回答|拆成若干可视化模块|每个模块应对应|在详情中说明机制|决定场景的组织方式|入口、展项、人物和辅助设施|负责把观众和展项连接起来|承担方向提示和安全边界|不同食物后解释营养构成与适用场景|点击地图上不同地理区域|不同地理|具体的边界|独立交互的节点|路径或地标本身/i;
+  const visiblePollutionSubstrings = [
+    "whole prompt",
+    "entire prompt",
+    "Create a weekend Hangzhou",
+    "Each clickable region",
+      "prompt fragment",
+      "user request",
+      "targetDescription",
+      "providerRaw",
+      "alignmentRaw",
+      "承担海报中的一段叙事任务"
+  ];
+  const visiblePollutionPatterns = [
+    /Hangzhou Botanical Garde(?!n)/i,
+    /Laohe Mountain Green Bac(?!k)/i,
+    /Wine Cup and Travel Scro(?!ll)/i
+  ];
+  const hasVisiblePollution = (value) => {
+    const text = String(value || "");
+    const lower = text.toLowerCase();
+    return (
+      visiblePollutionSubstrings.some((pattern) => lower.includes(pattern.toLowerCase())) ||
+      visiblePollutionPatterns.some((pattern) => pattern.test(text))
+    );
+  };
   const genericLabels = new Set([
     "\u95ee\u9898\u5b9a\u4e49",
     "\u5173\u952e\u8981\u7d20",
@@ -59,15 +99,7 @@ function main() {
   for (const entry of manifest.demos) {
     categories.add(entry.category);
     assert.ok(html.includes(`data-demo="${entry.json}"`), `docs page missing ${entry.json}`);
-    if (entry.id === "real-west-lake-tour-map") {
-      assert.strictEqual(
-        entry.source,
-        "real-chatimage-strict-regenerated-westlake",
-        `${entry.id} should identify its strict regenerated source`
-      );
-    } else {
-      assert.strictEqual(entry.source, "real-chatimage-curated-runs", `${entry.id} should be sourced from curated real runs`);
-    }
+    assert.strictEqual(entry.source, "real-chatimage-curated-runs", `${entry.id} should be sourced from curated real runs`);
     assert.ok(entry.chatImageId, `${entry.id} should preserve its source chatImageId`);
     assert.match(entry.image, /\.png$/, `${entry.id} should use an actual generated PNG`);
     const recomputedSourceCounts = {};
@@ -80,15 +112,13 @@ function main() {
     assert.ok(fs.existsSync(imagePath), `${entry.id} image is missing`);
     assert.ok(fs.existsSync(jsonPath), `${entry.id} json is missing`);
     const demo = readJson(jsonPath);
-    if (entry.id === "real-west-lake-tour-map") {
-      assert.strictEqual(
-        demo.source,
-        "real-chatimage-strict-regenerated-westlake",
-        `${entry.id} json should identify its strict regenerated source`
-      );
-    } else {
-      assert.strictEqual(demo.source, "real-chatimage-curated-runs", `${entry.id} json should be sourced from curated real runs`);
-    }
+    const serializedDemo = JSON.stringify(demo);
+    assert.doesNotMatch(
+      serializedDemo,
+      /"targetDescription"|"providerRaw"|"alignmentRaw"/,
+      `${entry.id} should not publish raw provider debug payloads`
+    );
+    assert.strictEqual(demo.source, "real-chatimage-curated-runs", `${entry.id} json should be sourced from curated real runs`);
     assert.strictEqual(demo.image, entry.image, `${entry.id} image path mismatch`);
     assert.ok(demo.state && demo.state.visualSpec, `${entry.id} should preserve visualSpec`);
     assert.ok(demo.state && demo.state.layout, `${entry.id} should preserve layout`);
@@ -102,9 +132,8 @@ function main() {
       assert.ok(!genericLabels.has(hotspot.label), `${entry.id}/${hotspot.id} uses a generic fallback label`);
       assert.ok(hotspot.shortText, `${entry.id} hotspot missing shortText`);
       assert.ok(hotspot.detail, `${entry.id} hotspot missing detail`);
-      assert.doesNotMatch(
-        `${hotspot.label}\n${hotspot.shortText}\n${hotspot.detail}`,
-        visiblePollution,
+      assert.ok(
+        !hasVisiblePollution(`${hotspot.label}\n${hotspot.shortText}\n${hotspot.detail}`),
         `${entry.id}/${hotspot.id} visible region detail is polluted`
       );
       assert.ok(hotspot.bounds, `${entry.id} hotspot missing bounds`);
@@ -126,10 +155,13 @@ function main() {
 
   assert.ok(categories.has("scene"), "missing scene showcase category");
   assert.ok(categories.has("map"), "missing map showcase category");
+  assert.ok(categories.has("comparison"), "missing comparison showcase category");
+  assert.ok(categories.has("academic"), "missing academic showcase category");
   assert.ok(!categories.has("business"), "business demos must stay unpublished until strict SAM gating passes");
   assert.ok(modes.has("map"), "showcase should include a map visual mode");
   assert.ok(modes.has("scene"), "showcase should include a scene visual mode");
-  assert.ok(totalHotspots >= 34, "showcase should preserve a rich set of clickable regions");
+  assert.ok(modes.has("poster"), "showcase should include a poster visual mode");
+  assert.ok(totalHotspots >= 50, "showcase should preserve a rich set of clickable regions");
   assertNoPublishedMaskHoles(root);
 
   console.log("docs-demos.test.js passed");

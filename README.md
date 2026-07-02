@@ -14,7 +14,7 @@
 > ChatImage turns a long-form LLM answer into a generated picture with clickable regions, per-region explanations, and contextual follow-up threads.
 
 <p align="center">
-  <img src="docs/assets/demos/real-west-lake-tour-map-split9.png" alt="West Lake strict scenic map ChatImage demo" width="760" />
+  <img src="docs/assets/demos/real-west-lake-tour-map.png" alt="West Lake strict scenic map ChatImage demo" width="760" />
 </p>
 
 English | [简体中文](README_CN.md)
@@ -112,12 +112,15 @@ Published demos are curated for visible, useful interaction. The West Lake showc
 
 | Demo | Type | Hotspots | Why it is included |
 | --- | --- | ---: | --- |
-| West Lake strict scenic map | Map | 9 | Broken Bridge, Bai Causeway, Su Causeway, and scenic regions all have vision-grounded SAM masks. |
+| West Lake strict scenic map | Map | 9 | West Lake water, Bai Causeway and Broken Bridge, Su Causeway, islands, pagoda, hills, and gardens all have vision-grounded SAM masks. |
 | Healthy breakfast options | Scene | 6 | Everyday food objects are visually separable and useful for nutrition-oriented inspection. |
 | Boutique coffee shop scene | Scene | 6 | Spatial workflow targets such as counter, seating, pastry case, and queue remain clear. |
 | Sunny reading nook | Scene | 5 | A compact interior scene with stable object boundaries. |
 | Independent record-store corner | Scene | 5 | Dense retail regions remain readable enough for region-level follow-up. |
 | Indoor plant care corner | Scene | 5 | Small daily-care objects are distinct and easy to explain. |
+| Li Bai and Shakespeare comparison | Comparison | 6 | A fact-checked literary comparison with two poets, separate cultural motifs, and no invented historical contact. |
+| Transformer development timeline | Academic | 6 | Six technical milestones remain clickable as a compact academic timeline. |
+| Zhejiang University Yuquan campus map | Map | 6 | A fact-anchored scenic orientation map around the Zheda Road 38 address edge, campus walkways, the engineering teaching zone, Yuquan Library, the Botanical Garden edge, and Laohe Mountain. |
 
 Weak or rejected cases are tracked in `docs/demo-eligibility.md` to keep the public demo honest about failure modes.
 

@@ -824,7 +824,7 @@
       <a href="https://github.com/wencanjiang/ChatImage" target="_blank" rel="noopener">Open source</a>
       <a href="chatImage.pdf" target="_blank" rel="noopener">Technical report</a>
     </div>
-    <p class="sub">Turn long LLM answers into generated images with clickable regions, clean detail panels, and reusable visual state.</p>
+    <p class="sub">Interactive Visual Images for<br />Long-Form LLM Answers</p>
     <div class="hero-cta">
       <a class="btn btn-primary" href="#demos">View live demos</a>
       <a class="btn btn-ghost" href="#quickstart">Run locally</a>
@@ -832,10 +832,10 @@
         <div class="hero-demo reveal"
          id="heroDemo"
          data-demo="assets/demos/real-west-lake-tour-map.json"
-         data-img="assets/demos/real-west-lake-tour-map-split9.png"
+         data-img="assets/demos/real-west-lake-tour-map.png"
          data-title="West Lake strict scenic map">
       <div class="hero-stage" id="heroStage">
-        <img class="hero-stage-img" id="heroStageImg" src="assets/demos/real-west-lake-tour-map-split9.png" alt="West Lake strict scenic map" />
+        <img class="hero-stage-img" id="heroStageImg" src="assets/demos/real-west-lake-tour-map.png" alt="West Lake strict scenic map" />
         <div class="hero-hotspots" id="heroHotspots"></div>
         <div class="hero-popover" id="heroPopover" role="dialog" aria-hidden="true">
           <div class="hero-popover-preview" id="heroPopoverPreview"></div>
@@ -854,7 +854,7 @@
 <section style="padding-top:0">
   <div class="wrap">
     <div class="stats reveal">
-      <div class="stat"><div class="n">6</div><div class="l">Strict exported demos</div></div>
+      <div class="stat"><div class="n">9</div><div class="l">Strict exported demos</div></div>
       <div class="stat"><div class="n">0</div><div class="l">Mask gaps published</div></div>
       <div class="stat"><div class="n">0</div><div class="l">API keys to view</div></div>
       <div class="stat"><div class="n">100%</div><div class="l">Reusable JSON state</div></div>
@@ -931,18 +931,47 @@
       <p>These curated cases use actual ChatImage generated PNGs and exported hotspot state. Open a demo, click its regions, and reuse the preserved JSON state when needed.</p>
     </div>
     <div class="filter-tabs reveal" aria-label="Demo filters">
-      <button class="filter-tab active" type="button" data-filter="all">All (6)</button>
+      <button class="filter-tab active" type="button" data-filter="all">All (9)</button>
       <button class="filter-tab" type="button" data-filter="map">Maps</button>
       <button class="filter-tab" type="button" data-filter="scene">Scene</button>
+      <button class="filter-tab" type="button" data-filter="comparison">Comparison</button>
+      <button class="filter-tab" type="button" data-filter="academic">Academic</button>
     </div>
     <div class="demo-grid">
-      <article class="demo reveal" data-cat="map" data-demo="assets/demos/real-west-lake-tour-map.json" data-img="assets/demos/real-west-lake-tour-map-split9.png" data-title="West Lake strict scenic map">
-        <div class="shot"><img src="assets/demos/real-west-lake-tour-map-split9.png" alt="West Lake strict scenic map demo" loading="lazy" /></div>
+      <article class="demo reveal" data-cat="map" data-demo="assets/demos/real-west-lake-tour-map.json" data-img="assets/demos/real-west-lake-tour-map.png" data-title="West Lake strict scenic map">
+        <div class="shot"><img src="assets/demos/real-west-lake-tour-map.png" alt="West Lake strict scenic map demo" loading="lazy" /></div>
         <div class="body">
           <h3>West Lake strict scenic map</h3>
           <p class="q">Strict regenerated map. A fact-checked West Lake tour image with SAM-backed hotspots for Broken Bridge, Bai Causeway, Su Causeway, and six scenic regions.</p>
           <div class="meta"><span>strict scenic map</span><span>9 hotspots</span></div>
           <button class="copy-q" type="button" data-copy="Create a fact-checked modern scenic map of Hangzhou West Lake with corrected landmark placement. Make Broken Bridge, Bai Causeway, Su Causeway, Three Pools Mirroring the Moon, Leifeng Pagoda, Gushan Hill, Baoshi Hill with Baochu Pagoda, Quyuan Lotus Garden, and Orioles Singing in the Willows clickable scenic regions.">Copy question</button>
+        </div>
+      </article>
+      <article class="demo reveal" data-cat="comparison" data-demo="assets/demos/real-poet-comparison-li-bai-shakespeare.json" data-img="assets/demos/real-poet-comparison-li-bai-shakespeare.png" data-title="Li Bai and Shakespeare comparison">
+        <div class="shot"><img src="assets/demos/real-poet-comparison-li-bai-shakespeare.png" alt="Li Bai and Shakespeare comparison real generated demo" loading="lazy" /></div>
+        <div class="body">
+          <h3>Li Bai and Shakespeare comparison</h3>
+          <p class="q">Strict literary comparison. A split-scene image with clickable poets, landscape, wine-scroll motif, theatre manuscript, and shared legacy region.</p>
+          <div class="meta"><span>strict literary comparison</span><span>6 hotspots</span></div>
+          <button class="copy-q" type="button" data-copy="Create a refined illustrated comparison scene between Li Bai and William Shakespeare. Li Bai was a Tang dynasty Chinese poet, 701-762. William Shakespeare was an English poet and playwright, 1564-1616. The only clickable targets are Li Bai, Moonlit Mountains, Wine Cup and Travel Scroll, Shakespeare, Theatre and Manuscript, and Shared Literary Legacy. Each clickable target should explain its factual role, literary theme, and why the visual comparison is meaningful without inventing false historical contact.">Copy question</button>
+        </div>
+      </article>
+      <article class="demo reveal" data-cat="map" data-demo="assets/demos/real-zju-yuquan-campus-map.json" data-img="assets/demos/real-zju-yuquan-campus-map.png" data-title="Zhejiang University Yuquan campus map">
+        <div class="shot"><img src="assets/demos/real-zju-yuquan-campus-map.png" alt="Zhejiang University Yuquan campus map real generated demo" loading="lazy" /></div>
+        <div class="body">
+          <h3>Zhejiang University Yuquan campus map</h3>
+          <p class="q">Strict campus orientation map. A fact-anchored Yuquan guide using the Zheda Road 38 address edge, campus walkways, the engineering teaching zone, Yuquan Library, the Botanical Garden edge, and Laohe Mountain.</p>
+          <div class="meta"><span>strict campus orientation map</span><span>6 hotspots</span></div>
+          <button class="copy-q" type="button" data-copy="Create a refined hand-drawn scenic orientation map of Zhejiang University Yuquan Campus. Fact anchors: Yuquan Campus is at 38 Zheda Road, Xihu District, Hangzhou; it backs onto Laohe Mountain; it is next to Hangzhou Botanical Garden; Yuquan Library is a real campus library; the campus has a strong engineering and teaching identity. The only clickable regions are Zheda Road 38 Address Edge, Campus Main Walk, Engineering Teaching Zone, Yuquan Library, Hangzhou Botanical Garden Edge, and Laohe Mountain Backdrop.">Copy question</button>
+        </div>
+      </article>
+      <article class="demo reveal" data-cat="academic" data-demo="assets/demos/real-transformer-development-timeline.json" data-img="assets/demos/real-transformer-development-timeline.png" data-title="Transformer development timeline">
+        <div class="shot"><img src="assets/demos/real-transformer-development-timeline.png" alt="Transformer development timeline real generated demo" loading="lazy" /></div>
+        <div class="body">
+          <h3>Transformer development timeline</h3>
+          <p class="q">Strict academic timeline. Six clickable milestones trace Transformer-based language models from architecture to interactive use.</p>
+          <div class="meta"><span>strict academic timeline</span><span>6 hotspots</span></div>
+          <button class="copy-q" type="button" data-copy="Create a refined academic poster timeline of Transformer-based language model development. The only clickable milestones are 2017 Transformer, 2018 GPT, 2018 BERT, 2019 GPT-2, 2020 GPT-3, and 2022 ChatGPT. Each clickable milestone should explain the technical contribution, model family relationship, and why it matters in the development loop from architecture to pretraining, scaling, instruction tuning, and interactive use.">Copy question</button>
         </div>
       </article>
       <article class="demo reveal" data-cat="scene" data-demo="assets/demos/real-healthy-breakfast-options.json" data-img="assets/demos/real-healthy-breakfast-options.png" data-title="Healthy breakfast options">

@@ -1084,6 +1084,8 @@
 
   function extractExplicitVisualTargets(question, visualMode = inferVisualMode(question)) {
     const source = String(question || "");
+    const requiredTitles = extractRequiredModuleTitles(source);
+    if (requiredTitles.length >= 3) return requiredTitles;
     const segments = [];
     const patterns = [
       /(?:\u70b9\u51fb|\u70b9\u51fb\u4ea4\u4e92)\s*([^。！？.!?\n]+)/g,
@@ -1097,6 +1099,35 @@
     if (!segments.length && visualMode !== "infographic") segments.push(source);
     const targets = normalizeExplicitVisualTargets(segments.flatMap(splitExplicitTargetSegment));
     return removeBackdropSubjectTarget(targets, source);
+  }
+
+  function extractRequiredModuleTitles(question) {
+    const source = String(question || "");
+    const segments = [];
+    const patterns = [
+      /module titles must be exactly\s*:?\s*([^.\n]+)/gi,
+      /only clickable (?:targets|milestones|regions|modules) (?:are|must be)\s*:?\s*([^.\n]+)/gi,
+      /(?:模块标题必须(?:是|为)|唯一可点击(?:区域|目标|模块)(?:是|为))\s*[:：]\s*([^。\n]+)/g
+    ];
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(source))) segments.push(match[1]);
+    }
+    const titles = [];
+    for (const segment of segments) {
+      const parts = /[;；]/.test(segment) ? segment.split(/[;；]/) : segment.split(/[，,](?=\s*(?:and\s+)?[\p{Script=Han}A-Z0-9])/u);
+      for (let part of parts) {
+        part = part
+          .replace(/^\s*and\s+/i, "")
+          .replace(/\s+and\s+the\s+module\s+titles.*$/i, "")
+          .replace(/\s+do\s+not\s+.*$/i, "")
+          .trim();
+        if (!part) continue;
+        const cleaned = sanitizeExplicitTargetLabel(part);
+        if (cleaned && !isInstructionOnlyTargetLabel(cleaned)) titles.push(cleaned);
+      }
+    }
+    return normalizeExplicitVisualTargets(titles);
   }
 
   function removeBackdropSubjectTarget(targets, question) {
@@ -2344,7 +2375,7 @@
       language,
       visualMode
     );
-    const candidateModules = filterInstructionOnlyTargetModules(useFallbackForModeConflict ? fallback.modules : modules, visualMode);
+    const candidateModules = filterInstructionOnlyTargetModules(useFallbackForModeConflict ? fallback.modules : modules, visualMode, question);
     const sourceModules = completeExplicitTargetModules(
       completeQuestionSpecificMapModules(candidateModules, question, rawAnswer, visualMode, maxMainModules),
       question,
@@ -2799,7 +2830,7 @@
     }));
   }
 
-  function filterInstructionOnlyTargetModules(modules, visualMode) {
+  function filterInstructionOnlyTargetModules(modules, visualMode, question = "") {
     const mode = normalizeVisualMode(visualMode);
     const source = Array.isArray(modules) ? modules : [];
     if (!["map", "scene", "poster"].includes(mode)) return source;
@@ -2812,6 +2843,11 @@
       const promptIsNoise = prompt ? isInstructionOnlyTargetLabel(prompt) : true;
       return !(titleIsNoise && imageIsNoise && promptIsNoise);
     });
+    const exactTargets = extractRequiredModuleTitles(question);
+    if (exactTargets.length >= 3) {
+      const exactFiltered = filtered.filter((module) => exactTargets.some((target) => hasEquivalentExplicitTarget([module], target)));
+      if (exactFiltered.length >= 3) return exactFiltered.slice(0, exactTargets.length);
+    }
     return filtered.length >= 3 ? filtered : source;
   }
 
@@ -2819,7 +2855,8 @@
     const mode = normalizeVisualMode(visualMode);
     const source = Array.isArray(modules) ? modules.slice(0, maxModules) : [];
     if (!["map", "scene", "poster"].includes(mode)) return source;
-    const targets = extractExplicitVisualTargets(question, mode);
+    const exactTargets = extractRequiredModuleTitles(question);
+    const targets = exactTargets.length >= 3 ? exactTargets : extractExplicitVisualTargets(question, mode);
     if (targets.length < 3) return source;
     const completed = source.slice();
     for (const target of targets) {

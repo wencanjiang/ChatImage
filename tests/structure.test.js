@@ -870,6 +870,7 @@ function main() {
   testMapExplicitTargetsIgnoreInstructionPhrases();
   testCampusMapDoesNotTreatClickInstructionAsTarget();
   testSceneClickInstructionDoesNotBecomeFoodTarget();
+  testExactEnglishModuleWhitelistDropsScenePromptFragments();
 
   console.log("structure.test.js passed");
 }
@@ -1181,6 +1182,42 @@ function testCampusMapDoesNotTreatClickInstructionAsTarget() {
   const averageDetailLength =
     spec.modules.reduce((sum, module) => sum + String(module.detail || "").length, 0) / spec.modules.length;
   assert.ok(averageDetailLength >= 85, `campus detail text is too thin: ${averageDetailLength}`);
+}
+
+function testExactEnglishModuleWhitelistDropsScenePromptFragments() {
+  const question =
+    "Create a refined illustrated comparison scene between Li Bai and William Shakespeare. " +
+    "The only clickable targets are Li Bai, Moonlit Mountains, Wine Cup and Travel Scroll, Shakespeare, Theatre and Manuscript, and Shared Literary Legacy. " +
+    "Use exactly six clickable modules, and the module titles must be exactly: Li Bai; Moonlit Mountains; Wine Cup and Travel Scroll; Shakespeare; Theatre and Manuscript; Shared Literary Legacy. " +
+    "Do not create modules for dates, biographical phrases, prompt fragments, fact anchors, overview, notes, or context.";
+  const normalized = normalizeVisualSpec(
+    {
+      title: "Poet comparison",
+      summary: "Comparison scene",
+      relationType: "comparison",
+      visualMode: "scene",
+      modules: [
+        { title: "Li Bai", imageText: "Li Bai", detail: "Tang poet figure beside the river." },
+        { title: "Moonlit Mountains", imageText: "Moon and mountain", detail: "Shared moon and mountain imagery." },
+        { title: "Wine Cup and Travel Scro", imageText: "Wine cup and scroll", detail: "Wine cup and travel scroll." },
+        { title: "Shakespeare", imageText: "Shakespeare", detail: "English poet and playwright figure." },
+        { title: "Theatre and Manuscript", imageText: "Stage and manuscript", detail: "Theatre stage and manuscript." },
+        { title: "Shared Literary Legacy", imageText: "Legacy bridge", detail: "Shared legacy bridge." },
+        { title: "a Tang-style riverside m", imageText: "Tang riverside", detail: "Prompt fragment, not a hotspot." },
+        { title: "an Elizabethan stage-", imageText: "Elizabethan stage", detail: "Prompt fragment, not a hotspot." }
+      ]
+    },
+    question,
+    question
+  );
+  assert.deepStrictEqual(normalized.modules.map((module) => module.title), [
+    "Li Bai",
+    "Moonlit Mountains",
+    "Wine Cup and Travel Scro",
+    "Shakespeare",
+    "Theatre and Manuscript",
+    "Shared Literary Legacy"
+  ]);
 }
 
 function testSceneClickInstructionDoesNotBecomeFoodTarget() {

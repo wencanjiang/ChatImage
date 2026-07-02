@@ -105,6 +105,30 @@ const CASES = [
       "Create a weekend Hangzhou itinerary map for a first-time visitor. Naturally show West Lake, Hefang Street, Lingyin Temple, tea village, canal night walk, hotel area, and main walking or transit routes. Each clickable region should explain timing, atmosphere, and route relationship."
   },
   {
+    id: "poet-comparison-li-bai-shakespeare",
+    category: "scene",
+    extraInstruction:
+      "Use exactly six clickable modules, and the module titles must be exactly: Li Bai; Moonlit Mountains; Wine Cup and Travel Scroll; Shakespeare; Theatre and Manuscript; Shared Literary Legacy. Do not create modules for dates, biographical phrases, prompt fragments, fact anchors, overview, notes, or context. Do not draw a table, grid, flowchart, numbered callouts, or visible segmentation borders. Keep it as one refined split-scene illustration: a Tang-style riverside moonlit poetry setting on the left, an Elizabethan stage-and-study setting on the right, and a subtle visual bridge between them. Do not imply the two poets met in real life. Avoid in-image paragraphs; use only sparse scene labels if needed.",
+    question:
+      "Create a refined illustrated comparison scene between Li Bai and William Shakespeare. Li Bai was a Tang dynasty Chinese poet, 701-762. William Shakespeare was an English poet and playwright, 1564-1616. The only clickable targets are Li Bai, Moonlit Mountains, Wine Cup and Travel Scroll, Shakespeare, Theatre and Manuscript, and Shared Literary Legacy. Each clickable target should explain its factual role, literary theme, and why the visual comparison is meaningful without inventing false historical contact."
+  },
+  {
+    id: "transformer-development-timeline",
+    category: "technical",
+    extraInstruction:
+      "Use exactly six clickable modules, and the module titles must be exactly: 2017 Transformer; 2018 GPT; 2018 BERT; 2019 GPT-2; 2020 GPT-3; 2022 ChatGPT. Draw six large separated milestone cards as physical research-note panels on a polished academic timeline wall. Each card must be visually large, isolated, and easy for LocateAnything/SAM to segment. Do not add extra milestones, legends, sidebars, numbered pins, or tiny dense text.",
+    question:
+      "Create a refined academic poster timeline of Transformer-based language model development. The only clickable milestones are 2017 Transformer, 2018 GPT, 2018 BERT, 2019 GPT-2, 2020 GPT-3, and 2022 ChatGPT. Each clickable milestone should explain the technical contribution, model family relationship, and why it matters in the development loop from architecture to pretraining, scaling, instruction tuning, and interactive use."
+  },
+  {
+    id: "zju-yuquan-campus-map",
+    category: "map",
+    extraInstruction:
+      "Use exactly six clickable modules with these exact titles: Zheda Road 38 Address Edge; Campus Main Walk; Engineering Teaching Zone; Yuquan Library; Hangzhou Botanical Garden Edge; Laohe Mountain Backdrop. Draw one coherent hand-drawn scenic campus orientation map: soft ink lines, muted green trees, warm paper texture, natural paths, low campus buildings, and a green mountain backdrop. Keep the six regions large, separated, and easy for SAM to segment. Use campus-only landmarks and avoid numbered pins, side legends, false gate names, invented building names, exact street geometry, tourist-attraction labels, or a generic downtown skyline.",
+    question:
+      "Create a refined hand-drawn scenic orientation map of Zhejiang University Yuquan Campus. Fact anchors: Yuquan Campus is at 38 Zheda Road, Xihu District, Hangzhou; it backs onto Laohe Mountain; it is next to Hangzhou Botanical Garden; Yuquan Library is a real campus library; the campus has a strong engineering and teaching identity. The only clickable regions are Zheda Road 38 Address Edge, Campus Main Walk, Engineering Teaching Zone, Yuquan Library, Hangzhou Botanical Garden Edge, and Laohe Mountain Backdrop."
+  },
+  {
     id: "home-moving-checklist",
     category: "business",
     question:

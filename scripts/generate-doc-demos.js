@@ -9,6 +9,17 @@ const { enforceStrictVisualAlignment } = require("../server/sam3");
 const rootDir = path.join(__dirname, "..");
 const outputDir = path.join(rootDir, "docs", "assets", "demos");
 const cacheDir = path.join(rootDir, "tmp", "image-cache");
+const DISPLAY_ORDER = [
+  "real-west-lake-tour-map",
+  "real-poet-comparison-li-bai-shakespeare",
+  "real-zju-yuquan-campus-map",
+  "real-transformer-development-timeline",
+  "real-healthy-breakfast-options",
+  "real-boutique-coffee-scene",
+  "real-sunny-reading-nook",
+  "real-record-store-corner",
+  "real-plant-care-corner"
+];
 
 const CASES = [
   {
@@ -76,6 +87,122 @@ const CASES = [
     question:
       "Create an illustrated indoor plant care corner. Let users click the monstera plant, watering can, grow light, potting bench, and humidity tray.",
     modeLabel: "verified fresh daily scene"
+  },
+  {
+    id: "real-poet-comparison-li-bai-shakespeare",
+    chatImageId: "ci_332089c0-eb10-4177-a948-1f01d1347205",
+    category: "comparison",
+    categoryLabel: "comparison",
+    title: "Li Bai and Shakespeare comparison",
+    originalTitle: "Li Bai and Shakespeare comparison",
+    question:
+      "Create a refined illustrated comparison scene between Li Bai and William Shakespeare. Li Bai was a Tang dynasty Chinese poet, 701-762. William Shakespeare was an English poet and playwright, 1564-1616. The only clickable targets are Li Bai, Moonlit Mountains, Wine Cup and Travel Scroll, Shakespeare, Theatre and Manuscript, and Shared Literary Legacy. Each clickable target should explain its factual role, literary theme, and why the visual comparison is meaningful without inventing false historical contact.",
+    modeLabel: "strict literary comparison",
+    publishedHotspotLabels: [
+      "Li Bai",
+      "Moonlit Mountains",
+      "Wine Cup and Travel Scro",
+      "Shakespeare",
+      "Theatre and Manuscript",
+      "Shared Literary Legacy"
+    ],
+    publishedHotspotLabelReplacements: {
+      "Wine Cup and Travel Scro": "Wine Cup and Travel Scroll"
+    }
+  },
+  {
+    id: "real-transformer-development-timeline",
+    chatImageId: "ci_37e23691-ce9a-41b0-aff3-01de3373a723",
+    category: "academic",
+    categoryLabel: "academic",
+    title: "Transformer development timeline",
+    originalTitle: "Transformer development timeline",
+    question:
+      "Create a refined academic poster timeline of Transformer-based language model development. The only clickable milestones are 2017 Transformer, 2018 GPT, 2018 BERT, 2019 GPT-2, 2020 GPT-3, and 2022 ChatGPT. Each clickable milestone should explain the technical contribution, model family relationship, and why it matters in the development loop from architecture to pretraining, scaling, instruction tuning, and interactive use.",
+    modeLabel: "strict academic timeline",
+    publishedHotspotText: {
+      "2017 Transformer": {
+        shortText: "Attention-based architecture",
+        detail:
+          "The Transformer introduced a sequence model built around self-attention, replacing recurrent processing with a parallel architecture that became the foundation for modern large language models."
+      },
+      "2018 GPT": {
+        shortText: "Autoregressive pretraining",
+        detail:
+          "GPT showed how a Transformer decoder trained with next-token prediction could transfer to downstream language tasks, establishing a practical loop from large-scale pretraining to task adaptation."
+      },
+      "2018 BERT": {
+        shortText: "Bidirectional language encoding",
+        detail:
+          "BERT used masked language modeling with bidirectional Transformer encoders, making contextual representations stronger for understanding tasks such as classification, retrieval, and question answering."
+      },
+      "2019 GPT-2": {
+        shortText: "Scaling and zero-shot behavior",
+        detail:
+          "GPT-2 made scaling effects visible by showing that a larger autoregressive model could perform useful tasks from natural-language context, reducing the need for task-specific training examples."
+      },
+      "2020 GPT-3": {
+        shortText: "Few-shot prompting at scale",
+        detail:
+          "GPT-3 extended the scaling trajectory and popularized few-shot prompting, where examples inside the prompt guide behavior without updating model weights."
+      },
+      "2022 ChatGPT": {
+        shortText: "Instruction-tuned interaction",
+        detail:
+          "ChatGPT turned large language models into an interactive assistant format by combining instruction tuning, dialogue behavior, and human feedback into a user-facing conversation loop."
+      }
+    }
+  },
+  {
+    id: "real-zju-yuquan-campus-map",
+    chatImageId: "ci_4bf22693-6d1d-43b0-8818-79e4f04c88f0",
+    category: "map",
+    categoryLabel: "map",
+    title: "Zhejiang University Yuquan campus map",
+    originalTitle: "Zhejiang University Yuquan campus map",
+    question:
+      "Create a refined hand-drawn scenic orientation map of Zhejiang University Yuquan Campus. Fact anchors: Yuquan Campus is at 38 Zheda Road, Xihu District, Hangzhou; it backs onto Laohe Mountain; it is next to Hangzhou Botanical Garden; Yuquan Library is a real campus library; the campus has a strong engineering and teaching identity. The only clickable regions are Zheda Road 38 Address Edge, Campus Main Walk, Engineering Teaching Zone, Yuquan Library, Hangzhou Botanical Garden Edge, and Laohe Mountain Backdrop.",
+    modeLabel: "strict campus orientation map",
+    publishedHotspotLabelReplacements: {
+      "Zheda Road 38 Entrance": "Zheda Road 38 Address Edge",
+      "Engineering Teaching": "Engineering Teaching Zone",
+      "Teaching and Engineering": "Engineering Teaching Zone",
+      "Hangzhou Botanical Garde": "Hangzhou Botanical Garden Edge",
+      "Laohe Mountain Green Bac": "Laohe Mountain Backdrop",
+      "Laohe Mountain Green Backdrop": "Laohe Mountain Backdrop"
+    },
+    publishedHotspotText: {
+      "Zheda Road 38 Address Edge": {
+        shortText: "Address-side orientation",
+        detail:
+          "The Zheda Road 38 address edge gives the guide a stable public-facing reference for Zhejiang University's Yuquan Campus in Xihu District, helping visitors orient themselves before moving into the campus."
+      },
+      "Campus Main Walk": {
+        shortText: "Campus movement spine",
+        detail:
+          "The main walk organizes movement through the illustrated campus guide, linking academic buildings, study areas, and landscape context into an easy-to-follow route."
+      },
+      "Engineering Teaching Zone": {
+        shortText: "Engineering academic core",
+        detail:
+          "The engineering teaching zone represents Yuquan's academic identity, emphasizing engineering education, laboratories, and classroom activity without naming unsupported individual buildings."
+      },
+      "Yuquan Library": {
+        shortText: "Study landmark",
+        detail:
+          "Yuquan Library is presented as a study-oriented campus landmark, giving visitors a recognizable academic destination within the orientation map."
+      },
+      "Hangzhou Botanical Garden Edge": {
+        shortText: "Nearby orientation context",
+        detail:
+          "The Botanical Garden edge provides nearby orientation context, showing how Yuquan sits close to the greenery and walking routes of the West Lake area."
+      },
+      "Laohe Mountain Backdrop": {
+        shortText: "Mountain setting",
+        detail:
+          "The Laohe Mountain green backdrop places the campus in its hillside setting and explains why Yuquan's environment feels closely connected to the surrounding landscape."
+      }
+    }
   }
 ];
 
@@ -97,16 +224,17 @@ function main() {
     if (!demos.length) {
       throw new Error("No demos passed the strict docs demo gate.");
     }
+    const orderedDemos = orderDemosForShowcase(demos);
     const manifest = {
       generatedAt: new Date().toISOString(),
       source: "real-chatimage-curated-runs",
-      demoCount: demos.length,
+      demoCount: orderedDemos.length,
       notes: [
         "Every published demo passed the current strict visual-alignment gate at export time.",
         "Each hotspot must have a LocateAnything or MiMo primary source plus SAM mask, cutout, organic preview, and expanded organic bounds.",
         "Cases that fail the current gate are skipped instead of being refreshed into the public showcase."
       ],
-      demos
+      demos: orderedDemos
     };
     fs.writeFileSync(path.join(outputDir, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
     console.log(`Exported ${demos.length} curated real demos to ${path.relative(rootDir, outputDir)}`);
@@ -126,10 +254,16 @@ function exportCase(testCase, store) {
   if (!saved || !saved.result) throw new Error(`${testCase.id}: chat image not found: ${testCase.chatImageId}`);
   const result = saved.result;
   const state = normalizeStateForDocs(result);
+  filterPublishedHotspots(testCase, state);
+  normalizePublishedHotspotLabels(testCase, state);
   repairPublishedDocsText(testCase, state);
+  applyPublishedHotspotText(testCase, state);
+  replacePublishedStrings(testCase, state);
   const image = exportImage(testCase.id, result.imageUrl);
   try {
     repairStateMaskAssets(testCase.id, state, path.join(rootDir, "docs", image));
+    applyPublishedHotspotText(testCase, state);
+    replacePublishedStrings(testCase, state);
     enforceDocsStrictVisualAlignment(testCase.id, state);
   } catch (error) {
     fs.rmSync(path.join(rootDir, "docs", image), { force: true });
@@ -159,6 +293,120 @@ function exportCase(testCase, store) {
   };
   fs.writeFileSync(path.join(outputDir, `${testCase.id}.json`), `${JSON.stringify(demo, null, 2)}\n`, "utf8");
   return manifestEntry(demo);
+}
+
+function orderDemosForShowcase(demos) {
+  const rank = new Map(DISPLAY_ORDER.map((id, index) => [id, index]));
+  return demos.slice().sort((a, b) => {
+    const aRank = rank.has(a.id) ? rank.get(a.id) : Number.MAX_SAFE_INTEGER;
+    const bRank = rank.has(b.id) ? rank.get(b.id) : Number.MAX_SAFE_INTEGER;
+    return aRank - bRank;
+  });
+}
+
+function filterPublishedHotspots(testCase, state) {
+  const labels = Array.isArray(testCase.publishedHotspotLabels) ? testCase.publishedHotspotLabels : [];
+  if (!labels.length || !state || !Array.isArray(state.hotspots)) return;
+  const allowed = new Set(labels.map((label) => String(label).trim()));
+  const allowedIds = new Set();
+  state.hotspots = state.hotspots.filter((hotspot) => {
+    const keep = allowed.has(String((hotspot && hotspot.label) || "").trim());
+    if (keep && hotspot && hotspot.id) allowedIds.add(hotspot.id);
+    return keep;
+  });
+  const filterModules = (modules) =>
+    Array.isArray(modules)
+      ? modules.filter((module) => allowedIds.has(module && module.id) || allowed.has(String((module && (module.title || module.label)) || "").trim()))
+      : modules;
+  if (state.structuredSpec) state.structuredSpec.modules = filterModules(state.structuredSpec.modules);
+  if (state.visualSpec) state.visualSpec.modules = filterModules(state.visualSpec.modules);
+  if (state.layout && Array.isArray(state.layout.regions)) {
+    state.layout.regions = state.layout.regions.filter((region) => allowedIds.has(region && (region.hotspotId || region.id)));
+  }
+}
+
+function applyPublishedHotspotText(testCase, state) {
+  const textMap = testCase && testCase.publishedHotspotText && typeof testCase.publishedHotspotText === "object"
+    ? testCase.publishedHotspotText
+    : {};
+  if (!Object.keys(textMap).length || !state || typeof state !== "object") return;
+  const patch = (module) => {
+    if (!module || typeof module !== "object") return;
+    const label = String(module.label || module.title || module.imageText || "").trim();
+    const text = textMap[label];
+    if (!text) return;
+    if (module.shortText !== undefined) module.shortText = text.shortText || label;
+    if (module.detail !== undefined) module.detail = text.detail || module.detail;
+    if (module.sourceExcerpt !== undefined) module.sourceExcerpt = text.detail || module.sourceExcerpt;
+  };
+  for (const hotspot of state.hotspots || []) patch(hotspot);
+  for (const module of (state.structuredSpec && state.structuredSpec.modules) || []) patch(module);
+  for (const module of (state.visualSpec && state.visualSpec.modules) || []) patch(module);
+}
+
+function replacePublishedStrings(testCase, value) {
+  const replacements =
+    testCase && testCase.publishedHotspotLabelReplacements && typeof testCase.publishedHotspotLabelReplacements === "object"
+      ? testCase.publishedHotspotLabelReplacements
+      : {};
+  const entries = Object.entries(replacements);
+  if (!entries.length || !value || typeof value !== "object") return value;
+  const replaceText = (text) => {
+    let next = String(text);
+    for (const [from, to] of entries) {
+      if (next === from) {
+        next = to;
+      } else if (from === "Zheda Road 38 Entrance") {
+        next = next.replace(/Zheda Road 38 Entrance/g, to);
+      } else if (from === "Engineering Teaching") {
+        next = next.replace(/Engineering Teaching(?! Zone)/g, to);
+      } else if (from === "Teaching and Engineering") {
+        next = next.replace(/Teaching and Engineering(?! Buildings)/g, to);
+      } else if (from === "Hangzhou Botanical Garde") {
+        next = next.replace(/Hangzhou Botanical Garde(?!n)/g, to);
+      } else if (from === "Laohe Mountain Green Bac") {
+        next = next.replace(/Laohe Mountain Green Bac(?!k)/g, to);
+      } else if (from === "Laohe Mountain Green Backdrop") {
+        next = next.replace(/Laohe Mountain Green Backdrop/g, to);
+      } else if (from === "Wine Cup and Travel Scro") {
+        next = next.replace(/Wine Cup and Travel Scro(?!ll)/g, to);
+      }
+    }
+    return next;
+  };
+  for (const [key, child] of Object.entries(value)) {
+    if (typeof child === "string") {
+      value[key] = replaceText(child);
+    } else if (child && typeof child === "object") {
+      replacePublishedStrings(testCase, child);
+    }
+  }
+  return value;
+}
+
+function normalizePublishedHotspotLabels(testCase, state) {
+  const replacements =
+    testCase && testCase.publishedHotspotLabelReplacements && typeof testCase.publishedHotspotLabelReplacements === "object"
+      ? testCase.publishedHotspotLabelReplacements
+      : {};
+  const replacementEntries = Object.entries(replacements);
+  if (!replacementEntries.length || !state || typeof state !== "object") return;
+
+  const replaceLabel = (value) => {
+    const text = String(value || "").trim();
+    return replacements[text] || text;
+  };
+  const patchModule = (module) => {
+    if (!module || typeof module !== "object") return;
+    if (module.label !== undefined) module.label = replaceLabel(module.label);
+    if (module.title !== undefined) module.title = replaceLabel(module.title);
+    if (module.imageText !== undefined) module.imageText = replaceLabel(module.imageText);
+  };
+
+  for (const hotspot of state.hotspots || []) patchModule(hotspot);
+  for (const module of (state.structuredSpec && state.structuredSpec.modules) || []) patchModule(module);
+  for (const module of (state.visualSpec && state.visualSpec.modules) || []) patchModule(module);
+  for (const region of (state.layout && state.layout.regions) || []) patchModule(region);
 }
 
 function repairStateMaskAssets(id, state, imagePath) {
@@ -213,8 +461,21 @@ function countHotspotSources(hotspots) {
 }
 
 function normalizeStateForDocs(result) {
-  const state = JSON.parse(JSON.stringify(result));
-  state.visualSpec = state.structuredSpec;
+  const structuredSpec = JSON.parse(JSON.stringify(result.structuredSpec || {}));
+  const state = {
+    id: result.id || "",
+    question: result.question || "",
+    title: result.title || "",
+    summary: result.summary || "",
+    structuredSpec,
+    visualSpec: structuredSpec,
+    layout: normalizeLayout(result.layout),
+    hotspots: JSON.parse(JSON.stringify(result.hotspots || [])),
+    imageWidth: result.imageWidth || null,
+    imageHeight: result.imageHeight || null,
+    createdAt: result.createdAt || "",
+    updatedAt: result.updatedAt || ""
+  };
   state.hotspots = (state.hotspots || []).map((hotspot) => {
     const bounds = normalizeBounds({
       x: hotspot.x,
@@ -227,7 +488,6 @@ function normalizeStateForDocs(result) {
       bounds
     };
   });
-  state.layout = normalizeLayout(state.layout);
   return state;
 }
 
@@ -312,9 +572,21 @@ function looksLikePublishedTextPollution(value) {
 function normalizeLayout(layout) {
   if (!layout || !Array.isArray(layout.regions)) return layout || {};
   return {
-    ...layout,
+    id: layout.id || "",
+    family: layout.family || "",
+    layoutFamily: layout.layoutFamily || layout.family || "",
+    visualMode: layout.visualMode || "",
+    layoutVariant: layout.layoutVariant || "",
+    aspectRatio: layout.aspectRatio || "",
+    canvas: layout.canvas || null,
+    clickBoundsSource: layout.clickBoundsSource || "",
     regions: layout.regions.map((region) => ({
-      ...region,
+      id: region.id || "",
+      hotspotId: region.hotspotId || "",
+      type: region.type || "",
+      role: region.role || "",
+      label: region.label || region.title || "",
+      zIndex: region.zIndex || 0,
       bounds: normalizeBounds(region.bounds)
     }))
   };

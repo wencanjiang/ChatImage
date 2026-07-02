@@ -52,69 +52,34 @@ MVP 关键原则：**不依赖生图模型自由发挥布局**，而是由 ChatI
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│                    Browser (前端)                      │
-│  index.html + src/app.js (编排) + src/render.js (渲染) │
-│  src/service.js (供应商编排) · src/structure.js (归一化)│
-│  src/layout.js (布局) · src/alignment.js (对齐)        │
-│  src/preview-strategy.js (预览策略) · src/quality.js   │
+│                    Browser                            │
+│  交互状态、视觉结果渲染、热点详情面板、追问输入与校准工具 │
 └───────────────────────┬──────────────────────────────┘
-                        │ HTTP (fetch)
+                        │ HTTP fetch
 ┌───────────────────────▼──────────────────────────────┐
-│              Local Server (server.js)                 │
-│  server/http.js · server/providers.js · server/store.js│
-│  server/validation.js · server/concurrency.js         │
-│  server/routes/: config / image / llm / vision         │
-│  server/locateanything.js · server/sam3.js · server/local-ocr.js │
+│                  Local Server                         │
+│  API 代理、请求校验、并发控制、历史持久化、视觉对齐编排    │
 └───────┬──────────────┬───────────────┬───────────────┘
         │              │               │
    ┌────▼────┐   ┌─────▼─────┐   ┌────▼──────┐
-   │  SQLite  │   │ 上游 API   │   │ Python    │
-   │ (持久化)  │   │ (LLM/图/视觉)│   │ Workers   │
+   │ SQLite   │   │ Upstream   │   │ Local     │
+   │ history  │   │ providers  │   │ workers   │
    └─────────┘   └───────────┘   └───────────┘
 ```
 
-### 前端模块（`src/`）
+### 能力分层
 
-| 文件 | 职责 |
+| 层级 | 职责 |
 |------|------|
-| `app.js` | 浏览器编排、UI 绑定、状态管理（IIFE，~1900 行） |
-| `service.js` | 供应商编排：生成、追问、对齐的 API 调用链 |
-| `structure.js` | 结构化回答归一化 + mock/fallback spec 生成（~3300 行，项目最大模块） |
-| `layout.js` | 布局规划：LayoutSpec 生成、区域坐标、热点几何 |
-| `alignment.js` | 视觉对齐：解析对齐结果、应用到布局、reject/fallback 策略 |
-| `render.js` | 结果渲染工具：热点层、详情面板、预览变体 |
-| `preview-strategy.js` | 热点预览变体选择（cutout / organic / soft / masked） |
-| `quality.js` | 质量校验：模块数、内容覆盖、布局合理性 |
-| `calibration.js` | 热点校准工具 |
-| `core.js` | 生成管线编排 |
-| `files.js` | 文件附件处理 |
-| `api-client.js` | 前端 API 客户端封装 |
+| 浏览器交互层 | 维护当前问题、生成状态、历史记录、热点选择、详情面板和追问输入。所有用户可见内容都在这一层完成渲染。 |
+| 视觉结构层 | 把长回答归一化为 VisualSpec，规划 LayoutSpec，并把模块、区域和热点绑定在同一套归一化坐标中。 |
+| 供应商编排层 | 根据运行模式选择 mock provider 或真实 provider，串联文本生成、图像生成、视觉对齐和静态追问图生成。 |
+| 本地服务层 | 代理文本、图像和视觉请求，做同源校验、请求大小限制、并发控制、错误归一化和 API key 隔离。 |
+| 视觉对齐层 | 组合 LocateAnything、MiMo-Vision、本地 OCR 和可选 SAM3 精修，把 planned bounds 修正为图像中实际可见的位置。 |
+| 持久化层 | 用 SQLite 保存 ChatImage、热点元数据、对齐原始结果、置顶状态和每个热点的追问消息。 |
+| 导出与展示层 | 生成可公开展示的 demo JSON、PNG 和项目页，让已验证样例可以脱离本地服务浏览。 |
 
-### 后端模块（`server/`）
-
-| 文件 | 职责 |
-|------|------|
-| `server.js` | 服务器入口、运行时配置加载、路由挂载 |
-| `http.js` | HTTP 服务器、静态文件服务 |
-| `providers.js` | 上游供应商适配（文本/图像/视觉） |
-| `store.js` | SQLite 持久化（CRUD + 线程管理） |
-| `validation.js` | 请求校验：payload 结构、URL 协议、热点边界 |
-| `concurrency.js` | 并发闸门：`CHATIMAGE_MAX_UPSTREAM_REQUESTS=4`，超限返回 429 |
-| `routes/config.js` | `GET /api/config` — 前端可见的运行时配置 |
-| `routes/image.js` | `POST /api/image` — 图像生成代理 |
-| `routes/llm.js` | `POST /api/llm` — 文本模型代理 |
-| `routes/vision.js` | `POST /api/vision` — 视觉对齐代理 |
-| `locateanything.js` | LocateAnything 视觉定位客户端（JSONL 协议） |
-| `sam3.js` | SAM3 掩码精修客户端 |
-| `local-ocr.js` | 本地 OCR 回退 |
-
-### Python Workers（`scripts/`）
-
-| 文件 | 职责 |
-|------|------|
-| `locateanything_worker.py` | LocateAnything 视觉定位模型 worker（transformers） |
-| `sam3_worker.py` | SAM3 分割模型 worker |
-| `build.js` | 零依赖前端构建脚本（拼接 + 压缩 → `dist/`） |
+这种划分比文件清单更接近系统的真实边界：浏览器只负责交互和可视化，服务端只负责可信代理和持久化，视觉 worker 只处理耗时的定位与分割任务。
 
 ---
 
@@ -127,15 +92,15 @@ MVP 关键原则：**不依赖生图模型自由发挥布局**，而是由 ChatI
 ① 获取原始 LLM 回答 ──────────── POST /api/llm（或 mock）
   │
   ▼
-② 归一化为结构化 VisualSpec ──── structure.js: normalizeVisualSpec
+② 归一化为结构化 VisualSpec
   │   modules[] + auxiliaryModules[]，每个模块含 title/detail/regionPrompt/...
   │
   ▼
-③ 规划布局 LayoutSpec ────────── layout.js: createLayout
+③ 规划布局 LayoutSpec
   │   为每个模块分配 region + normalized bounds (0~1)
   │
   ▼
-④ 生成图像提示词 ──────────────── core.js: buildImagePrompt
+④ 生成图像提示词
   │   基于结构化内容 + 布局意图
   │
   ▼
@@ -148,15 +113,15 @@ MVP 关键原则：**不依赖生图模型自由发挥布局**，而是由 ChatI
   │   Mock 模式跳过此步，使用 planned bounds
   │
   ▼
-⑦ 派生热点 ────────────────────── layout.js: deriveHotspots
+⑦ 派生热点
   │   region.bounds → hotspot.{x,y,width,height} + alignmentSource
   │
   ▼
-⑧ 渲染 ────────────────────────── render.js
+⑧ 渲染
   │   图片 + 透明热点层 + 详情面板
   │
   ▼
-⑨ 持久化 ──────────────────────── server/store.js → SQLite
+⑨ 持久化 ──────────────────────── SQLite
       chat_images / hotspots / hotspot_threads / hotspot_messages
 ```
 
@@ -247,7 +212,7 @@ type Hotspot = {
 
 ## 5. 结构化回答归一化
 
-`structure.js` 的 `normalizeVisualSpec` 是最核心的模块（~3300 行），负责将 LLM 的 JSON 回答转换为干净的 VisualSpec。
+结构化归一化负责将 LLM 的 JSON 回答转换为干净的 VisualSpec。
 
 ### 归一化管线
 
@@ -312,7 +277,7 @@ LLM JSON 回答
 
 ## 6. 布局规划
 
-`layout.js` 的 `createLayout` 根据 `visualMode` 和 `family` 为每个模块分配归一化坐标。
+布局规划根据 `visualMode` 和 `family` 为每个模块分配归一化坐标。
 
 ### 布局族
 
@@ -336,7 +301,7 @@ LLM JSON 回答
 
 ### 图像提示词构建
 
-图像提示词由 `core.js` 从结构化内容 + 布局意图合成，包含：
+图像提示词由结构化内容和布局意图合成，包含：
 - 整体风格指令（hand-drawn / infographic / scene）
 - 每个模块的文字标签和位置意图
 - 画布比例（默认 16:9，可选 4:5 / 1:1）
@@ -350,7 +315,7 @@ LLM JSON 回答
 ### 图像 API 适配
 
 - 图像 API 不接受 `model` 字段（"存在未绑定的参数: model"）→ `CHATIMAGE_IMAGE_MODEL` 仅用于显示
-- 默认文本模型 `gpt-5.5`（小写），通过 `tests/model-probe.js` 发现
+- 默认文本模型为 `mimo-v2.5-pro`，可通过 `CHATIMAGE_TEXT_MODEL` 覆盖
 
 ---
 
@@ -364,7 +329,7 @@ LLM JSON 回答
 POST /api/vision (imageUrl + imageWidth + imageHeight + modules + plannedBounds)
   │
   ├─ LocateAnything（主定位器）
-  │     ├─ scripts/locateanything_worker.py（transformers，nvidia/LocateAnything-3B）
+  │     ├─ 长驻视觉定位 worker（transformers，nvidia/LocateAnything-3B）
   │     ├─ 对每个模块构建 1~4 个定位短语（label + regionPrompt + semanticHint）
   │     ├─ ground_gui(image, phrase) → <box>x1 y1 x2 y2</box>（0~1000 缩放）
   │     ├─ 与 plannedBounds 评分（score_locate_bounds）
@@ -375,10 +340,9 @@ POST /api/vision (imageUrl + imageWidth + imageHeight + modules + plannedBounds)
   │     └─ 当 LocateAnything 不可用时
   │
   ├─ local-ocr（最后回退）
-  │     └─ scripts/local_ocr_fake.py
+  │     └─ 本地 OCR worker
   │
   └─ SAM3 精修（可选）
-        ├─ server/sam3.js: refineAlignmentWithSam3
         ├─ 对已对齐模块扩展 box → SAM3 预测 mask → 紧凑 bbox + polygon
         ├─ 不替换 module.bounds，只附加 module.mask
         └─ mask 用于预览（cutout/organic），不用于点击命中
@@ -386,7 +350,7 @@ POST /api/vision (imageUrl + imageWidth + imageHeight + modules + plannedBounds)
 
 ### 对齐结果应用
 
-`alignment.js` 的 `applyAlignmentsToLayout`：
+对齐结果应用规则：
 
 | 情况 | 处理 | 标签 |
 |------|------|------|
@@ -396,7 +360,7 @@ POST /api/vision (imageUrl + imageWidth + imageHeight + modules + plannedBounds)
 | `header_strip` / `cross_panel_strip` reject | 回退 planned（找错对象） | — |
 | 模块完全缺失 | 保留 planned bounds | `planned-fallback` |
 
-**关键修复**：一个模块缺失不再导致整盘对齐作废（旧逻辑 throw → service.js catch → 全部回退 planned 网格）。现在缺模块保留 planned，其余模块保留真实定位。
+**关键修复**：一个模块缺失不再导致整盘对齐作废。现在缺模块保留 planned，其余模块保留真实定位。
 
 ### LocateAnything 许可
 
@@ -408,7 +372,7 @@ POST /api/vision (imageUrl + imageWidth + imageHeight + modules + plannedBounds)
 
 ### 热点渲染
 
-`render.js` 的 `renderHotspotLayer` 将 `hotspot.{x,y,width,height}`（0~1）转为百分比定位的 `<button>`：
+热点渲染层将 `hotspot.{x,y,width,height}`（0~1）转为百分比定位的透明按钮：
 
 ```css
 left: ${x*100}%; top: ${y*100}%;
@@ -424,14 +388,14 @@ width: ${width*100}%; height: ${height*100}%;
 | clicked | 点击反馈动画 | 420ms 淡出 |
 | 校准模式 | outline + 背景 + ::before 标签 + ::after 来源 | 可视化边界 |
 
-**测试契约**：常态下 `borderTopWidth=0px`、`backgroundColor=transparent`、`::after content=none`，用 `!important` 锁定（browser.test.js 断言）。
+**测试契约**：常态下 `borderTopWidth=0px`、`backgroundColor=transparent`、`::after content=none`，用 `!important` 锁定，并由浏览器测试断言。
 
 ### 详情面板
 
 点击热点打开居中详情面板（`detail-panel`），含：
 - 标题（`module.title`）
 - 摘要（`module.detail`，经清洗）
-- 预览（根据 `preview-strategy.js` 选择变体）
+- 预览（根据热点形状和 mask 可用性选择变体）
 - 追问线程
 - 追问输入框
 
@@ -439,7 +403,7 @@ width: ${width*100}%; height: ${height*100}%;
 
 ### 预览变体
 
-`preview-strategy.js` 根据热点形状和 mask 可用性选择：
+预览策略根据热点形状和 mask 可用性选择：
 
 | 变体 | 类名 | 说明 |
 |------|------|------|
@@ -458,11 +422,13 @@ width: ${width*100}%; height: ${height*100}%;
 点击热点 → 打开详情面板 → 在面板内追问
   │
   ▼
-POST /api/chatimages/:id/hotspots/:hotspotId/thread
-  { question, threadId? }
+GET /api/chatimages/:id/hotspots/:hotspotId/thread
+  读取该热点的历史线程
+POST /api/chatimages/:id/hotspots/:hotspotId/messages
+  { thread }
   │
   ▼
-后端拼装局部上下文：
+前端拼装局部上下文：
   原始问题 + 原始回答 + 当前 hotspot.detail + 该 thread 历史
   │
   ▼
@@ -472,7 +438,7 @@ POST /api/chatimages/:id/hotspots/:hotspotId/thread
 前端在当前热点详情面板中展示多轮回答
 ```
 
-线程消息存储在 `hotspot_messages` 表，通过 `hotspot_threads` 关联。`hotspots.storage_id = ${chatImageId}:${hotspotId}` 避免跨 ChatImage 的主键冲突。
+线程消息存储在 `hotspot_messages` 表，通过 `hotspot_threads` 关联。线程以 `(chat_image_id, hotspot_id)` 保持唯一，热点自身使用 `storage_id = ${chatImageId}:${hotspotId}` 作为内部主键，避免不同 ChatImage 下同名热点冲突。
 
 ---
 
@@ -490,49 +456,54 @@ POST /api/chatimages/:id/hotspots/:hotspotId/thread
 -- ChatImage 主表
 chat_images (
   id TEXT PRIMARY KEY,          -- "ci_xxxxxxxx"
-  question TEXT,
-  raw_answer TEXT,
-  image_url TEXT,
-  image_width INTEGER,
-  image_height INTEGER,
-  title TEXT,
-  summary TEXT,
-  layout TEXT,                  -- JSON LayoutSpec
-  structured_spec TEXT,         -- JSON VisualSpec
-  alignment_raw TEXT,           -- JSON 对齐结果
-  calibration_data TEXT,        -- JSON 校准数据
-  pinned_at INTEGER,            -- 置顶时间戳
-  created_at INTEGER,
-  updated_at INTEGER
+  question TEXT NOT NULL,
+  raw_answer TEXT NOT NULL,
+  title TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  structured_spec_json TEXT NOT NULL DEFAULT '{}',
+  layout_json TEXT NOT NULL,
+  image_url TEXT NOT NULL,
+  image_width INTEGER NOT NULL,
+  image_height INTEGER NOT NULL,
+  image_prompt TEXT NOT NULL DEFAULT '',
+  provider_raw_json TEXT NOT NULL,
+  alignment_raw_json TEXT NOT NULL DEFAULT 'null',
+  pinned_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 )
 
 -- 热点
 hotspots (
-  id TEXT PRIMARY KEY,
-  storage_id TEXT UNIQUE,       -- "${chatImageId}:${hotspotId}"
-  chat_image_id TEXT REFERENCES chat_images(id),
-  hotspot_id TEXT,
-  label TEXT,
-  detail TEXT,
-  bounds TEXT,                  -- JSON {x,y,width,height}
-  alignment_source TEXT,
-  ...
+  storage_id TEXT PRIMARY KEY,  -- "${chatImageId}:${hotspotId}"
+  id TEXT NOT NULL,
+  chat_image_id TEXT NOT NULL REFERENCES chat_images(id) ON DELETE CASCADE,
+  label TEXT NOT NULL,
+  short_text TEXT NOT NULL,
+  detail TEXT NOT NULL,
+  source_excerpt TEXT NOT NULL,
+  icon_hint TEXT NOT NULL,
+  bounds_json TEXT NOT NULL,    -- JSON {x,y,width,height,...}
+  UNIQUE (chat_image_id, id)
 )
 
 -- 追问线程
 hotspot_threads (
   id TEXT PRIMARY KEY,
-  hotspot_storage_id TEXT REFERENCES hotspots(storage_id),
-  created_at INTEGER
+  chat_image_id TEXT NOT NULL REFERENCES chat_images(id) ON DELETE CASCADE,
+  hotspot_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (chat_image_id, hotspot_id)
 )
 
 -- 线程消息
 hotspot_messages (
   id TEXT PRIMARY KEY,
-  thread_id TEXT REFERENCES hotspot_threads(id),
-  role TEXT,                    -- user | assistant
-  content TEXT,
-  created_at INTEGER
+  thread_id TEXT NOT NULL REFERENCES hotspot_threads(id) ON DELETE CASCADE,
+  role TEXT NOT NULL,           -- user | assistant
+  content TEXT NOT NULL,
+  created_at TEXT NOT NULL
 )
 ```
 
@@ -546,9 +517,10 @@ hotspot_messages (
 | POST | `/api/chatimages` | 生成并持久化 ChatImage |
 | GET | `/api/chatimages` | 列出最近的 ChatImage |
 | GET | `/api/chatimages/:id` | 加载已保存的 ChatImage |
-| PATCH | `/api/chatimages/:id` | 更新校准数据 / 置顶 |
+| PATCH | `/api/chatimages/:id` | 更新标题或置顶状态 |
 | DELETE | `/api/chatimages/:id` | 删除 ChatImage |
-| POST | `/api/chatimages/:id/hotspots/:hotspotId/thread` | 热点追问 |
+| GET | `/api/chatimages/:id/hotspots/:hotspotId/thread` | 读取某个热点的追问线程 |
+| POST | `/api/chatimages/:id/hotspots/:hotspotId/messages` | 保存某个热点的完整追问线程 |
 | POST | `/api/llm` | 文本模型代理 |
 | POST | `/api/image` | 图像生成代理 |
 | POST | `/api/vision` | 视觉对齐代理 |
@@ -557,7 +529,7 @@ hotspot_messages (
 
 ### 请求校验
 
-- `validation.js` 校验 payload 结构、图像 URL 协议（仅 `http(s)` / `data:image`）、热点边界（0~1）
+- 服务端校验 payload 结构、图像 URL 协议（仅 `http(s)` / `data:image`）、热点边界（0~1）
 - SSRF 防护：拒绝 localhost / 私有 IP
 - 并发闸门：`CHATIMAGE_MAX_UPSTREAM_REQUESTS=4`，超限返回 429
 
@@ -580,7 +552,7 @@ hotspot_messages (
 
 ### 浏览器测试契约
 
-`browser.test.js` 在 1440×1000（桌面）和 390×920（移动）视口下断言：
+浏览器测试在 1440×1000（桌面）和 390×920（移动）视口下断言：
 
 - 热点常态：`borderTopWidth=0px`、`backgroundColor=transparent`、`::after content=none`
 - 校准态：`outlineStyle=solid`、背景非透明、`::before` 非 none
@@ -614,8 +586,8 @@ hotspot_messages (
 
 - **文件上传**：仅支持文本类文件（代码/MD/CSV/JSON/日志），最多 5 个 × 512KB，12,000 字符上限。PDF/Word/PPT/Excel/图片/压缩包不支持。
 - **在线视觉稳定性**：LocateAnything/MiMo 视觉定位在复杂地图场景下仍可能漏检模块，依赖上游模型质量。
-- **`app.js` 单文件**：~1900 行 IIFE，未拆分（列为后续 P1 重构项）。
-- **`styles.css`**：已从 4600 行重写为 2200 行单一来源，但仍可进一步拆分为 base/layout/components。
+- **前端编排仍偏集中**：当前浏览器编排逻辑仍适合继续拆成状态、事件、渲染协调和历史管理几个单元。
+- **样式仍可继续分层**：虽然样式已经收敛为单一来源，但后续仍可以按 base、layout、components 拆分。
 
 ---
 
@@ -628,7 +600,7 @@ hotspot_messages (
 | `CHATIMAGE_PORT` | `5178` | 本地服务器端口 |
 | `CHATIMAGE_TEXT_API_KEY` | — | 文本模型 API 密钥 |
 | `CHATIMAGE_TEXT_BASE_URL` | — | OpenAI 兼容文本 API 基础 URL |
-| `CHATIMAGE_TEXT_MODEL` | `gpt-5.5` | 文本模型名称 |
+| `CHATIMAGE_TEXT_MODEL` | `mimo-v2.5-pro` | 文本模型名称 |
 | `CHATIMAGE_API_KEY` | — | 图像生成 API 密钥 |
 | `CHATIMAGE_IMAGE_MODEL` | — | 图像模型名称（仅显示） |
 | `CHATIMAGE_VISION_MODE` | `local-ocr` | 视觉对齐模式 |
@@ -653,7 +625,7 @@ hotspot_messages (
 
 1. `GET /api/config` → 报告密钥可用性
 2. `GET /api/llm/health` → 文本模型预检
-3. `CHATIMAGE_VISION_ENDPOINT` 已配置（或默认 Wuyin GPT5.5）
+3. `CHATIMAGE_VISION_ENDPOINT` 已配置（或使用默认视觉端点）
 4. `GET /api/vision/health` → `ok:true, imageVisible:true`
 
 *本报告由项目开发团队维护。如有疑问请提 [GitHub Issue](https://github.com/wencanjiang/ChatImage/issues)。*

@@ -118,6 +118,15 @@
                   : repaired, textMeta);
               } catch (repairError) {
                 if (hasSevereTopicMismatch(warnings)) {
+                  if (shouldUseExplicitVisualFallback(question, structureModel)) {
+                    const fallback = buildExplicitVisualFallback(question, structureModel);
+                    const fallbackWarnings = warnings
+                      .concat(`repair_failed:${repairError.message || repairError}`)
+                      .filter((warning) => !isSevereStructureQualityWarning(warning));
+                    return attachTextModelMeta(structureModel.attachQualityWarnings
+                      ? structureModel.attachQualityWarnings(fallback, fallbackWarnings)
+                      : fallback, textMeta);
+                  }
                   throw createSevereStructureQualityError(
                     warnings.concat(`repair_failed:${repairError.message || repairError}`)
                   );
@@ -150,6 +159,19 @@
           ? structureModel.attachQualityWarnings(normalized, nonBlockingWarnings)
           : normalized;
       }
+    };
+  }
+
+  function shouldUseExplicitVisualFallback(question, structureModel) {
+    const text = String(question || "");
+    return /(module titles must be exactly|only clickable|唯一可点击|模块标题必须)/i.test(text);
+  }
+
+  function buildExplicitVisualFallback(question, structureModel) {
+    const rawAnswer = String(question || "");
+    return {
+      rawAnswer,
+      visualSpec: structureModel.buildMockSpec(question, rawAnswer)
     };
   }
 
