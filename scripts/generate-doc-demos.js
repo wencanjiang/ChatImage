@@ -12,7 +12,7 @@ const cacheDir = path.join(rootDir, "tmp", "image-cache");
 const DISPLAY_ORDER = [
   "real-west-lake-tour-map",
   "real-poet-comparison-li-bai-shakespeare",
-  "real-zju-yuquan-campus-map",
+  "real-zju-yuquan-mao-statue-scene",
   "real-transformer-development-timeline",
   "real-healthy-breakfast-options",
   "real-boutique-coffee-scene",
@@ -154,53 +154,60 @@ const CASES = [
     }
   },
   {
-    id: "real-zju-yuquan-campus-map",
-    chatImageId: "ci_4bf22693-6d1d-43b0-8818-79e4f04c88f0",
-    category: "map",
-    categoryLabel: "map",
-    title: "Zhejiang University Yuquan campus map",
-    originalTitle: "Zhejiang University Yuquan campus map",
+    id: "real-zju-yuquan-mao-statue-scene",
+    chatImageId: "ci_a8245124-5244-46d9-abff-7f7d4578f0bd",
+    category: "scene",
+    categoryLabel: "scene",
+    title: "Zhejiang University Yuquan Mao statue scene",
+    originalTitle: "Zhejiang University Yuquan Mao statue scene",
     question:
-      "Create a refined hand-drawn scenic orientation map of Zhejiang University Yuquan Campus. Fact anchors: Yuquan Campus is at 38 Zheda Road, Xihu District, Hangzhou; it backs onto Laohe Mountain; it is next to Hangzhou Botanical Garden; Yuquan Library is a real campus library; the campus has a strong engineering and teaching identity. The only clickable regions are Zheda Road 38 Address Edge, Campus Main Walk, Engineering Teaching Zone, Yuquan Library, Hangzhou Botanical Garden Edge, and Laohe Mountain Backdrop.",
-    modeLabel: "strict campus orientation map",
+      "Create a refined painterly scenic view with a reference-style composition of the Mao Zedong statue area at Zhejiang University Yuquan Campus: a white standing statue is centered on a stone pedestal, with a broad lawn and plaza in front, trees on both sides, a main academic building facade behind it, and Laohe Mountain under a pink-purple sunset sky in the background. Fact anchors: Yuquan Campus is at 38 Zheda Road, Xihu District, Hangzhou; it backs onto Laohe Mountain; the campus has mature greenery and teaching-building surroundings. The only clickable targets are White Statue, Stone Pedestal, Front Lawn, Main Building, Left Tree Canopy, and Right Tree Canopy. Each clickable target should explain its visual role in the campus scene and its orientation value without inventing unsupported building names, gate names, slogans, exact dates, or map geometry.",
+    modeLabel: "strict campus landmark scene",
+    publishedStringReplacements: {
+      "based on a reference photo of": "with a reference-style composition of",
+      "Follow the attached reference photo composition": "Follow a reference-style wide campus composition"
+    },
     publishedHotspotLabelReplacements: {
-      "Zheda Road 38 Entrance": "Zheda Road 38 Address Edge",
-      "Engineering Teaching": "Engineering Teaching Zone",
-      "Teaching and Engineering": "Engineering Teaching Zone",
-      "Hangzhou Botanical Garde": "Hangzhou Botanical Garden Edge",
-      "Laohe Mountain Green Bac": "Laohe Mountain Backdrop",
-      "Laohe Mountain Green Backdrop": "Laohe Mountain Backdrop"
+      "White statue": "White Statue",
+      "Statue": "White Statue",
+      "Pedestal": "Stone Pedestal",
+      "Stone Base": "Stone Pedestal",
+      "Lawn": "Front Lawn",
+      "Building": "Main Building",
+      "Academic Building": "Main Building",
+      "Left Trees": "Left Tree Canopy",
+      "Right Trees": "Right Tree Canopy"
     },
     publishedHotspotText: {
-      "Zheda Road 38 Address Edge": {
-        shortText: "Address-side orientation",
+      "White Statue": {
+        shortText: "Campus landmark",
         detail:
-          "The Zheda Road 38 address edge gives the guide a stable public-facing reference for Zhejiang University's Yuquan Campus in Xihu District, helping visitors orient themselves before moving into the campus."
+          "The white standing statue is the central landmark in this Yuquan scene, giving the viewer a stable visual anchor without adding unsupported slogans or memorial details."
       },
-      "Campus Main Walk": {
-        shortText: "Campus movement spine",
+      "Stone Pedestal": {
+        shortText: "Raised visual base",
         detail:
-          "The main walk organizes movement through the illustrated campus guide, linking academic buildings, study areas, and landscape context into an easy-to-follow route."
+          "The stone pedestal lifts the statue above the plaza and makes the central landmark visually readable from the surrounding campus space."
       },
-      "Engineering Teaching Zone": {
-        shortText: "Engineering academic core",
+      "Front Lawn": {
+        shortText: "Open foreground",
         detail:
-          "The engineering teaching zone represents Yuquan's academic identity, emphasizing engineering education, laboratories, and classroom activity without naming unsupported individual buildings."
+          "The front lawn provides a clear foreground plane, separating the viewer from the statue plaza while preserving the quiet campus atmosphere."
       },
-      "Yuquan Library": {
-        shortText: "Study landmark",
+      "Main Building": {
+        shortText: "Academic surroundings",
         detail:
-          "Yuquan Library is presented as a study-oriented campus landmark, giving visitors a recognizable academic destination within the orientation map."
+          "The main building facade provides academic context for Yuquan while avoiding unsupported individual building names or precise floor-plan claims."
       },
-      "Hangzhou Botanical Garden Edge": {
-        shortText: "Nearby orientation context",
+      "Left Tree Canopy": {
+        shortText: "Left landscape frame",
         detail:
-          "The Botanical Garden edge provides nearby orientation context, showing how Yuquan sits close to the greenery and walking routes of the West Lake area."
+          "The left tree canopy frames the statue and reflects the mature landscape character around the Yuquan campus scene."
       },
-      "Laohe Mountain Backdrop": {
-        shortText: "Mountain setting",
+      "Right Tree Canopy": {
+        shortText: "Right landscape frame",
         detail:
-          "The Laohe Mountain green backdrop places the campus in its hillside setting and explains why Yuquan's environment feels closely connected to the surrounding landscape."
+          "The right tree canopy balances the composition and helps separate the central statue from the academic building and mountain backdrop."
       }
     }
   }
@@ -345,17 +352,23 @@ function applyPublishedHotspotText(testCase, state) {
 }
 
 function replacePublishedStrings(testCase, value) {
-  const replacements =
+  const labelReplacements =
     testCase && testCase.publishedHotspotLabelReplacements && typeof testCase.publishedHotspotLabelReplacements === "object"
       ? testCase.publishedHotspotLabelReplacements
       : {};
-  const entries = Object.entries(replacements);
+  const stringReplacements =
+    testCase && testCase.publishedStringReplacements && typeof testCase.publishedStringReplacements === "object"
+      ? testCase.publishedStringReplacements
+      : {};
+  const entries = [...Object.entries(labelReplacements), ...Object.entries(stringReplacements)];
   if (!entries.length || !value || typeof value !== "object") return value;
   const replaceText = (text) => {
     let next = String(text);
     for (const [from, to] of entries) {
       if (next === from) {
         next = to;
+      } else if (Object.prototype.hasOwnProperty.call(stringReplacements, from)) {
+        next = next.split(from).join(to);
       } else if (from === "Zheda Road 38 Entrance") {
         next = next.replace(/Zheda Road 38 Entrance/g, to);
       } else if (from === "Engineering Teaching") {

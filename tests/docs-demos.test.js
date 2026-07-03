@@ -17,7 +17,7 @@ function main() {
   const expectedDemoOrder = [
     "real-west-lake-tour-map",
     "real-poet-comparison-li-bai-shakespeare",
-    "real-zju-yuquan-campus-map",
+    "real-zju-yuquan-mao-statue-scene",
     "real-transformer-development-timeline",
     "real-healthy-breakfast-options",
     "real-boutique-coffee-scene",
@@ -49,7 +49,7 @@ function main() {
   assert.match(html, /real-healthy-breakfast-options\.png/, "showcase should include the new strict healthy breakfast demo");
   assert.match(html, /real-poet-comparison-li-bai-shakespeare\.png/, "showcase should include the strict poet comparison demo");
   assert.match(html, /real-transformer-development-timeline\.png/, "showcase should include the strict Transformer timeline demo");
-  assert.match(html, /real-zju-yuquan-campus-map\.png/, "showcase should include the strict Yuquan campus map demo");
+  assert.match(html, /real-zju-yuquan-mao-statue-scene\.png/, "showcase should include the strict Yuquan Mao statue scene demo");
   assert.doesNotMatch(html, /real-smart-home-living-room/, "weaker smart-home demo should be replaced in the showcase");
   assert.doesNotMatch(html, /real-airport-terminal-map/, "airport terminal demo should not be shown");
   assert.doesNotMatch(html, /real-public-health-poster/, "public health poster demo should not be shown");
@@ -59,6 +59,7 @@ function main() {
   assert.doesNotMatch(html, /demoRegionList|demo-region-button/, "viewer should not add a right-side scenic spot list");
   assert.doesNotMatch(html, /id="demoPopoverTitle"|id="demoPopoverDetail"/, "demo lightbox should not use an on-image detail popover");
   assert.doesNotMatch(html, /real-react-performance-debug-flow|real-oauth2-flow|real-ecommerce-funnel/, "planned-source demos should not be shown");
+  assert.doesNotMatch(html, /attached reference photo|based on a reference photo/i, "published copy prompts should not depend on unavailable reference attachments");
 
   const categories = new Set();
   const modes = new Set();
@@ -117,6 +118,11 @@ function main() {
       serializedDemo,
       /"targetDescription"|"providerRaw"|"alignmentRaw"/,
       `${entry.id} should not publish raw provider debug payloads`
+    );
+    assert.doesNotMatch(
+      serializedDemo,
+      /attached reference photo|based on a reference photo/i,
+      `${entry.id} should not publish prompts that depend on unavailable reference attachments`
     );
     assert.strictEqual(demo.source, "real-chatimage-curated-runs", `${entry.id} json should be sourced from curated real runs`);
     assert.strictEqual(demo.image, entry.image, `${entry.id} image path mismatch`);

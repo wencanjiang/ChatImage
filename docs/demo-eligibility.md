@@ -19,7 +19,7 @@ Record which everyday ChatImage prompts are suitable for strict visual grounding
 - `plant-care-corner`: accepted. Five plant-care objects pass the current strict export gate.
 - `poet-comparison-li-bai-shakespeare`: accepted on 2026-07-02. Six comparison targets are exported from a real ChatImage run; prompt-fragment extras are filtered by the explicit module whitelist before publication.
 - `transformer-development-timeline`: accepted on 2026-07-02. Six visible milestones pass the current strict export gate.
-- `zju-yuquan-campus-map`: accepted on 2026-07-02 after regeneration. Six fact-anchored orientation regions pass the current strict export gate: Zheda Road 38 address edge, campus main walk, engineering teaching zone, Yuquan Library, Hangzhou Botanical Garden edge, and Laohe Mountain backdrop.
+- `zju-yuquan-mao-statue-scene`: accepted on 2026-07-03 after reference-guided regeneration. Six visually grounded scene targets pass the current strict export gate: white statue, stone pedestal, front lawn, main building, left tree canopy, and right tree canopy.
 
 ## Risky Task Families
 - Dense flat-lay many-small-item scenes, such as emergency kits, fridge containers, skincare bottles, stationery, and small tools.
@@ -39,7 +39,8 @@ Record which everyday ChatImage prompts are suitable for strict visual grounding
 - `neighborhood-library-map`: rejected. The run included Mimo/planned fallback and prompt-fragment artifacts before the truncation filter fix.
 - Early `poet-comparison-li-bai-shakespeare` attempts: rejected because the structure stage split factual dates and prompt text into extra modules before explicit target whitelisting.
 - Early `transformer-development-timeline` attempts: rejected when abstract fallback modules replaced concrete milestone targets.
-- Early `zju-yuquan-campus-map` attempts: rejected when the image implied unsupported campus geometry or used overly generic campus areas. The public version uses official address/context anchors and presents Yuquan as a scenic orientation guide rather than a precise GIS-style campus map.
+- Early `zju-yuquan-campus-map` attempts: rejected when the image implied unsupported campus geometry or used overly generic campus areas. The map-style concept was retired because the generator could not reliably preserve both real campus geography and strict SAM-friendly hotspot regions.
+- Early `zju-yuquan-mao-statue-scene` attempts: rejected when broad conceptual regions such as the whole mountain, lawn, or building facade either fell back to planned grounding or produced fragmented SAM masks. The accepted version uses simpler separated objects and areas derived from the user-provided reference photo.
 
 ## Pipeline Fixes
 - Added a hard scaffold-module filter after structure generation and before layout/grounding.

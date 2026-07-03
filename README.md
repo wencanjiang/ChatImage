@@ -120,7 +120,7 @@ Published demos are curated for visible, useful interaction. The West Lake showc
 | Indoor plant care corner | Scene | 5 | Small daily-care objects are distinct and easy to explain. |
 | Li Bai and Shakespeare comparison | Comparison | 6 | A fact-checked literary comparison with two poets, separate cultural motifs, and no invented historical contact. |
 | Transformer development timeline | Academic | 6 | Six technical milestones remain clickable as a compact academic timeline. |
-| Zhejiang University Yuquan campus map | Map | 6 | A fact-anchored scenic orientation map around the Zheda Road 38 address edge, campus walkways, the engineering teaching zone, Yuquan Library, the Botanical Garden edge, and Laohe Mountain. |
+| Zhejiang University Yuquan Mao statue scene | Scene | 6 | A reference-guided campus landmark view with clickable statue, pedestal, lawn, building facade, and tree canopies. |
 
 Weak or rejected cases are tracked in `docs/demo-eligibility.md` to keep the public demo honest about failure modes.
 

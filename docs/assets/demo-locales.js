@@ -73,13 +73,13 @@
       module_5: both("2020 GPT-3", "GPT-3 pushed scaling further and made few-shot prompting a central interaction pattern.", "2020 GPT-3", "GPT-3 进一步推动规模化，并让少样本提示成为重要交互方式。"),
       module_6: both("2022 ChatGPT", "ChatGPT represents the shift toward instruction-following and conversational interactive use.", "2022 ChatGPT", "ChatGPT 代表从模型能力走向指令遵循和对话式交互使用的阶段。")
     },
-    "real-zju-yuquan-campus-map": {
-      module_1: both("Zheda Road 38 Address Edge", "The address edge gives the guide a stable public-facing reference for Zhejiang University's Yuquan Campus in Xihu District.", "浙大路38号地址边界", "浙大路 38 号地址边界为玉泉校区提供清晰的外部方位参照，帮助访客先确认到达位置。"),
-      module_2: both("Campus Main Walk", "The main walk organizes movement inside the illustrative campus map and connects the visible academic, library, and landscape areas.", "校园主路", "校园主路组织示意图内部动线，连接教学、图书馆和景观背景区域。"),
-      module_3: both("Engineering Teaching Zone", "This zone represents Yuquan's engineering-oriented academic core.", "工科教学区", "工科教学区代表玉泉校区的学术核心，突出工程教育、实验与课堂活动的校园特征。"),
-      module_4: both("Yuquan Library", "The library is presented as a study-oriented campus landmark within the orientation map.", "玉泉图书馆", "玉泉图书馆作为学习导向的校内地标出现，为访客提供清晰的学术目的地参照。"),
-      module_5: both("Hangzhou Botanical Garden Edge", "The botanical-garden edge provides nearby orientation context for the surrounding West Lake area.", "杭州植物园相邻边界", "杭州植物园相邻边界用于说明校区周边方位关系，连接玉泉与西湖片区的绿色步行环境。"),
-      module_6: both("Laohe Mountain Backdrop", "The mountain backdrop places Yuquan in its hillside landscape setting.", "老和山背景", "老和山背景把校区放回山体环境之中，说明玉泉与周边自然景观的关系。")
+    "real-zju-yuquan-mao-statue-scene": {
+      module_1: both("White Statue", "The statue is the central landmark of this Yuquan campus scene.", "白色塑像", "白色塑像是这个玉泉校园场景的中心地标，为视觉导览提供稳定锚点。"),
+      module_2: both("Stone Pedestal", "The pedestal lifts the statue above the plaza and makes the landmark readable.", "石质基座", "石质基座把塑像抬升到广场之上，让中心地标在校园空间中更加清晰。"),
+      module_3: both("Front Lawn", "The lawn creates a calm foreground plane in front of the statue plaza.", "前景草坪", "前景草坪形成开阔安静的视觉前景，把观看者与塑像广场自然分隔开。"),
+      module_4: both("Main Building", "The building facade provides academic campus context without naming unsupported individual buildings.", "主教学楼立面", "主教学楼立面提供玉泉校区的学术环境语境，同时避免虚构具体楼名。"),
+      module_5: both("Left Tree Canopy", "The left canopy frames the statue and reflects Yuquan's mature greenery.", "左侧树冠", "左侧树冠围合塑像区域，体现玉泉校区成熟的绿化景观。"),
+      module_6: both("Right Tree Canopy", "The right canopy balances the scene and separates the statue from the background.", "右侧树冠", "右侧树冠平衡画面构图，也帮助中心塑像从楼体和远山背景中分离出来。")
     }
   };
 

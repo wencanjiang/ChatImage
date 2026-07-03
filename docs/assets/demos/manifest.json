@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-02T09:03:41.309Z",
+  "generatedAt": "2026-07-03T09:55:13.474Z",
   "source": "real-chatimage-curated-runs",
   "demoCount": 9,
   "notes": [
@@ -55,27 +55,28 @@
       "generatedAt": "2026-07-02T06:32:28.987Z"
     },
     {
-      "id": "real-zju-yuquan-campus-map",
-      "chatImageId": "ci_4bf22693-6d1d-43b0-8818-79e4f04c88f0",
-      "title": "Zhejiang University Yuquan campus map",
-      "originalTitle": "Zhejiang University Yuquan campus map",
-      "category": "map",
-      "categoryLabel": "map",
-      "question": "Create a refined hand-drawn orientation map of Zhejiang University Yuquan Campus. Fact anchors: Yuquan Campus is at 38 Zheda Road, Xihu District, Hangzhou; it is within walking distance of West Lake and Hangzhou Botanical Garden; it backs onto Laohe Mountain. The only clickable regions are Zheda Road 38 Entrance, Campus Main Walk, Teaching and Engineering Buildings, Yuquan Library, Hangzhou Botanical Garden Edge, and Laohe Mountain Green Backdrop. Explain orientation, campus use, and visiting or study context for each region. Do not invent specific building names, false gate names, exact street geometry, or a precise floor-plan-style campus layout.",
-      "image": "assets/demos/real-zju-yuquan-campus-map.png",
-      "thumbnail": "assets/demos/real-zju-yuquan-campus-map.png",
-      "json": "assets/demos/real-zju-yuquan-campus-map.json",
-      "visualMode": "poster",
-      "layoutFamily": "grid",
-      "layoutVariant": "poster",
-      "modeLabel": "strict campus orientation map",
+      "id": "real-zju-yuquan-mao-statue-scene",
+      "chatImageId": "ci_a8245124-5244-46d9-abff-7f7d4578f0bd",
+      "title": "Zhejiang University Yuquan Mao statue scene",
+      "originalTitle": "Zhejiang University Yuquan Mao statue scene",
+      "category": "scene",
+      "categoryLabel": "scene",
+      "question": "Create a refined painterly scenic view with a reference-style composition of the Mao Zedong statue area at Zhejiang University Yuquan Campus: a white standing statue is centered on a stone pedestal, with a broad lawn and plaza in front, trees on both sides, a main academic building facade behind it, and Laohe Mountain under a pink-purple sunset sky in the background. Fact anchors: Yuquan Campus is at 38 Zheda Road, Xihu District, Hangzhou; it backs onto Laohe Mountain; the campus has mature greenery and teaching-building surroundings. The only clickable targets are White Statue, Stone Pedestal, Front Lawn, Main Building, Left Tree Canopy, and Right Tree Canopy. Each clickable target should explain its visual role in the campus scene and its orientation value without inventing unsupported building names, gate names, slogans, exact dates, or map geometry.",
+      "image": "assets/demos/real-zju-yuquan-mao-statue-scene.png",
+      "thumbnail": "assets/demos/real-zju-yuquan-mao-statue-scene.png",
+      "json": "assets/demos/real-zju-yuquan-mao-statue-scene.json",
+      "visualMode": "scene",
+      "layoutFamily": "compare",
+      "layoutVariant": "scene",
+      "modeLabel": "strict campus landmark scene",
       "hotspotCount": 6,
       "source": "real-chatimage-curated-runs",
       "alignmentProvider": "locateanything",
       "sourceCounts": {
-        "mimo-vision": 6
+        "mimo-vision": 5,
+        "locateanything-crop": 1
       },
-      "generatedAt": "2026-07-02T07:55:06.585Z"
+      "generatedAt": "2026-07-03T09:23:15.875Z"
     },
     {
       "id": "real-transformer-development-timeline",
