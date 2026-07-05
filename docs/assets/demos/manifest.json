@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-03T09:55:13.474Z",
+  "generatedAt": "2026-07-05T17:34:22.392Z",
   "source": "real-chatimage-curated-runs",
   "demoCount": 9,
   "notes": [
@@ -29,7 +29,7 @@
       "sourceCounts": {
         "mimo-vision": 9
       },
-      "generatedAt": "2026-06-26T05:46:35.382Z"
+      "generatedAt": "2026-07-05T17:34:22.150Z"
     },
     {
       "id": "real-poet-comparison-li-bai-shakespeare",
@@ -50,13 +50,14 @@
       "source": "real-chatimage-curated-runs",
       "alignmentProvider": "locateanything",
       "sourceCounts": {
-        "mimo-vision": 6
+        "locateanything": 2,
+        "mimo-vision": 4
       },
-      "generatedAt": "2026-07-02T06:32:28.987Z"
+      "generatedAt": "2026-07-05T17:13:22.696Z"
     },
     {
       "id": "real-zju-yuquan-mao-statue-scene",
-      "chatImageId": "ci_a8245124-5244-46d9-abff-7f7d4578f0bd",
+      "chatImageId": "ci_reference_zju_yuquan_mao_statue_scene",
       "title": "Zhejiang University Yuquan Mao statue scene",
       "originalTitle": "Zhejiang University Yuquan Mao statue scene",
       "category": "scene",
@@ -68,15 +69,14 @@
       "visualMode": "scene",
       "layoutFamily": "compare",
       "layoutVariant": "scene",
-      "modeLabel": "strict campus landmark scene",
+      "modeLabel": "strict reference-aligned campus scene",
       "hotspotCount": 6,
       "source": "real-chatimage-curated-runs",
       "alignmentProvider": "locateanything",
       "sourceCounts": {
-        "mimo-vision": 5,
-        "locateanything-crop": 1
+        "mimo-vision": 6
       },
-      "generatedAt": "2026-07-03T09:23:15.875Z"
+      "generatedAt": "2026-07-05T17:24:31.902Z"
     },
     {
       "id": "real-transformer-development-timeline",
@@ -146,7 +146,7 @@
         "mimo-vision": 5,
         "locateanything-crop": 1
       },
-      "generatedAt": "2026-06-23T11:50:16.787Z"
+      "generatedAt": "2026-07-05T16:45:55.308Z"
     },
     {
       "id": "real-sunny-reading-nook",
@@ -167,10 +167,11 @@
       "source": "real-chatimage-curated-runs",
       "alignmentProvider": "locateanything",
       "sourceCounts": {
-        "locateanything": 1,
-        "mimo-vision": 4
+        "locateanything-crop": 1,
+        "locateanything": 3,
+        "mimo-vision": 1
       },
-      "generatedAt": "2026-06-25T13:43:46.302Z"
+      "generatedAt": "2026-07-05T17:19:09.476Z"
     },
     {
       "id": "real-record-store-corner",
