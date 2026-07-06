@@ -37,7 +37,12 @@ def repair_hotspot_mask(source, hotspot):
         cutout = build_cutout(source, filled, bounds)
         if cutout:
             mask["cutoutImage"] = cutout
-        organic = build_organic(source, filled, bounds)
+        organic = build_low_score_context_preview(source, hotspot) if should_use_context_preview(mask, hotspot) else None
+        if organic:
+            mask["organicPreviewFallback"] = "context-crop-low-score"
+        else:
+            mask.pop("organicPreviewFallback", None)
+            organic = build_organic(source, filled, bounds)
         if organic:
             mask["organicImage"] = organic["image"]
             mask["organicBounds"] = organic["bounds"]
@@ -54,6 +59,51 @@ def repair_hotspot_mask(source, hotspot):
         }
     )
     mask["quality"] = quality
+
+
+def should_use_context_preview(mask, hotspot):
+    try:
+        score = float(mask.get("score", 1))
+    except Exception:
+        score = 1
+    region_kind = str(hotspot.get("regionKind") or "").lower()
+    mask_policy = str(hotspot.get("maskPolicy") or "").lower()
+    return score < 0.35 and region_kind in {"person", "object"} and mask_policy in {"subject", "subject-with-label", ""}
+
+
+def build_low_score_context_preview(source, hotspot):
+    bounds = normalize_bounds(hotspot.get("bounds") or hotspot)
+    if not bounds:
+        return None
+    width, height = source.size
+    pad_x = bounds["width"] * 0.16
+    pad_y = bounds["height"] * 0.12
+    expanded = {
+        "x": max(0.0, bounds["x"] - pad_x),
+        "y": max(0.0, bounds["y"] - pad_y),
+        "width": min(1.0, bounds["width"] + pad_x * 2),
+        "height": min(1.0, bounds["height"] + pad_y * 2),
+    }
+    if expanded["x"] + expanded["width"] > 1:
+        expanded["width"] = 1 - expanded["x"]
+    if expanded["y"] + expanded["height"] > 1:
+        expanded["height"] = 1 - expanded["y"]
+    box = bounds_to_pixels(expanded, width, height)
+    if not box:
+        return None
+    x0, y0, x1, y1 = box
+    crop = source.crop((x0, y0, x1, y1)).convert("RGBA")
+    crop.thumbnail((640, 640), Image.Resampling.LANCZOS)
+    return {
+        "image": rgba_to_data_url(crop),
+        "bounds": {
+            "x": round(x0 / width, 6),
+            "y": round(y0 / height, 6),
+            "width": round((x1 - x0) / width, 6),
+            "height": round((y1 - y0) / height, 6),
+        },
+        "aspectRatio": round(crop.width / max(1, crop.height), 6),
+    }
 
 
 def alpha_from_data_url(value):

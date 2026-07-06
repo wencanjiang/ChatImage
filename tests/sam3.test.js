@@ -32,6 +32,8 @@ async function main() {
   await testMapRegionInputBoundsAreContextual();
   await testRefineFailureDoesNotBlockAlignment();
   testSam3WorkerFillsRouteMaskHoles();
+  testSam3WorkerFillsMaskHolesWithoutCv2();
+  testRepairDemoMaskAssetsUsesContextPreviewForLowScoreSubject();
   testNormalizeRejectsInvalidMaskBounds();
   testConfigRequiresExplicitEnableAndAck();
   console.log("sam3.test.js passed");
@@ -532,6 +534,50 @@ assert not warnings, warnings
 assert bool(processed[20, 20])
 assert quality.get("holeCount") == 0, quality
 assert quality.get("filledHolePixels") > 0, quality
+`;
+  const result = spawnSync("python", ["-c", script], {
+    cwd: process.cwd(),
+    encoding: "utf8"
+  });
+  assert.strictEqual(result.status, 0, result.stderr || result.stdout);
+}
+
+function testSam3WorkerFillsMaskHolesWithoutCv2() {
+  const script = `
+import importlib.util
+import numpy as np
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("sam3_worker", Path("scripts/sam3_worker.py"))
+worker = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(worker)
+alpha = np.ones((32, 32), dtype=np.uint8) * 255
+alpha[8:24, 8:24] = 0
+filled = worker.fill_mask_holes_numpy(alpha)
+assert filled[16, 16] == 255
+assert filled[0, 0] == 255
+`;
+  const result = spawnSync("python", ["-c", script], {
+    cwd: process.cwd(),
+    encoding: "utf8"
+  });
+  assert.strictEqual(result.status, 0, result.stderr || result.stdout);
+}
+
+function testRepairDemoMaskAssetsUsesContextPreviewForLowScoreSubject() {
+  const script = `
+import importlib.util
+from pathlib import Path
+from PIL import Image
+spec = importlib.util.spec_from_file_location("repair_demo_mask_assets", Path("scripts/repair_demo_mask_assets.py"))
+repair = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(repair)
+source = Image.new("RGBA", (100, 80), (255, 255, 255, 255))
+hotspot = {"regionKind": "person", "maskPolicy": "subject", "bounds": {"x": 0.2, "y": 0.3, "width": 0.4, "height": 0.4}}
+mask = {"score": 0.2}
+assert repair.should_use_context_preview(mask, hotspot)
+preview = repair.build_low_score_context_preview(source, hotspot)
+assert preview and preview["image"].startswith("data:image/png;base64,")
+assert preview["bounds"]["y"] < hotspot["bounds"]["y"]
 `;
   const result = spawnSync("python", ["-c", script], {
     cwd: process.cwd(),

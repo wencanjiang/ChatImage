@@ -65,9 +65,9 @@ async function main() {
 
     // hero is a single image; clicking a hotspot opens a popover (preview + title + detail).
     const heroSrc = await cdp.evaluate(`document.querySelector("#heroStageImg").getAttribute("src")`);
-    assert.ok(heroSrc.includes("real-west-lake-tour-map.png"), "docs hero should use the regenerated strict West Lake demo");
+    assert.ok(heroSrc.includes("real-zju-yuquan-mao-statue-scene.png"), "docs hero should use the latest reference-aligned Yuquan Mao statue demo");
     await cdp.waitForFunction(
-      `document.querySelectorAll("#heroHotspots .hero-hotspot").length === 9`,
+      `document.querySelectorAll("#heroHotspots .hero-hotspot").length === 6`,
       8000
     );
     // popover starts closed

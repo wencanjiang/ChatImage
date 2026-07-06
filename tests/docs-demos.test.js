@@ -45,7 +45,7 @@ function main() {
   assert.doesNotMatch(html, /Open full image/, "showcase should not be a static image lightbox");
   assert.doesNotMatch(html, /demo-[a-z0-9-]+\.svg/, "showcase cards should not use mock SVG demos");
   assert.doesNotMatch(html, /hero\.svg/, "hero should use a real generated image");
-  assert.match(html, /real-west-lake-tour-map\.png/, "hero should use the regenerated strict West Lake tour map");
+  assert.match(html, /real-zju-yuquan-mao-statue-scene\.png/, "hero should use the latest reference-aligned Yuquan Mao statue demo");
   assert.match(html, /real-healthy-breakfast-options\.png/, "showcase should include the new strict healthy breakfast demo");
   assert.match(html, /real-poet-comparison-li-bai-shakespeare\.png/, "showcase should include the strict poet comparison demo");
   assert.match(html, /real-transformer-development-timeline\.png/, "showcase should include the strict Transformer timeline demo");

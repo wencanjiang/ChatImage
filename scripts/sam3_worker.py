@@ -466,11 +466,18 @@ def mask_to_organic_preview(image, mask, module=None):
 
 
 def fill_mask_holes(alpha):
-    import cv2
-
     binary = ((alpha > 0).astype(np.uint8) * 255)
     if not np.any(binary):
         return binary
+    try:
+        import cv2
+
+        return fill_mask_holes_cv2(binary, cv2)
+    except Exception:
+        return fill_mask_holes_numpy(binary)
+
+
+def fill_mask_holes_cv2(binary, cv2):
     height, width = binary.shape
     flood = binary.copy()
     mask = np.zeros((height + 2, width + 2), np.uint8)
@@ -485,6 +492,39 @@ def fill_mask_holes(alpha):
         if flood[seed[1], seed[0]] == 0:
             cv2.floodFill(flood, mask, seed, 255)
     exterior = (flood == 255) & (binary == 0)
+    holes = (~exterior) & (binary == 0)
+    filled = binary.copy()
+    filled[holes] = 255
+    return filled
+
+
+def fill_mask_holes_numpy(binary):
+    height, width = binary.shape
+    exterior = np.zeros((height, width), dtype=bool)
+    stack = []
+    for x in range(width):
+        if binary[0, x] == 0:
+            stack.append((0, x))
+        if binary[height - 1, x] == 0:
+            stack.append((height - 1, x))
+    for y in range(1, height - 1):
+        if binary[y, 0] == 0:
+            stack.append((y, 0))
+        if binary[y, width - 1] == 0:
+            stack.append((y, width - 1))
+    while stack:
+        y, x = stack.pop()
+        if exterior[y, x] or binary[y, x] != 0:
+            continue
+        exterior[y, x] = True
+        if y > 0:
+            stack.append((y - 1, x))
+        if y + 1 < height:
+            stack.append((y + 1, x))
+        if x > 0:
+            stack.append((y, x - 1))
+        if x + 1 < width:
+            stack.append((y, x + 1))
     holes = (~exterior) & (binary == 0)
     filled = binary.copy()
     filled[holes] = 255

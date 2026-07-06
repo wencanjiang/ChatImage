@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-05T17:34:22.392Z",
+  "generatedAt": "2026-07-06T10:58:47.994Z",
   "source": "real-chatimage-curated-runs",
   "demoCount": 9,
   "notes": [
@@ -62,7 +62,7 @@
       "originalTitle": "Zhejiang University Yuquan Mao statue scene",
       "category": "scene",
       "categoryLabel": "scene",
-      "question": "Create a refined painterly scenic view with a reference-style composition of the Mao Zedong statue area at Zhejiang University Yuquan Campus: a white standing statue is centered on a stone pedestal, with a broad lawn and plaza in front, trees on both sides, a main academic building facade behind it, and Laohe Mountain under a pink-purple sunset sky in the background. Fact anchors: Yuquan Campus is at 38 Zheda Road, Xihu District, Hangzhou; it backs onto Laohe Mountain; the campus has mature greenery and teaching-building surroundings. The only clickable targets are White Statue, Stone Pedestal, Front Lawn, Main Building, Left Tree Canopy, and Right Tree Canopy. Each clickable target should explain its visual role in the campus scene and its orientation value without inventing unsupported building names, gate names, slogans, exact dates, or map geometry.",
+      "question": "Align the Zhejiang University Yuquan Mao statue scene to its visible regions. The clickable targets are Mao Statue, Stone Pedestal, Front Lawn, Sunset Hillside, Left Tree Canopy, and Right Tree Canopy. Keep every region grounded in the visible campus image without inventing building names, slogans, dates, or map geometry.",
       "image": "assets/demos/real-zju-yuquan-mao-statue-scene.png",
       "thumbnail": "assets/demos/real-zju-yuquan-mao-statue-scene.png",
       "json": "assets/demos/real-zju-yuquan-mao-statue-scene.json",
@@ -76,7 +76,7 @@
       "sourceCounts": {
         "mimo-vision": 6
       },
-      "generatedAt": "2026-07-05T17:24:31.902Z"
+      "generatedAt": "2026-07-06T10:58:47.982Z"
     },
     {
       "id": "real-transformer-development-timeline",

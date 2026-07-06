@@ -11,8 +11,8 @@
   var TEXT = {
     "real-west-lake-tour-map": {
       module_1: both("West Lake Water", "The lake surface is the spatial center of the route, tying islands, bridges, hills, and shoreline gardens into one readable tour map.", "西湖水域", "湖面是整张导览图的空间中心，把岛屿、桥堤、山体和岸线园林组织成一个可读的游览关系。"),
-      module_2: both("Bai Causeway and Broken Bridge", "Broken Bridge is handled within the northern Bai Causeway area so the bridge and causeway stay visually connected instead of drifting into separate labels.", "白堤断桥", "断桥被放在白堤北线区域内，桥与堤保持连续关系，避免出现标签和视觉位置脱节。"),
-      module_3: both("Su Causeway", "Su Causeway is the north-south green corridor across the western part of West Lake, distinct from the more horizontal Bai Causeway.", "苏堤春晓", "苏堤是西湖西侧纵向贯穿的绿色长堤，与更偏横向的白堤形成清晰区别。"),
+      module_2: both("Broken Bridge", "Broken Bridge is the focused northern landmark in this map hotspot, kept separate from the broader lake panorama.", "断桥", "断桥是这一区域中被聚焦的北岸地标，热点避开了过宽的湖面全景。"),
+      module_3: both("Su Causeway", "Su Causeway is the north-south green corridor across the western part of West Lake, distinct from the more horizontal Bai Causeway.", "苏堤", "苏堤是西湖西侧纵向贯穿的绿色长堤，与更偏横向的白堤形成清晰区别。"),
       module_4: both("Three Pools Mirroring the Moon", "This island-and-pagoda landmark sits south of the lake center, combining a compact island, water, and three small stone pagodas.", "三潭印月", "三潭印月位于湖心偏南，由小岛、水面和三座石塔构成紧凑而明确的视觉目标。"),
       module_5: both("Leifeng Pagoda", "Leifeng Pagoda anchors the southern lakeshore and gives the map a recognizable vertical landmark.", "雷峰塔", "雷峰塔作为南岸的竖向地标，帮助用户判断方位并识别西湖南线。"),
       module_6: both("Gushan Hill", "Gushan Hill adds a north-shore cultural and topographic anchor near the Bai Causeway route.", "孤山", "孤山为北岸提供文化和地形锚点，也让白堤一线的空间关系更完整。"),
@@ -74,12 +74,12 @@
       module_6: both("2022 ChatGPT", "ChatGPT represents the shift toward instruction-following and conversational interactive use.", "2022 ChatGPT", "ChatGPT 代表从模型能力走向指令遵循和对话式交互使用的阶段。")
     },
     "real-zju-yuquan-mao-statue-scene": {
-      module_1: both("White Statue", "The statue is the central landmark of this Yuquan campus scene.", "白色塑像", "白色塑像是这个玉泉校园场景的中心地标，为视觉导览提供稳定锚点。"),
-      module_2: both("Stone Pedestal", "The pedestal lifts the statue above the plaza and makes the landmark readable.", "石质基座", "石质基座把塑像抬升到广场之上，让中心地标在校园空间中更加清晰。"),
-      module_3: both("Front Lawn", "The lawn creates a calm foreground plane in front of the statue plaza.", "前景草坪", "前景草坪形成开阔安静的视觉前景，把观看者与塑像广场自然分隔开。"),
-      module_4: both("Main Building", "The building facade provides academic campus context without naming unsupported individual buildings.", "主教学楼立面", "主教学楼立面提供玉泉校区的学术环境语境，同时避免虚构具体楼名。"),
-      module_5: both("Left Tree Canopy", "The left canopy frames the statue and reflects Yuquan's mature greenery.", "左侧树冠", "左侧树冠围合塑像区域，体现玉泉校区成熟的绿化景观。"),
-      module_6: both("Right Tree Canopy", "The right canopy balances the scene and separates the statue from the background.", "右侧树冠", "右侧树冠平衡画面构图，也帮助中心塑像从楼体和远山背景中分离出来。")
+      module_1: both("Mao Statue", "The Mao statue is the central foreground subject, warmed by sunset light while still reading as the campus monument.", "毛像", "毛像是画面中央的前景主体，在夕照中仍然作为校园纪念性地标被清楚识别。"),
+      module_2: both("Stone Pedestal", "The stone pedestal is the rectangular base directly below the Mao statue, separated from the statue body.", "石质基座", "石质基座是毛像正下方的矩形底座，与雕像身体分开，方便独立检查。"),
+      module_3: both("Front Lawn", "The front lawn forms the open foreground plane in front of the statue area.", "前景草坪", "前景草坪形成雕像区域前方开阔的视觉平面。"),
+      module_4: both("Sunset Hillside", "The distant hillside and warm sky form the visible campus backdrop behind the statue and trees.", "夕照山坡", "远处山坡和暖色天空构成雕像与树冠背后的可见校园背景。"),
+      module_5: both("Left Tree Canopy", "The left tree canopy frames the monument and reflects the mature greenery around Yuquan Campus.", "左侧树冠", "左侧树冠框住纪念性主体，也体现玉泉校区成熟的绿化环境。"),
+      module_6: both("Right Tree Canopy", "The right tree canopy balances the frame and helps locate the statue within a tree-lined campus scene.", "右侧树冠", "右侧树冠平衡画面构图，帮助把雕像定位在林木环绕的校园场景中。")
     }
   };
 
@@ -112,3 +112,4 @@
     getHotspotText: getHotspotText
   };
 })();
+

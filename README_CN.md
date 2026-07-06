@@ -14,7 +14,7 @@
 > ChatImage 将长篇 LLM 回答转化为一张可交互的生成图：用户可以点击图中区域，查看局部解释，并围绕该区域继续追问。
 
 <p align="center">
-  <img src="docs/assets/demos/real-west-lake-tour-map.png" alt="West Lake strict scenic map ChatImage demo" width="760" />
+  <img src="docs/assets/demos/real-zju-yuquan-mao-statue-scene.png" alt="Zhejiang University Yuquan Mao statue ChatImage demo" width="760" />
 </p>
 
 [English](README.md) | 简体中文
@@ -112,12 +112,15 @@ Copy-Item .env.example .env.local
 
 | Demo | 类型 | 热点数 | 入选原因 |
 | --- | --- | ---: | --- |
-| West Lake strict scenic map | 地图 | 9 | 断桥、白堤、苏堤和景区区域均带视觉定位与 SAM mask。 |
+| West Lake hand-drawn tour map | 地图 | 9 | 断桥、白堤、苏堤和景区区域均带视觉定位与 SAM mask。 |
 | Healthy breakfast options | 场景 | 6 | 早餐食物对象边界清晰，适合做营养和适用场景解释。 |
 | Boutique coffee shop scene | 场景 | 6 | 吧台、座位、甜品柜和排队区等空间目标清楚。 |
 | Sunny reading nook | 场景 | 5 | 小型室内场景稳定，物体边界明确。 |
 | Independent record-store corner | 场景 | 5 | 零售空间较密集，但区域仍可读。 |
 | Indoor plant care corner | 场景 | 5 | 日常养护工具和植物目标区分度较好。 |
+| Li Bai and Shakespeare comparison | 对比 | 6 | 李白与莎士比亚的文学对比场景，人物和文化意象均有独立热点。 |
+| Transformer development timeline | 学术 | 6 | 六个技术里程碑作为可点击学术时间线展示。 |
+| Zhejiang University Yuquan Mao statue scene | 场景 | 6 | 玉泉校区参考图对齐场景，包含毛像、基座、前景草坪、夕照山坡与两侧树冠。 |
 
 较弱或被拒绝的 case 记录在 `docs/demo-eligibility.md`，用于说明失败模式，避免只展示好看的成功样例。
 

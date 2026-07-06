@@ -14,7 +14,7 @@
 > ChatImage turns a long-form LLM answer into a generated picture with clickable regions, per-region explanations, and contextual follow-up threads.
 
 <p align="center">
-  <img src="docs/assets/demos/real-west-lake-tour-map.png" alt="West Lake strict scenic map ChatImage demo" width="760" />
+  <img src="docs/assets/demos/real-zju-yuquan-mao-statue-scene.png" alt="Zhejiang University Yuquan Mao statue ChatImage demo" width="760" />
 </p>
 
 English | [简体中文](README_CN.md)
@@ -108,11 +108,11 @@ Keep real credentials in `.env.local`. The browser talks to the local backend, a
 
 The demo gallery is not a separate hand-authored path. It contains selected outputs from the same generation and alignment workflow, exported under `docs/assets/demos/` so visitors can inspect the interaction without API keys, model weights, or a GPU.
 
-Published demos are curated for visible, useful interaction. The West Lake showcase was regenerated after fact checking, and visible map labels are kept in sync with strict vision-grounded hotspots.
+Published demos are curated for visible, useful interaction. The West Lake showcase keeps the generated map image and preserved hotspot state together so the visible regions stay in sync.
 
 | Demo | Type | Hotspots | Why it is included |
 | --- | --- | ---: | --- |
-| West Lake strict scenic map | Map | 9 | West Lake water, Bai Causeway and Broken Bridge, Su Causeway, islands, pagoda, hills, and gardens all have vision-grounded SAM masks. |
+| West Lake hand-drawn tour map | Map | 9 | West Lake water, Bai Causeway and Broken Bridge, Su Causeway, islands, pagoda, hills, and gardens keep preserved vision-grounded hotspot masks. |
 | Healthy breakfast options | Scene | 6 | Everyday food objects are visually separable and useful for nutrition-oriented inspection. |
 | Boutique coffee shop scene | Scene | 6 | Spatial workflow targets such as counter, seating, pastry case, and queue remain clear. |
 | Sunny reading nook | Scene | 5 | A compact interior scene with stable object boundaries. |
@@ -120,7 +120,7 @@ Published demos are curated for visible, useful interaction. The West Lake showc
 | Indoor plant care corner | Scene | 5 | Small daily-care objects are distinct and easy to explain. |
 | Li Bai and Shakespeare comparison | Comparison | 6 | A fact-checked literary comparison with two poets, separate cultural motifs, and no invented historical contact. |
 | Transformer development timeline | Academic | 6 | Six technical milestones remain clickable as a compact academic timeline. |
-| Zhejiang University Yuquan Mao statue scene | Scene | 6 | A reference-guided campus landmark view with clickable statue, pedestal, lawn, building facade, and tree canopies. |
+| Zhejiang University Yuquan Mao statue scene | Scene | 6 | A reference-aligned campus landmark view with clickable Mao statue, pedestal, lawn, sunset hillside, and tree canopies. |
 
 Weak or rejected cases are tracked in `docs/demo-eligibility.md` to keep the public demo honest about failure modes.
 
