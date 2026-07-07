@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://wencanjiang.github.io/ChatImage/"><img src="https://img.shields.io/badge/Project%20page-demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project page" /></a>
-  <a href="https://wencanjiang.github.io/ChatImage/chatImage.pdf"><img src="https://img.shields.io/badge/Technical%20report-PDF-25a36a?style=flat-square&logo=googledocs" alt="Technical report" /></a>
+  <a href="https://arxiv.org/abs/2607.05290"><img src="https://img.shields.io/badge/Technical%20report-arXiv-b31b1b?style=flat-square&logo=arxiv" alt="Technical report" /></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-22.5%2B-339933?style=flat-square&logo=nodedotjs" alt="Node.js 22.5+" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square&logo=opensourceinitiative" alt="MIT license" /></a>
 </p>
@@ -194,7 +194,7 @@ npm run test:real-visual-acceptance
 
 | Resource | Description |
 | --- | --- |
-| [Technical report](https://wencanjiang.github.io/ChatImage/chatImage.pdf) | PDF report covering the task, method, implementation, and evaluation details. |
+| [Technical report](https://arxiv.org/abs/2607.05290) | arXiv report covering the task, method, implementation, and evaluation details. |
 | [Project page](https://wencanjiang.github.io/ChatImage/) | Hosted project page and interactive demo gallery. |
 | [Test case catalog](docs/test-cases-catalog.md) | Prompt coverage and scenario notes for common demo and evaluation cases. |
 

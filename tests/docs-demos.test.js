@@ -36,7 +36,8 @@ function main() {
     "showcase should be exported from curated real ChatImage runs"
   );
   assert.match(html, /interactive-viewer/, "docs page should include the interactive demo viewer");
-  assert.match(html, /href="chatImage\.pdf"/, "docs page should link the technical report PDF directly");
+  assert.match(html, /https:\/\/arxiv\.org\/abs\/2607\.05290/, "docs page should link the arXiv technical report");
+  assert.doesNotMatch(html, /chatImage\.pdf/, "docs page should not link the outdated PDF");
   assert.doesNotMatch(html, /href="TECHNICAL_REPORT\.md"/, "docs page should not link the markdown technical report");
   assert.match(html, /demoHotspots/, "docs page should render hotspot overlays");
   assert.match(html, /id="demoDetail"/, "docs lightbox should include a stable side detail panel");

@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://wencanjiang.github.io/ChatImage/"><img src="https://img.shields.io/badge/Project%20page-demo-1f6feb?style=flat-square&logo=googlechrome" alt="Project page" /></a>
-  <a href="https://wencanjiang.github.io/ChatImage/chatImage.pdf"><img src="https://img.shields.io/badge/Technical%20report-PDF-25a36a?style=flat-square&logo=googledocs" alt="Technical report" /></a>
+  <a href="https://arxiv.org/abs/2607.05290"><img src="https://img.shields.io/badge/Technical%20report-arXiv-b31b1b?style=flat-square&logo=arxiv" alt="Technical report" /></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-22.5%2B-339933?style=flat-square&logo=nodedotjs" alt="Node.js 22.5+" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square&logo=opensourceinitiative" alt="MIT license" /></a>
 </p>
@@ -194,7 +194,7 @@ npm run test:real-visual-acceptance
 
 | 资源 | 说明 |
 | --- | --- |
-| [技术报告](https://wencanjiang.github.io/ChatImage/chatImage.pdf) | PDF 报告，覆盖任务、方法、实现和评测细节。 |
+| [技术报告](https://arxiv.org/abs/2607.05290) | arXiv 报告，覆盖任务、方法、实现和评测细节。 |
 | [项目页](https://wencanjiang.github.io/ChatImage/) | 线上项目页和交互式 demo gallery。 |
 | [测试 case 目录](docs/test-cases-catalog.md) | 常见 demo 和评测 prompt 的场景覆盖说明。 |
 
